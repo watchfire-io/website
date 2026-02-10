@@ -1,0 +1,80 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import { BookOpen, Server, Terminal, Monitor, Command } from 'lucide-astro';
+
+const sections = [
+  {
+    title: 'Architecture',
+    description: 'System overview, components, data flow, and technology choices',
+    href: '/docs/architecture',
+    icon: 'BookOpen',
+  },
+  {
+    title: 'Daemon',
+    description: 'The watchfired daemon — lifecycle, networking, orchestration, and PTY management',
+    href: '/docs/daemon',
+    icon: 'Server',
+  },
+  {
+    title: 'TUI',
+    description: 'Terminal user interface — split-panel layout, tabs, and vim-style navigation',
+    href: '/docs/tui',
+    icon: 'Terminal',
+  },
+  {
+    title: 'GUI',
+    description: 'Graphical user interface — multi-project dashboard and settings (planned)',
+    href: '/docs/gui',
+    icon: 'Monitor',
+  },
+  {
+    title: 'CLI',
+    description: 'Command-line reference — init, task management, agent control, and settings',
+    href: '/docs/cli',
+    icon: 'Command',
+  },
+];
+---
+
+<BaseLayout title="Documentation — Watchfire">
+  <Navbar />
+
+  <div class="mx-auto max-w-5xl px-6 pt-32 pb-24">
+    <h1 class="mb-3 font-heading text-4xl font-700 text-flame md:text-5xl">
+      Documentation
+    </h1>
+    <p class="mb-12 max-w-2xl text-lg text-muted">
+      Everything you need to understand, configure, and extend Watchfire.
+    </p>
+
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {sections.map((section) => (
+        <a
+          href={section.href}
+          class="group flex flex-col rounded-xl border border-border bg-card p-6 transition-all duration-200 hover:border-fire/40 hover:bg-elevated hover:shadow-[0_0_24px_rgba(224,112,64,0.06)]"
+        >
+          <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-elevated text-fire transition-colors group-hover:bg-fire/10">
+            {section.icon === 'BookOpen' && <BookOpen size={20} />}
+            {section.icon === 'Server' && <Server size={20} />}
+            {section.icon === 'Terminal' && <Terminal size={20} />}
+            {section.icon === 'Monitor' && <Monitor size={20} />}
+            {section.icon === 'Command' && <Command size={20} />}
+          </div>
+          <h2 class="mb-2 text-lg font-600 text-flame transition-colors group-hover:text-fire">
+            {section.title}
+          </h2>
+          <p class="mb-4 flex-1 text-sm leading-relaxed text-muted">
+            {section.description}
+          </p>
+          <span class="text-sm font-500 text-fire opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            Read more &rarr;
+          </span>
+        </a>
+      ))}
+    </div>
+  </div>
+
+  <Footer />
+</BaseLayout>
