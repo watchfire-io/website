@@ -25,3 +25,6 @@ pnpm-debug.log*
 
 # watchfire
 .watchfire/
+node_modules/
+dist/
+.astro/
