@@ -1,0 +1,37 @@
+---
+import { Github } from "lucide-astro";
+---
+
+<footer class="border-t border-border/50">
+  <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 py-8 sm:flex-row">
+    <!-- Left: wordmark + copyright -->
+    <div class="flex items-center gap-3">
+      <span class="font-display text-sm font-700 tracking-wider text-flame/70">WATCHFIRE</span>
+      <span class="text-sm text-muted/50">&copy; 2025 Watchfire</span>
+    </div>
+
+    <!-- Right: links -->
+    <div class="flex items-center gap-6">
+      <a
+        href="https://github.com/watchfire-io/watchfire"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-flame"
+      >
+        <Github size={14} />
+        GitHub
+      </a>
+      <a href="/docs" class="text-sm text-muted transition-colors hover:text-flame">
+        Docs
+      </a>
+      <a
+        href="https://github.com/watchfire-io/watchfire/releases"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-sm text-muted transition-colors hover:text-flame"
+      >
+        Releases
+      </a>
+    </div>
+  </div>
+</footer>

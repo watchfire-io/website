@@ -1,1 +1,4 @@
 .watchfire/
+node_modules/
+dist/
+.astro/

@@ -1,0 +1,32 @@
+---
+import { Star } from "lucide-astro";
+---
+
+<a
+  href="https://github.com/watchfire-io/watchfire"
+  target="_blank"
+  rel="noopener noreferrer"
+  class="star-badge group inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-mono font-500 text-muted transition-all hover:border-ember/40 hover:text-ember"
+  id="star-badge"
+>
+  <Star size={14} class="text-ember" />
+  <span id="star-count">GitHub</span>
+</a>
+
+<script>
+  async function fetchStars() {
+    try {
+      const res = await fetch("https://api.github.com/repos/watchfire-io/watchfire");
+      if (!res.ok) return;
+      const data = await res.json();
+      const count = data.stargazers_count;
+      const el = document.getElementById("star-count");
+      if (el && typeof count === "number") {
+        el.textContent = count >= 1000 ? (count / 1000).toFixed(1) + "k" : String(count);
+      }
+    } catch {
+      // Keep fallback text
+    }
+  }
+  fetchStars();
+</script>

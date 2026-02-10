@@ -1,0 +1,81 @@
+---
+import { Download, ArrowRight } from "lucide-astro";
+import StarCount from "./StarCount.astro";
+---
+
+<section class="relative overflow-hidden pt-32 pb-24 md:pt-44 md:pb-32">
+  <!-- Background glow effects -->
+  <div class="pointer-events-none absolute inset-0">
+    <div class="absolute top-1/4 left-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-fire/[0.04] blur-[120px]"></div>
+    <div class="absolute bottom-0 left-1/4 h-[400px] w-[400px] rounded-full bg-ember/[0.03] blur-[100px]"></div>
+  </div>
+
+  <!-- Subtle grid pattern -->
+  <div
+    class="pointer-events-none absolute inset-0 opacity-[0.03]"
+    style="background-image: linear-gradient(var(--color-muted) 1px, transparent 1px), linear-gradient(90deg, var(--color-muted) 1px, transparent 1px); background-size: 64px 64px;"
+  ></div>
+
+  <div class="relative mx-auto max-w-4xl px-6 text-center">
+    <!-- Version badge + stars -->
+    <div class="mb-8 flex flex-wrap items-center justify-center gap-3">
+      <span class="inline-flex items-center rounded-full border border-border bg-card px-3 py-1.5 font-mono text-xs font-500 text-muted">
+        v0.1.0 Ember
+      </span>
+      <StarCount />
+    </div>
+
+    <!-- Headline -->
+    <h1 class="font-heading text-4xl font-700 leading-[1.1] tracking-tight text-flame sm:text-5xl md:text-6xl lg:text-7xl">
+      Remote control for
+      <span class="relative">
+        <span class="bg-gradient-to-r from-fire to-ember bg-clip-text text-transparent">AI coding agents</span>
+      </span>
+    </h1>
+
+    <!-- Subtitle -->
+    <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted md:text-xl">
+      Orchestrate coding agent sessions with task-driven workflows. Watchfire manages projects, spawns sandboxed agents, streams live terminals, and merges results — all from a single daemon.
+    </p>
+
+    <!-- CTAs -->
+    <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+      <a
+        href="https://github.com/watchfire-io/watchfire/releases/latest"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="group flex items-center gap-2 rounded-xl bg-fire px-6 py-3.5 font-heading text-base font-600 text-charcoal shadow-[0_0_24px_rgba(224,112,64,0.2)] transition-all hover:bg-fire-hover hover:shadow-[0_0_32px_rgba(224,112,64,0.35)]"
+      >
+        <Download size={18} />
+        Download Watchfire
+      </a>
+      <a
+        href="https://github.com/watchfire-io/watchfire"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="group flex items-center gap-2 rounded-xl border border-border px-6 py-3.5 font-heading text-base font-600 text-body transition-all hover:border-muted hover:text-flame"
+      >
+        View on GitHub
+        <ArrowRight size={16} class="transition-transform group-hover:translate-x-0.5" />
+      </a>
+    </div>
+
+    <!-- Terminal preview hint -->
+    <div class="mx-auto mt-16 max-w-xl">
+      <div class="rounded-xl border border-border bg-card/60 p-4 backdrop-blur-sm">
+        <div class="mb-3 flex items-center gap-2">
+          <div class="h-2.5 w-2.5 rounded-full bg-fire/60"></div>
+          <div class="h-2.5 w-2.5 rounded-full bg-ember/60"></div>
+          <div class="h-2.5 w-2.5 rounded-full bg-muted/30"></div>
+          <span class="ml-2 font-mono text-xs text-muted/60">terminal</span>
+        </div>
+        <pre class="text-left font-mono text-sm leading-relaxed"><code><span class="text-muted">$</span> <span class="text-ember">watchfire</span> init
+<span class="text-muted/70">  Initialized project in ./my-app</span>
+<span class="text-muted">$</span> <span class="text-ember">watchfire</span> task add <span class="text-fire">"Add user auth"</span>
+<span class="text-muted/70">  Created task #1 (status: ready)</span>
+<span class="text-muted">$</span> <span class="text-ember">watchfire</span>
+<span class="text-muted/70">  Launching TUI...</span> <span class="text-fire">&#9608;</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>

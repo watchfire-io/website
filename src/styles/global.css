@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* ===== Watchfire Brand Tokens ===== */
+@theme {
+  --color-fire: #e07040;
+  --color-fire-hover: #c85e32;
+  --color-ember: #e29020;
+  --color-ember-hover: #ca7e18;
+  --color-flame: #fff5e6;
+  --color-charcoal: #16181d;
+  --color-card: #1a1d24;
+  --color-elevated: #22262f;
+  --color-border: #2d3140;
+  --color-muted: #8891a4;
+  --color-body: #c8cdd8;
+
+  --font-display: "Syne", sans-serif;
+  --font-heading: "Outfit", sans-serif;
+  --font-body: "Outfit", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* ===== Base Styles ===== */
+html {
+  scroll-behavior: smooth;
+  background-color: var(--color-charcoal);
+  color: var(--color-body);
+  font-family: var(--font-body);
+}
+
+body {
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: color-mix(in srgb, var(--color-fire) 30%, transparent);
+  color: var(--color-flame);
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-charcoal);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+}
