@@ -1,0 +1,208 @@
+@import "tailwindcss";
+
+/* Google Fonts loaded via <link> tags in BaseLayout.astro */
+
+/* ========== Tailwind v4 Theme ========== */
+@theme {
+  /* Brand Colors */
+  --color-fire-50: #fef6f3;
+  --color-fire-100: #fde9e1;
+  --color-fire-200: #fbd3c3;
+  --color-fire-300: #f5b096;
+  --color-fire-400: #e88050;
+  --color-fire-500: #e07040;
+  --color-fire-600: #c45a30;
+  --color-fire-700: #a54828;
+  --color-fire-800: #863b22;
+  --color-fire-900: #6e3220;
+  --color-fire: #e07040;
+
+  --color-ember: #e29020;
+  --color-ember-light: #f0b050;
+  --color-ember-dark: #b87018;
+
+  --color-flame: #fff5e6;
+
+  /* Background Colors (dark theme) */
+  --color-charcoal: #16181d;
+  --color-charcoal-50: #2d3140;
+  --color-charcoal-100: #22262f;
+  --color-charcoal-200: #1a1d24;
+  --color-charcoal-300: #16181d;
+
+  /* Status Colors */
+  --color-success: #28c940;
+  --color-warning: #ffbd2e;
+  --color-error: #ff5f57;
+  --color-info: #007aff;
+
+  /* Font Families */
+  --font-heading: "Outfit", system-ui, sans-serif;
+  --font-body: "Outfit", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* Font Sizes */
+  --text-4xl: 3rem;
+  --text-4xl--line-height: 1.1;
+  --text-3xl: 2.25rem;
+  --text-3xl--line-height: 1.2;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.3;
+
+  /* Border Radius */
+  --radius-wf: 8px;
+  --radius-wf-lg: 12px;
+  --radius-wf-xl: 16px;
+  --radius-wf-2xl: 24px;
+
+  /* Box Shadows */
+  --shadow-wf: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-wf-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-wf-glow: 0 0 20px rgba(224, 112, 64, 0.3);
+
+  /* Animation */
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ========== DARK THEME (Default) ========== */
+:root {
+  /* Brand Colors */
+  --wf-fire: #e07040;
+  --wf-ember: #e29020;
+  --wf-flame: #fff5e6;
+
+  /* Background Colors */
+  --wf-bg-primary: #16181d;
+  --wf-bg-secondary: #1a1d24;
+  --wf-bg-elevated: #22262f;
+
+  /* Border Colors */
+  --wf-border: #2d3140;
+  --wf-border-light: #3a4050;
+  --wf-border-hover: #e07040;
+
+  /* Text Colors */
+  --wf-text-primary: #ffffff;
+  --wf-text-secondary: #888888;
+  --wf-text-muted: #888888;
+
+  /* Status Colors */
+  --wf-success: #28c940;
+  --wf-warning: #ffbd2e;
+  --wf-error: #ff5f57;
+  --wf-info: #007aff;
+
+  /* Typography */
+  --wf-font-heading: "Outfit", -apple-system, BlinkMacSystemFont, sans-serif;
+  --wf-font-body: "Outfit", -apple-system, BlinkMacSystemFont, sans-serif;
+  --wf-font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* Spacing */
+  --wf-space-1: 0.25rem;
+  --wf-space-2: 0.5rem;
+  --wf-space-3: 0.75rem;
+  --wf-space-4: 1rem;
+  --wf-space-5: 1.5rem;
+  --wf-space-6: 2rem;
+  --wf-space-7: 3rem;
+  --wf-space-8: 4rem;
+  --wf-space-9: 6rem;
+
+  /* Border Radius */
+  --wf-radius-sm: 4px;
+  --wf-radius-md: 8px;
+  --wf-radius-lg: 12px;
+  --wf-radius-xl: 16px;
+  --wf-radius-2xl: 24px;
+  --wf-radius-full: 9999px;
+
+  /* Shadows */
+  --wf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --wf-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --wf-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --wf-shadow-glow: 0 0 20px rgba(224, 112, 64, 0.3);
+
+  /* Transitions */
+  --wf-transition-fast: 0.1s ease;
+  --wf-transition-base: 0.2s ease;
+  --wf-transition-slow: 0.3s ease;
+}
+
+/* ========== LIGHT THEME ========== */
+@media (prefers-color-scheme: light) {
+  :root {
+    --wf-fire: #b85a30;
+    --wf-ember: #c07818;
+    --wf-flame: #fff5e6;
+
+    --wf-bg-primary: #fdfcfa;
+    --wf-bg-secondary: #f7f5f2;
+    --wf-bg-elevated: #ffffff;
+
+    --wf-border: #e5e2dc;
+    --wf-border-light: #d8d4cc;
+    --wf-border-hover: #b85a30;
+
+    --wf-text-primary: #1a1d24;
+    --wf-text-secondary: #555555;
+    --wf-text-muted: #777777;
+
+    --wf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --wf-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --wf-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --wf-shadow-glow: 0 0 20px rgba(184, 90, 48, 0.2);
+  }
+}
+
+/* ========== BASE STYLES ========== */
+@layer base {
+  html {
+    font-family: var(--wf-font-body);
+    background-color: var(--wf-bg-primary);
+    color: var(--wf-text-primary);
+  }
+
+  body {
+    font-size: 1rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--wf-font-heading);
+    line-height: 1.1;
+  }
+
+  h1 {
+    font-size: 3rem;
+    font-weight: 700;
+  }
+
+  h2 {
+    font-size: 2.25rem;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  code, pre {
+    font-family: var(--wf-font-mono);
+    font-size: 0.875rem;
+  }
+
+  a {
+    color: var(--wf-fire);
+    text-decoration: none;
+    transition: color var(--wf-transition-fast);
+  }
+
+  a:hover {
+    color: var(--wf-ember);
+  }
+}

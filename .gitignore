@@ -23,4 +23,9 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
+<<<<<<< HEAD
 .watchfire
+=======
+# watchfire
+.watchfire/
+>>>>>>> watchfire/0001
