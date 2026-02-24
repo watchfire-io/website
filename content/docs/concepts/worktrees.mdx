@@ -1,0 +1,76 @@
+---
+title: Git Worktree Isolation
+description: Each task runs in its own git worktree, providing complete isolation between parallel tasks and the main working tree.
+---
+
+# Git Worktree Isolation
+
+Watchfire uses git worktrees to isolate each task's work from the main working tree and from other tasks. This means agents can make changes freely without affecting your main branch or other running tasks.
+
+## How It Works
+
+When a task starts, the daemon:
+
+1. Creates a new branch: `watchfire/<task_number>` (e.g., `watchfire/0001`)
+2. Creates a worktree at `.watchfire/worktrees/<task_number>/`
+3. The agent runs inside this worktree, not the main working tree
+4. On completion, the worktree is merged back to the target branch
+
+```
+your-project/
+├── .watchfire/
+│   └── worktrees/
+│       ├── 0001/          ← Agent for task 1 works here
+│       │   ├── src/
+│       │   └── ...
+│       └── 0002/          ← Agent for task 2 works here
+│           ├── src/
+│           └── ...
+├── src/                   ← Your main working tree (untouched)
+└── ...
+```
+
+## Branch Management
+
+| Aspect | Behavior |
+|--------|----------|
+| **Branch naming** | `watchfire/<task_number>` (e.g., `watchfire/0001`) |
+| **Creation** | Created from current HEAD of the default branch |
+| **Stale branches** | If a branch already exists, it's deleted and recreated from current HEAD |
+| **Cleanup** | Branch deleted after successful merge (if `auto_delete_branch` is enabled) |
+
+## Merge Behavior
+
+When a task completes successfully:
+
+1. The daemon merges the worktree branch into the target branch (usually `main`)
+2. If the merge succeeds, the worktree and branch are cleaned up
+3. If a merge conflict occurs:
+   - `git merge --abort` restores a clean working directory
+   - The chain stops (in Start All / Wildfire mode) to prevent cascading failures
+   - You need to resolve the conflict manually
+
+## Why Worktrees?
+
+### Isolation
+
+Each task gets a complete, independent copy of the codebase. The agent can modify any file without affecting:
+- Your main working tree
+- Other running tasks
+- Uncommitted changes you're working on
+
+### Parallel Safety
+
+Multiple agents can work on different tasks simultaneously (one per project, but across projects). Each has its own worktree, so there are no file conflicts during execution.
+
+### Clean Merges
+
+Since each task branches from the same point, merges are straightforward. Watchfire handles the merge automatically when `auto_merge` is enabled.
+
+### Easy Rollback
+
+If a task produces bad results, you can simply discard the branch. Your main branch is never modified until a successful merge.
+
+## Pruning
+
+The daemon periodically detects and cleans orphaned worktrees — worktrees that exist on disk but are no longer associated with an active task.

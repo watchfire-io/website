@@ -1,0 +1,80 @@
+---
+title: Sandboxing
+description: Watchfire runs agents inside macOS sandbox-exec profiles, restricting filesystem and network access to limit blast radius.
+---
+
+# Sandboxing
+
+Watchfire runs coding agents inside a macOS sandbox using `sandbox-exec`. This limits what the agent process can access, reducing the blast radius of any unintended actions.
+
+## How It Works
+
+Every agent process is wrapped in a sandbox:
+
+```bash
+sandbox-exec -f <profile> claude --dangerously-skip-permissions --append-system-prompt "..." [--prompt "..."]
+```
+
+The sandbox profile is embedded in the Watchfire binary and is not user-visible or editable. This ensures consistent security boundaries across all agent sessions.
+
+## Security Model
+
+| Aspect | Behavior |
+|--------|----------|
+| **Sandbox** | Agent process runs inside macOS `sandbox-exec` |
+| **Profile** | Custom profile restricting filesystem/network access |
+| **Profile storage** | Embedded in binary, not user-visible |
+| **Agent permissions** | Agent runs in "yolo mode" — full permissions within sandbox |
+| **Claude Code flag** | `--dangerously-skip-permissions` |
+
+The key insight: the agent has free reign **inside** the sandbox. The sandbox limits what "free reign" actually means.
+
+## What's Allowed
+
+Inside the sandbox, agents can:
+
+- **Read** most of the filesystem (project files, system libraries, tools)
+- **Write** to the project directory and temporary directories
+- **Execute** installed tools (git, npm, make, etc.)
+- **Network** — Full network access for package installation, API calls, etc.
+
+## What's Blocked
+
+The sandbox restricts access to sensitive locations:
+
+- `~/.ssh` — SSH keys and configuration
+- `~/.aws` — AWS credentials
+- `~/.gnupg` — GPG keys
+- `~/Desktop`, `~/Documents`, `~/Downloads` — Personal directories
+- `.env` files — Environment secrets
+- `.git/hooks` — Git hooks (prevents hook injection)
+
+## Why sandbox-exec?
+
+macOS `sandbox-exec` provides kernel-level enforcement through the App Sandbox framework. Unlike userspace restrictions:
+
+- The agent process **cannot bypass** the sandbox
+- Even if the agent writes malicious code, it runs within the same sandbox
+- Child processes inherit the sandbox profile
+
+## Platform Support
+
+Sandboxing is currently macOS-only, as it relies on `sandbox-exec`. On other platforms, agents run without sandbox restrictions. Linux sandboxing support (via seccomp/AppArmor) is planned for a future release.
+
+## Agent Permissions Flow
+
+```
+User starts task
+    ↓
+Daemon creates sandbox profile
+    ↓
+Daemon spawns: sandbox-exec -f <profile> claude ...
+    ↓
+Agent runs with --dangerously-skip-permissions
+    ↓
+Claude Code has full autonomy WITHIN sandbox boundaries
+    ↓
+Sandbox blocks access to sensitive files/directories
+```
+
+The `--dangerously-skip-permissions` flag tells Claude Code to skip its own permission prompts. This is safe because the macOS sandbox enforces stricter boundaries at the OS level.

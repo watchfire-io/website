@@ -1,0 +1,46 @@
+---
+title: Overview
+description: Watchfire is a remote control for AI coding agents. Orchestrate Claude Code sessions with task files, git worktree isolation, and sandboxed execution.
+---
+
+# Watchfire
+
+Watchfire orchestrates coding agent sessions (starting with Claude Code) based on task files. It manages multiple projects in parallel, spawning agents in sandboxed PTYs with git worktree isolation. A daemon handles all orchestration while thin clients (CLI/TUI and GUI) connect over gRPC.
+
+## Components
+
+| Component | Binary | Description |
+|-----------|--------|-------------|
+| **Daemon** | `watchfired` | Orchestration, PTY management, git workflows, gRPC server, system tray |
+| **CLI/TUI** | `watchfire` | Project-scoped CLI commands + interactive TUI mode |
+| **GUI** | `Watchfire.app` | Electron multi-project client |
+
+## How It Works
+
+1. **Define** your project with `watchfire init` and a project definition
+2. **Create tasks** describing what you want built
+3. **Start agents** that work in isolated git worktrees (one branch per task)
+4. **Monitor** progress through the TUI or GUI with live terminal output
+5. **Review and merge** completed work back to your default branch
+
+The daemon watches task files for changes. When an agent marks a task as done, Watchfire automatically stops the agent, merges the worktree (if auto-merge is enabled), and chains to the next task.
+
+## Quick Example
+
+```bash
+# Initialize a project
+cd your-project
+watchfire init
+
+# Add tasks
+watchfire task add
+
+# Launch the TUI
+watchfire
+```
+
+## Next Steps
+
+- [Installation](/docs/installation) — Install Watchfire from source or Homebrew
+- [Quick Start](/docs/quickstart) — Get up and running in minutes
+- [Architecture](/docs/concepts/architecture) — Understand how the pieces fit together

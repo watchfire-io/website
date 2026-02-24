@@ -1,0 +1,119 @@
+---
+title: Projects and Tasks
+description: Understand Watchfire's project configuration and task lifecycle. Projects and tasks are defined as YAML files.
+---
+
+# Projects and Tasks
+
+Watchfire uses YAML files to define projects and tasks. This file-based approach makes it easy to version control your task definitions and inspect state at any time.
+
+## Project Configuration
+
+Each project has a `project.yaml` file in `.watchfire/`:
+
+```yaml
+project_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+name: my-project
+default_branch: main
+default_agent: claude-code
+sandbox: sandbox-exec
+auto_merge: true
+auto_delete_branch: true
+auto_start_tasks: true
+definition: |
+  This project is a web application that...
+next_task_number: 5
+```
+
+### Project Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `default_branch` | `main` | Branch to merge completed work into |
+| `default_agent` | `claude-code` | The coding agent to use |
+| `sandbox` | `sandbox-exec` | Sandbox mechanism (macOS) |
+| `auto_merge` | `true` | Merge worktree on task completion |
+| `auto_delete_branch` | `true` | Delete branch after successful merge |
+| `auto_start_tasks` | `true` | Start agent when task set to ready |
+| `definition` | (empty) | Project context for the AI agent |
+
+### Project Definition
+
+The `definition` field provides context for AI agents working on your project. It should describe:
+
+- What the project does
+- Tech stack and conventions
+- Key architectural decisions
+- File structure overview
+
+Agents read this definition to understand the codebase before working on tasks.
+
+## Task Schema
+
+Tasks are stored as individual YAML files in `.watchfire/tasks/`:
+
+```yaml
+task_id: a1b2c3d4
+task_number: 1
+title: "Setup project structure"
+prompt: |
+  Create the initial project structure with a Next.js app,
+  Tailwind CSS, and TypeScript configuration.
+acceptance_criteria: |
+  - Next.js app boots successfully
+  - Tailwind CSS is configured
+  - TypeScript strict mode enabled
+status: draft
+success: null
+failure_reason: ""
+position: 1
+agent_sessions: 0
+created_at: "2026-01-15T10:30:00Z"
+updated_at: "2026-01-15T10:30:00Z"
+```
+
+### Task Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `task_id` | string | 8-character alphanumeric identifier |
+| `task_number` | int | Sequential number, used for file naming |
+| `title` | string | Short description of the task |
+| `prompt` | string | Detailed instructions for the agent |
+| `acceptance_criteria` | string | How to verify the task is complete |
+| `status` | enum | `draft`, `ready`, or `done` |
+| `success` | bool/null | `null` (pending), `true`, or `false` |
+| `failure_reason` | string | Explanation if `success: false` |
+| `position` | int | Order within the task list |
+
+## Task Lifecycle
+
+Tasks flow through three statuses:
+
+### Draft
+
+A task in `draft` status is being written or refined. It is not ready for an agent to work on. In Wildfire mode, the **Refine** phase picks up draft tasks and improves their prompts and acceptance criteria.
+
+### Ready
+
+A task in `ready` status is queued for execution. If `auto_start_tasks` is enabled, setting a task to ready will automatically start an agent. When multiple tasks are ready, the agent picks the next one by:
+
+1. Sort by `position` (ascending)
+2. If equal, sort by `task_number` (ascending)
+3. Pick first
+
+### Done
+
+A task in `done` status has been completed (or failed). Check the `success` field:
+- `success: true` — Task completed successfully
+- `success: false` — Task failed or was blocked. Check `failure_reason` for details.
+
+## Multi-Project Management
+
+The daemon manages multiple projects simultaneously:
+
+| Aspect | Behavior |
+|--------|----------|
+| **Projects index** | `~/.watchfire/projects.yaml` lists all registered projects |
+| **Registration** | Projects added via `watchfire init` or the GUI |
+| **Concurrency** | One active task per project, multiple projects in parallel |

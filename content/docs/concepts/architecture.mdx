@@ -1,0 +1,107 @@
+---
+title: Architecture
+description: Understand Watchfire's architecture — a daemon orchestrates coding agents while thin clients connect over gRPC.
+---
+
+# Architecture
+
+Watchfire follows a daemon + thin client architecture. A single daemon process (`watchfired`) manages all orchestration, while lightweight clients (CLI/TUI and GUI) connect over gRPC to display state and accept user input.
+
+## Components
+
+| Component | Binary | Role | Tech |
+|-----------|--------|------|------|
+| **Daemon** | `watchfired` | Orchestration, PTY management, terminal emulation, git workflows, gRPC server, system tray | Go |
+| **CLI/TUI** | `watchfire` | CLI commands + TUI mode. Project-scoped thin client | Go + Bubbletea |
+| **GUI** | `Watchfire.app` | Multi-project thin client (shows all projects) | Electron |
+
+## Data Flow
+
+```
+User → CLI/TUI or GUI → gRPC → Daemon → PTY → Coding Agent (Claude Code)
+                                   ↓
+                              Git Worktrees
+                              File Watching
+                              Sandbox (macOS)
+```
+
+The daemon is the single source of truth. Clients are stateless views that subscribe to updates.
+
+## Network
+
+| Aspect | Decision |
+|--------|----------|
+| **Protocol** | gRPC + gRPC-Web (multiplexed on same port) |
+| **Port** | Dynamic allocation (OS assigns free port) |
+| **Discovery** | Connection info written to `~/.watchfire/daemon.yaml` |
+| **Clients** | CLI/TUI use native gRPC, GUI uses gRPC-Web |
+
+## PTY and Terminal Emulation
+
+Watchfire uses a real PTY (pseudo-terminal) to run coding agents, with terminal emulation to parse escape codes:
+
+```
+sandbox-exec (macOS sandbox)
+       ↓ contains
+Coding Agent (e.g., Claude Code)
+       ↓ runs inside
+     PTY (github.com/creack/pty)
+       ↓ raw output with escape codes
+   vt10x (github.com/hinshun/vt10x)
+       ↓ parsed into
+   Screen Buffer (rows × cols grid)
+       ↓ streamed via
+     gRPC to clients
+```
+
+The screen buffer is a 2D grid of cells, each with character, foreground/background color, and style attributes (bold, italic, underline, inverse). The cursor position is also tracked.
+
+## File Watching
+
+The daemon uses `fsnotify` to watch for changes to task files:
+
+| Aspect | Behavior |
+|--------|----------|
+| **Mechanism** | fsnotify with debouncing |
+| **Global watched** | `~/.watchfire/projects.yaml` |
+| **Per-project watched** | `.watchfire/project.yaml`, `.watchfire/tasks/*.yaml` |
+| **Polling fallback** | Task-mode agents poll task YAML every 5s as safety net |
+| **Reaction** | File changes trigger real-time updates to connected clients |
+
+## Crash Recovery
+
+| Scenario | Behavior |
+|----------|----------|
+| **Daemon crashes mid-task** | On restart, user must manually restart task |
+| **Agent crashes** | Daemon detects PTY exit, stops task |
+
+## Directory Structures
+
+### Global (`~/.watchfire/`)
+
+```
+~/.watchfire/
+├── daemon.yaml         # Connection info (host, port, PID)
+├── agents.yaml         # Running agents state
+├── projects.yaml       # Projects index
+├── settings.yaml       # Global settings
+├── installation_id     # Stable UUID for analytics
+└── logs/               # Session logs
+    └── <project_id>/
+        └── <task_number>-<session>-<timestamp>.log
+```
+
+### Per-Project (`<project>/.watchfire/`)
+
+```
+<project>/
+├── .watchfire/
+│   ├── project.yaml    # Project configuration
+│   ├── tasks/          # Task YAML files
+│   │   ├── 0001.yaml
+│   │   ├── 0002.yaml
+│   │   └── ...
+│   └── worktrees/      # Git worktrees (one per active task)
+│       └── <task_number>/
+└── <project files>
+```

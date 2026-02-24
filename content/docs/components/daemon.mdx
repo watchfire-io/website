@@ -1,0 +1,103 @@
+---
+title: Daemon (watchfired)
+description: The Watchfire daemon is the backend brain — managing projects, spawning agents, handling git workflows, and serving clients over gRPC.
+---
+
+# Daemon (`watchfired`)
+
+The daemon is the backend brain of Watchfire. It manages multiple projects simultaneously, watches for file changes, spawns coding agents in sandboxed PTYs with terminal emulation, handles git worktree workflows, and serves state to thin clients over gRPC.
+
+## Lifecycle
+
+| Aspect | Behavior |
+|--------|----------|
+| **Development** | Run `watchfired --foreground` for hot reload (tray still active) |
+| **Production** | Runs in background, started automatically by CLI/TUI/GUI if not running |
+| **Persistence** | Stays running when thin clients close |
+| **Shutdown** | Ctrl+C (foreground), CLI command, or system tray quit |
+
+The daemon starts automatically when you run any `watchfire` command. It persists in the background even after the CLI/TUI exits, so agent sessions keep running.
+
+## Network
+
+| Aspect | Decision |
+|--------|----------|
+| **Protocol** | gRPC + gRPC-Web (multiplexed on same port) |
+| **Port** | Dynamic allocation (OS assigns free port) |
+| **Discovery** | Connection info written to `~/.watchfire/daemon.yaml` |
+| **Clients** | CLI/TUI use native gRPC, GUI uses gRPC-Web |
+
+## Multi-Project Management
+
+| Aspect | Behavior |
+|--------|----------|
+| **Projects index** | `~/.watchfire/projects.yaml` lists all registered projects |
+| **Registration** | Projects added via CLI (`watchfire init`) or GUI |
+| **Concurrency** | One active task per project, multiple projects in parallel |
+| **Client tracking** | Tracks which clients are watching which projects |
+| **Task cancellation** | Task stops only when ALL clients for that project disconnect |
+
+## File Watching
+
+The daemon uses `fsnotify` to watch for changes:
+
+| Aspect | Behavior |
+|--------|----------|
+| **Mechanism** | fsnotify with debouncing |
+| **Robustness** | Handles create-then-rename pattern (common with AI tools) |
+| **Per-project** | `.watchfire/project.yaml`, `.watchfire/tasks/*.yaml` |
+| **Polling fallback** | 5s polling as safety net for missed watcher events |
+| **Re-watch on chain** | Re-watches directories created during earlier phases |
+
+## Task Lifecycle
+
+The daemon manages the reactive task lifecycle:
+
+```
+1. Client calls StartTask(task_id)
+2. Daemon creates git worktree for task
+3. Daemon spawns coding agent in sandboxed PTY (inside worktree)
+4. Daemon streams screen buffer to subscribed clients
+5. Agent updates task file when done (status: done)
+6. Daemon detects via fsnotify OR polling fallback (5s)
+7. Daemon kills agent (if still running)
+8. Daemon processes git rules (merge, delete worktree)
+9. Daemon starts next task (if queued and merge succeeded)
+```
+
+## Phase Completion Signals
+
+The daemon detects phase completion via signal files:
+
+| Phase | Signal File | Daemon Response |
+|-------|-------------|-----------------|
+| **Task** | Task YAML `status: done` | Stop agent, merge worktree, start next |
+| **Refine** | `.watchfire/refine_done.yaml` | Stop agent, start next phase |
+| **Generate** | `.watchfire/generate_done.yaml` | Check for new tasks or end wildfire |
+| **Generate Definition** | `.watchfire/definition_done.yaml` | Stop agent (single-shot) |
+| **Generate Tasks** | `.watchfire/tasks_done.yaml` | Stop agent (single-shot) |
+
+## System Tray
+
+The daemon runs a system tray icon with a menu:
+
+| Menu Item | Content |
+|-----------|---------|
+| **Status header** | "Watchfire Daemon" |
+| **Port** | "Running on port: port" |
+| **Running agents** | List with project name |
+| **Open GUI** | Launches Electron GUI |
+| **Quit** | Shuts down daemon |
+
+## Daemon Commands
+
+```bash
+# Start the daemon (no-op if already running)
+watchfire daemon start
+
+# Show daemon status
+watchfire daemon status
+
+# Stop the daemon
+watchfire daemon stop
+```

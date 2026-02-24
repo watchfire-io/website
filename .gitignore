@@ -43,3 +43,6 @@ next-env.d.ts
 # watchfire
 .watchfire
 .watchfire/
+
+# fumadocs
+.source/

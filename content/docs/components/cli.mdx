@@ -1,0 +1,148 @@
+---
+title: CLI / TUI
+description: The Watchfire CLI provides scriptable commands while the TUI offers an interactive split-view interface for managing tasks and monitoring agents.
+---
+
+# CLI / TUI (`watchfire`)
+
+The CLI/TUI is the primary interface for developers. A single binary (`watchfire`) operates in two modes: CLI commands for scripting and automation, and TUI mode for interactive work. It's project-scoped — run from within a project directory.
+
+## CLI Commands
+
+### Global
+
+| Command | Alias | Description |
+|---------|-------|-------------|
+| `watchfire` | | Start TUI |
+| `watchfire version` | `--version`, `-v` | Show version (all components) |
+| `watchfire help` | `-h` | Show help |
+| `watchfire update` | | Update all components |
+| `watchfire init` | | Initialize project in current directory |
+
+### Project Lifecycle
+
+| Command | Alias | Description |
+|---------|-------|-------------|
+| `watchfire define` | `def` | Edit project definition in $EDITOR |
+| `watchfire configure` | `config` | Configure project settings (interactive) |
+
+### Task Management
+
+| Command | Alias | Description |
+|---------|-------|-------------|
+| `watchfire task list` | `task ls` | List tasks (excludes deleted) |
+| `watchfire task list --deleted` | | List soft-deleted tasks |
+| `watchfire task add` | | Add new task (interactive) |
+| `watchfire task <taskid>` | | Edit task (interactive) |
+| `watchfire task delete <taskid>` | `task rm <taskid>` | Soft delete task |
+| `watchfire task restore <taskid>` | | Restore soft-deleted task |
+
+### Execution
+
+| Command | Alias | Description |
+|---------|-------|-------------|
+| `watchfire run` | | Start chat mode |
+| `watchfire run <taskid>` | | Run specific task |
+| `watchfire run all` | | Run all ready tasks sequentially |
+| `watchfire plan` | | Generate tasks from project definition |
+| `watchfire generate` | `gen` | Generate project definition |
+| `watchfire wildfire` | `fire` | Autonomous three-phase loop |
+
+### Daemon
+
+| Command | Alias | Description |
+|---------|-------|-------------|
+| `watchfire daemon start` | | Start the daemon |
+| `watchfire daemon status` | | Show daemon info |
+| `watchfire daemon stop` | | Stop the daemon |
+
+## `watchfire init` Flow
+
+```
+1. Check for git → if missing, initialize git repo
+2. Create .watchfire/ directory structure
+3. Create initial project.yaml
+4. Append .watchfire/ to .gitignore
+5. Commit .gitignore change
+6. Prompt for project definition (optional)
+7. Prompt for project settings
+8. Save project.yaml
+9. Register project in ~/.watchfire/projects.yaml
+```
+
+## TUI Mode
+
+Launch by running `watchfire` with no arguments. The TUI provides a split-view interface:
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│ ● project-name  Tasks | Definition | Settings    Chat | Logs  ● Idle│
+├────────────────────────────────┬─────────────────────────────────────┤
+│  Task List                     │  Agent Terminal / Logs              │
+│                                │                                     │
+│  Draft (2)                     │  > Starting session...              │
+│    #0001 Setup structure       │                                     │
+│    #0004 Add authentication    │  Claude Code v2.1                   │
+│                                │                                     │
+│  Ready (1)                     │  > Working on task...               │
+│  ● #0002 Implement login [▶]  │                                     │
+│                                │                                     │
+│  Done (2)                      │                                     │
+│    #0003 Create schema   ✓    │                                     │
+│    #0005 Add tests       ✓    │                                     │
+├────────────────────────────────┴─────────────────────────────────────┤
+│ Ctrl+q quit  Ctrl+h help  Tab switch panel           a add  s start │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### Navigation
+
+| Input | Action |
+|-------|--------|
+| `Tab` | Switch between left/right panels |
+| `j/k` or `↓/↑` | Move up/down in lists |
+| `h/l` or `←/→` | Switch tabs |
+| `1/2/3` | Switch left panel tabs |
+| `Enter` | Select/edit item |
+| `Esc` | Close overlay / cancel |
+| `Ctrl+q` | Quit |
+| `Ctrl+h` | Help overlay |
+
+### Task Actions
+
+When the task list is focused:
+
+| Key | Action |
+|-----|--------|
+| `a` | Add new task |
+| `e` / `Enter` | Edit selected task |
+| `s` | Start task (set to Ready + start agent) |
+| `r` | Move task to Ready |
+| `t` | Move task to Draft |
+| `d` | Mark done |
+| `x` | Delete (soft) |
+
+### Left Panel Tabs
+
+| Tab | Content |
+|-----|---------|
+| **Tasks** | Task list grouped by status |
+| **Definition** | Project definition (press `e` to edit in $EDITOR) |
+| **Settings** | Git config, automation toggles |
+
+### Right Panel Tabs
+
+| Tab | Content |
+|-----|---------|
+| **Chat** | Live agent terminal output |
+| **Logs** | Past session logs per task |
+
+### TUI Features
+
+- Mouse support (click, scroll, drag divider)
+- Vim-like + arrow key navigation
+- Resizable panels (40/60 default split)
+- Real-time streaming from daemon
+- Context-sensitive keyboard shortcuts
+- Agent issue banners (auth errors, rate limits)
+- Auto-reconnect on daemon disconnection
