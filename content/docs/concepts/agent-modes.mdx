@@ -1,0 +1,119 @@
+---
+title: Agent Modes
+description: Watchfire supports six agent modes — Chat, Task, Start All, Wildfire, Generate Definition, and Generate Tasks.
+---
+
+# Agent Modes
+
+Watchfire supports six modes for running AI coding agents, ranging from interactive chat to fully autonomous operation.
+
+## Chat
+
+Interactive session with the coding agent. No task context — the agent starts in the project root directory and you communicate directly through the terminal.
+
+```bash
+watchfire run
+```
+
+Use Chat mode for:
+- Exploring the codebase
+- Quick one-off changes
+- Debugging and investigation
+- Asking questions about the code
+
+## Task
+
+Execute a specific task from the task list. The agent receives the task's prompt and acceptance criteria, works in an isolated git worktree, and updates the task file when done.
+
+```bash
+watchfire run <task_id>
+```
+
+The agent:
+1. Starts in the worktree (`.watchfire/worktrees/<task_number>/`)
+2. Reads the task prompt and acceptance criteria
+3. Works autonomously to complete the task
+4. Sets `status: done` and `success: true/false` when finished
+5. Watchfire detects completion and handles merge/cleanup
+
+## Start All
+
+Run all ready tasks sequentially. Each task gets its own agent session and worktree. When one task completes, the next one starts automatically.
+
+```bash
+watchfire run all
+```
+
+The chain stops if:
+- All ready tasks are complete
+- A merge conflict occurs (prevents cascading failures)
+- You cancel with Ctrl+C
+
+## Wildfire
+
+The flagship mode. A fully autonomous three-phase loop that can plan, execute, and iterate without human intervention.
+
+```bash
+watchfire wildfire
+```
+
+### Phase 1: Execute
+
+Works on all `ready` tasks, one at a time. Same as Start All mode — each task gets its own worktree and agent session.
+
+### Phase 2: Refine
+
+When no ready tasks remain, picks up `draft` tasks. The agent:
+- Analyzes the codebase and project definition
+- Improves the draft task's prompt and acceptance criteria
+- Sets the task to `ready` when refined
+
+### Phase 3: Generate
+
+When no draft tasks remain, the agent:
+- Analyzes the project and completed work
+- Creates new tasks if meaningful work remains
+- If new tasks are created, the loop restarts from Phase 1
+
+### Wildfire State Machine
+
+```
+Execute (ready tasks) → Refine (draft tasks) → Generate (no tasks left)
+         ↑                      ↑                         |
+         └──────────────────────┘─────────────────────────┘
+                                                (if new tasks → loop)
+                                                (if no new tasks → stop)
+```
+
+Wildfire stops when the Generate phase creates no new tasks, or when you press Ctrl+C.
+
+## Generate Definition
+
+Auto-generate a project definition by analyzing the codebase. The agent reads your project's files and produces a comprehensive description for the `definition` field in `project.yaml`.
+
+```bash
+watchfire generate
+```
+
+This is a single-shot command — the agent runs once and exits.
+
+## Generate Tasks
+
+Auto-generate tasks from the project definition. The agent reads your project definition and creates a set of tasks to build or improve the project.
+
+```bash
+watchfire plan
+```
+
+This is also single-shot. Review the generated tasks and move them to `ready` when you're satisfied.
+
+## Mode Comparison
+
+| Mode | Autonomous | Worktree | Use Case |
+|------|-----------|----------|----------|
+| **Chat** | No | No | Interactive exploration |
+| **Task** | Yes | Yes | Single task execution |
+| **Start All** | Yes | Yes | Sequential batch execution |
+| **Wildfire** | Fully | Yes | End-to-end autonomous development |
+| **Generate Definition** | Yes | No | Bootstrap project context |
+| **Generate Tasks** | Yes | No | Bootstrap task list |

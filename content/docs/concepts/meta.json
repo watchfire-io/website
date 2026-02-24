@@ -1,0 +1,10 @@
+{
+  "title": "Concepts",
+  "pages": [
+    "architecture",
+    "projects-and-tasks",
+    "agent-modes",
+    "worktrees",
+    "sandboxing"
+  ]
+}

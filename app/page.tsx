@@ -6,10 +6,14 @@ import HowItWorks from "@/components/HowItWorks";
 import AgentModes from "@/components/AgentModes";
 import KeyFeatures from "@/components/KeyFeatures";
 import QuickInstall from "@/components/QuickInstall";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 export default function Home() {
   return (
     <>
+    <Header />
+    <main>
     <section className="relative flex min-h-screen items-center overflow-hidden px-6 py-24">
       {/* Background gradient */}
       <div
@@ -85,6 +89,8 @@ export default function Home() {
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
 
     <QuickInstall />
+    </main>
+    <Footer />
     </>
   );
 }

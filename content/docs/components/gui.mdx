@@ -1,0 +1,105 @@
+---
+title: GUI (Watchfire.app)
+description: The Watchfire GUI is an Electron app providing a multi-project interface for managing tasks, monitoring agents, and reviewing work.
+---
+
+# GUI (`Watchfire.app`)
+
+The GUI is a multi-project client built with Electron. Unlike the CLI/TUI (which is project-scoped), the GUI shows all registered projects in one place. It connects to the daemon via gRPC-Web.
+
+## Layout
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Sidebar          │  Main Content                │  Right Panel │
+│                   │                              │  (collapsible)│
+│  - Logo/version   │  Dashboard OR Project View   │              │
+│  - Dashboard      │                              │  - Chat      │
+│  - Projects list  │                              │  - Branches  │
+│  - Add Project    │                              │  - Logs      │
+│  - Settings       │                              │              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Dashboard
+
+The dashboard shows an overview of all registered projects:
+
+- Project cards with name, status dot, and task counts (Draft/Ready/Done)
+- Active task indicator on each card
+- "Add Project" button
+- Click a card to open the Project View
+
+## Add Project Wizard
+
+A three-step wizard for adding new projects:
+
+### Step 1 — Project Info
+- Project name
+- Path (folder picker)
+- Git status (auto-detected)
+- Branch (auto-detected)
+
+### Step 2 — Git Configuration
+- Target branch
+- Auto-merge on completion
+- Delete branch after merge
+- Auto-start tasks
+
+### Step 3 — Project Definition
+- Markdown editor for project context
+- Skip option for later
+
+## Project View
+
+A split layout with tabs for managing individual projects:
+
+### Left/Center Tabs
+
+| Tab | Content |
+|-----|---------|
+| **Tasks** | Grouped by status (Draft, Ready, Done) with search and filters |
+| **Definition** | Markdown editor for project definition |
+| **Trash** | Soft-deleted tasks with restore and permanent delete |
+| **Settings** | Git config, automation toggles, project color |
+
+### Right Panel (Collapsible)
+
+| Tab | Content |
+|-----|---------|
+| **Chat** | Live agent terminal streamed from daemon |
+| **Branches** | List of worktrees/branches with status and actions |
+| **Logs** | Past session logs per task |
+
+## Task Status Display
+
+| Internal Status | Display Label | Visual |
+|-----------------|---------------|--------|
+| `draft` | Todo | Default style |
+| `ready` | In Development | Highlighted |
+| `ready` + agent active | In Development | Animated indicator |
+| `done` (success: true) | Done | Green indicator |
+| `done` (success: false) | Failed | Red indicator |
+
+## Global Settings
+
+| Section | Content |
+|---------|---------|
+| **Defaults** | Default branch, automation toggles for new projects |
+| **Appearance** | Theme (System/Light/Dark) |
+| **Claude CLI** | Path detection, custom path, install instructions |
+| **Updates** | Check frequency, auto-download toggle |
+
+## Installation
+
+The GUI is installed as part of the full install:
+
+```bash
+make install-all
+```
+
+This places `Watchfire.app` in your Applications folder. The GUI connects to the same daemon as the CLI/TUI — they share state and can run simultaneously.
+
+## Connection
+
+The GUI uses gRPC-Web to communicate with the daemon. Connection details are discovered from `~/.watchfire/daemon.yaml`. If the daemon isn't running, the GUI can start it automatically.

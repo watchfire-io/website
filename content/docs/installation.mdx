@@ -1,0 +1,90 @@
+---
+title: Installation
+description: Install Watchfire from Homebrew or build from source. Prerequisites include Go 1.23+ and Claude Code.
+---
+
+# Installation
+
+## Prerequisites
+
+- **Go 1.23+** — Required for building the daemon and CLI
+- **Node.js 20+** — Required for the GUI (Electron app)
+- **macOS** — Sandbox support uses `sandbox-exec` (macOS only)
+- **Claude Code** — The AI coding agent that Watchfire orchestrates
+
+## Install via Homebrew
+
+The fastest way to install Watchfire:
+
+```bash
+brew install watchfire-io/tap/watchfire
+```
+
+This installs both the daemon (`watchfired`) and the CLI/TUI (`watchfire`).
+
+## Build from Source
+
+Clone the repository and build:
+
+```bash
+git clone https://github.com/watchfire-io/watchfire.git
+cd watchfire
+
+# Install dev tools (golangci-lint, air, protoc plugins)
+make install-tools
+
+# Build daemon + CLI
+make build
+
+# Install to /usr/local/bin
+make install
+```
+
+### Build Targets
+
+| Target | Description |
+|--------|-------------|
+| `make build` | Build daemon + CLI (native arch) |
+| `make build-universal` | Build universal (fat) binaries for macOS |
+| `make install` | Build and install to `/usr/local/bin` |
+| `make install-all` | Install CLI, daemon, and GUI app |
+
+## Install the GUI
+
+The GUI is an Electron app that can be installed alongside the CLI:
+
+```bash
+make install-all
+```
+
+This installs the CLI, daemon, and `Watchfire.app` to your Applications folder.
+
+## Verify Installation
+
+After installation, verify everything is working:
+
+```bash
+# Check CLI version
+watchfire version
+
+# Start the daemon
+watchfire daemon start
+
+# Check daemon status
+watchfire daemon status
+```
+
+## Development Setup
+
+For working on Watchfire itself:
+
+```bash
+# Daemon with hot reload
+make dev-daemon
+
+# TUI (build + run)
+make dev-tui
+
+# GUI dev mode
+make dev-gui
+```

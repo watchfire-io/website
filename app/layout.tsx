@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { RootProvider } from "fumadocs-ui/provider/next";
 import "./globals.css";
 
 const inter = Inter({
@@ -26,13 +25,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-zinc-950 text-zinc-100`}
       >
-        <Header />
-        <main>{children}</main>
-        <Footer />
+        <RootProvider
+          theme={{
+            enabled: true,
+            defaultTheme: "dark",
+          }}
+        >
+          {children}
+        </RootProvider>
       </body>
     </html>
   );
