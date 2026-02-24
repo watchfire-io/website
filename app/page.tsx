@@ -2,9 +2,14 @@ import { Suspense } from "react";
 import HeroIllustration from "@/components/HeroIllustration";
 import InstallSnippet from "@/components/InstallSnippet";
 import GitHubStars from "@/components/GitHubStars";
+import HowItWorks from "@/components/HowItWorks";
+import AgentModes from "@/components/AgentModes";
+import KeyFeatures from "@/components/KeyFeatures";
+import QuickInstall from "@/components/QuickInstall";
 
 export default function Home() {
   return (
+    <>
     <section className="relative flex min-h-screen items-center overflow-hidden px-6 py-24">
       {/* Background gradient */}
       <div
@@ -63,5 +68,23 @@ export default function Home() {
         </div>
       </div>
     </section>
+
+    {/* Section divider */}
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+
+    <HowItWorks />
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+
+    <AgentModes />
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+
+    <KeyFeatures />
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+
+    <QuickInstall />
+    </>
   );
 }
