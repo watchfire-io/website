@@ -1,0 +1,66 @@
+---
+title: watchfire daemon
+description: Manage the Watchfire daemon — start, stop, and check status.
+---
+
+# watchfire daemon
+
+Manage the Watchfire daemon (`watchfired`).
+
+## Usage
+
+```bash
+watchfire daemon <subcommand>
+```
+
+## Subcommands
+
+### daemon start
+
+Start the daemon process.
+
+```bash
+watchfire daemon start
+```
+
+Starts `watchfired` if it's not already running. This is usually not needed — the daemon is started automatically when you run any project-scoped command.
+
+### daemon status
+
+Show daemon status information.
+
+```bash
+watchfire daemon status
+```
+
+Displays the daemon's host, port, PID, uptime, and number of active agent sessions.
+
+### daemon stop
+
+Stop the daemon.
+
+```bash
+watchfire daemon stop
+```
+
+Sends a SIGTERM to the daemon process, gracefully shutting it down. All active agent sessions will be terminated.
+
+## Notes
+
+- The daemon starts automatically when you run commands like `watchfire run`, `watchfire wildfire`, or launch the TUI
+- Multiple CLI/TUI instances can connect to the same daemon simultaneously
+- If the daemon shuts down, all connected CLI/TUI instances will close
+- The daemon manages all projects registered in `~/.watchfire/projects.yaml`
+
+## Examples
+
+```bash
+# Check if the daemon is running
+watchfire daemon status
+
+# Manually start the daemon
+watchfire daemon start
+
+# Stop the daemon
+watchfire daemon stop
+```

@@ -1,0 +1,58 @@
+---
+title: watchfire wildfire
+description: Start the autonomous wildfire mode — execute, refine, and generate tasks in a continuous loop.
+---
+
+# watchfire wildfire
+
+Start the autonomous wildfire mode.
+
+**Alias:** `watchfire fire`
+
+## Usage
+
+```bash
+watchfire wildfire
+```
+
+## Description
+
+Wildfire is Watchfire's fully autonomous mode. It runs a continuous three-phase loop that executes ready tasks, refines draft tasks, and generates new tasks — all without human intervention.
+
+## How It Works
+
+The daemon cycles through three phases based on the current state of your task list:
+
+```
+Execute (ready tasks) → Refine (draft tasks) → Generate (no tasks left)
+         ↑                      ↑                         |
+         └──────────────────────└─────────────────────────┘
+                                                (if new tasks → loop)
+                                                (if no new tasks → chat mode)
+```
+
+### Phase 1: Execute
+
+If there are tasks with `status: ready`, the agent executes them one by one (same as `watchfire run all`).
+
+### Phase 2: Refine
+
+If there are tasks with `status: draft`, the agent reviews and refines them — improving prompts, breaking down large tasks, and setting them to `ready`.
+
+### Phase 3: Generate
+
+If no tasks remain, the agent analyzes the project definition and completed work to generate new tasks. If no new tasks are created, wildfire transitions to chat mode.
+
+## Stopping
+
+Press **Ctrl+C** to stop wildfire at any time. The current agent session will be terminated gracefully.
+
+## Example
+
+```bash
+# Start wildfire
+watchfire wildfire
+
+# Using the alias
+watchfire fire
+```
