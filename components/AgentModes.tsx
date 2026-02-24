@@ -70,13 +70,13 @@ export default function AgentModes() {
   return (
     <section className="relative px-6 py-24">
       {/* Subtle background shift */}
-      <div className="absolute inset-0 bg-zinc-900/50" aria-hidden="true" />
+      <div className="absolute inset-0 bg-zinc-50/80 dark:bg-zinc-900/50" aria-hidden="true" />
 
       <div className="relative mx-auto max-w-6xl">
-        <h2 className="text-center text-3xl font-bold tracking-tight sm:text-4xl">
+        <h2 className="text-center text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
           Agent Modes
         </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-zinc-400">
+        <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-zinc-600 dark:text-zinc-400">
           Multiple ways to interact with your coding agents
         </p>
 
@@ -87,7 +87,7 @@ export default function AgentModes() {
               className={`group relative rounded-xl border p-6 transition-colors ${
                 mode.highlighted
                   ? "border-purple-500/50 bg-purple-500/5 shadow-lg shadow-purple-500/10"
-                  : "border-zinc-800 bg-zinc-900/60 hover:border-zinc-700"
+                  : "border-zinc-200 bg-white/60 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700"
               }`}
             >
               {mode.highlighted && (
@@ -96,21 +96,21 @@ export default function AgentModes() {
               <div
                 className={`inline-flex rounded-lg p-2.5 ${
                   mode.highlighted
-                    ? "bg-purple-500/15 text-purple-400"
-                    : "bg-zinc-800 text-zinc-400 group-hover:text-zinc-300"
+                    ? "bg-purple-500/15 text-purple-500 dark:text-purple-400"
+                    : "bg-zinc-100 text-zinc-500 group-hover:text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:group-hover:text-zinc-300"
                 }`}
               >
                 {mode.icon}
               </div>
-              <h3 className="mt-4 font-semibold text-white">
+              <h3 className="mt-4 font-semibold text-zinc-900 dark:text-white">
                 {mode.name}
                 {mode.highlighted && (
-                  <span className="ml-2 inline-block rounded-full bg-purple-500/20 px-2 py-0.5 text-xs font-medium text-purple-300">
+                  <span className="ml-2 inline-block rounded-full bg-purple-500/20 px-2 py-0.5 text-xs font-medium text-purple-600 dark:text-purple-300">
                     Flagship
                   </span>
                 )}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+              <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
                 {mode.description}
               </p>
             </div>

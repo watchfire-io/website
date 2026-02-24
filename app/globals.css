@@ -19,7 +19,6 @@
   --font-mono: var(--font-jetbrains-mono);
 }
 
-body {
-  background: var(--color-background);
-  color: var(--color-foreground);
+html {
+  scroll-behavior: smooth;
 }

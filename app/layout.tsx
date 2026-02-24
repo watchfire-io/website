@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import "./globals.css";
 
@@ -27,16 +28,22 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-zinc-950 text-zinc-100`}
+        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased transition-colors bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100`}
       >
-        <RootProvider
-          theme={{
-            enabled: true,
-            defaultTheme: "dark",
-          }}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange={false}
         >
-          {children}
-        </RootProvider>
+          <RootProvider
+            theme={{
+              enabled: false,
+            }}
+          >
+            {children}
+          </RootProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -28,14 +28,14 @@ export default function Home() {
       <div className="relative mx-auto flex w-full max-w-7xl flex-col items-center gap-16 lg:flex-row lg:items-center lg:gap-20">
         {/* Text content */}
         <div className="flex-1 text-center lg:text-left">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+          <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-5xl lg:text-6xl">
             Remote control for{" "}
             <span className="bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
               AI coding agents
             </span>
           </h1>
 
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-zinc-400">
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
             Orchestrate Claude Code sessions with task files, git worktree
             isolation, and sandboxed execution.
           </p>
@@ -53,7 +53,7 @@ export default function Home() {
                   href="https://github.com/watchfire-io/watchfire"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900/60 px-5 py-3 font-medium text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
+                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white/60 px-5 py-3 font-medium text-zinc-700 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-white"
                 >
                   GitHub
                 </a>
@@ -74,19 +74,19 @@ export default function Home() {
     </section>
 
     {/* Section divider */}
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
 
     <HowItWorks />
 
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
 
     <AgentModes />
 
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
 
     <KeyFeatures />
 
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
 
     <QuickInstall />
     </main>
