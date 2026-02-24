@@ -1,0 +1,45 @@
+---
+title: watchfire generate
+description: Generate a project definition or task list using an AI agent.
+---
+
+# watchfire generate
+
+Generate a project definition using an AI agent.
+
+**Alias:** `watchfire gen`
+
+## Usage
+
+```bash
+watchfire generate
+```
+
+## Description
+
+`watchfire generate` spawns an agent session that analyzes your codebase and generates a project definition for `project.yaml`. This is useful when starting with an existing codebase and you want the AI to understand and document the project structure, conventions, and architecture.
+
+The generated definition is saved to your `project.yaml` and serves as context for all future agent sessions.
+
+## Related: watchfire plan
+
+To generate tasks from an existing project definition, use:
+
+```bash
+watchfire plan
+```
+
+This spawns an agent that reads your project definition and creates a set of tasks in `.watchfire/tasks/`. It's useful for breaking down a project into actionable work items.
+
+## Examples
+
+```bash
+# Generate a project definition from your codebase
+watchfire generate
+
+# Using the alias
+watchfire gen
+
+# Generate tasks from the project definition
+watchfire plan
+```

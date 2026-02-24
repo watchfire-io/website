@@ -1,0 +1,95 @@
+---
+title: watchfire task
+description: Manage tasks — add, list, edit, delete, and restore tasks in your project.
+---
+
+# watchfire task
+
+Manage tasks in your Watchfire project.
+
+## Usage
+
+```bash
+watchfire task <subcommand> [arguments]
+```
+
+## Subcommands
+
+### task add
+
+Create a new task interactively.
+
+```bash
+watchfire task add
+```
+
+Opens interactive prompts to set the task title, prompt, acceptance criteria, and status. The task is saved as a YAML file in `.watchfire/tasks/`.
+
+### task list
+
+List all tasks in the project.
+
+```bash
+watchfire task list
+watchfire task ls          # alias
+```
+
+Displays tasks grouped by status (draft, ready, done). Soft-deleted tasks are excluded by default.
+
+| Flag | Description |
+|------|-------------|
+| `--deleted` | Include soft-deleted tasks in the listing |
+
+### task \<number\>
+
+Edit an existing task interactively.
+
+```bash
+watchfire task 1
+watchfire task 3
+```
+
+Opens the specified task (by task number) for interactive editing. You can modify the title, prompt, acceptance criteria, and status.
+
+### task delete
+
+Soft-delete a task.
+
+```bash
+watchfire task delete <number>
+watchfire task rm <number>    # alias
+```
+
+Sets the `deleted_at` timestamp on the task. The task file is preserved but hidden from `task list` by default.
+
+### task restore
+
+Restore a soft-deleted task.
+
+```bash
+watchfire task restore <number>
+```
+
+Clears the `deleted_at` timestamp, making the task visible again.
+
+## Examples
+
+```bash
+# Add a new task
+watchfire task add
+
+# List all active tasks
+watchfire task list
+
+# Edit task #2
+watchfire task 2
+
+# Delete task #5
+watchfire task delete 5
+
+# Show deleted tasks
+watchfire task list --deleted
+
+# Restore task #5
+watchfire task restore 5
+```

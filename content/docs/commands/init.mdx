@@ -1,0 +1,58 @@
+---
+title: watchfire init
+description: Initialize a new Watchfire project in the current directory.
+---
+
+# watchfire init
+
+Initialize a new Watchfire project in the current directory.
+
+## Usage
+
+```bash
+watchfire init
+```
+
+## Description
+
+`watchfire init` sets up a new Watchfire project by creating the necessary configuration files and directory structure. It must be run from within a git repository (or it will initialize one for you).
+
+## What It Does
+
+1. Checks for an existing git repository — initializes one if missing
+2. Creates the `.watchfire/` directory structure (including `tasks/`)
+3. Generates an initial `project.yaml` with a UUID and project name (derived from the folder name)
+4. Appends `.watchfire/` to `.gitignore` (creates the file if missing)
+5. Commits the `.gitignore` change
+6. Prompts for an optional project definition
+7. Prompts for project settings
+
+## Interactive Prompts
+
+During initialization, you'll be asked to configure:
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Project definition** | A description of your project for the AI agent | Empty |
+| **Auto-merge** | Automatically merge completed task branches | `true` |
+| **Auto-delete branches** | Delete worktree branches after merge | `true` |
+| **Auto-start tasks** | Start an agent when a task is set to ready | `true` |
+| **Default branch** | The branch to merge completed work into | `main` |
+
+## Example
+
+```bash
+cd my-project
+watchfire init
+```
+
+After running, your project directory will contain:
+
+```
+my-project/
+├── .watchfire/
+│   ├── project.yaml
+│   └── tasks/
+├── .gitignore          # Updated with .watchfire/
+└── ...your files
+```

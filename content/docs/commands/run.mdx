@@ -1,0 +1,58 @@
+---
+title: watchfire run
+description: Run an agent in chat mode, execute a single task, or run all ready tasks.
+---
+
+# watchfire run
+
+Run an agent session — chat mode, single task, or all ready tasks.
+
+## Usage
+
+```bash
+watchfire run [taskid|all]
+```
+
+## Modes
+
+### Chat Mode (no arguments)
+
+```bash
+watchfire run
+```
+
+Starts an interactive chat session with the coding agent. The agent has access to your project but is not assigned a specific task. Equivalent to the old `watchfire chat` command.
+
+### Single Task
+
+```bash
+watchfire run <taskid>
+```
+
+Executes a specific task by its task number. The agent is spawned in an isolated git worktree on a dedicated branch (`watchfire/<taskid>`), with the task prompt and acceptance criteria injected into context.
+
+When the agent marks the task as done, Watchfire automatically:
+- Stops the agent session
+- Merges the worktree branch (if auto-merge is enabled)
+- Cleans up the worktree (if auto-delete is enabled)
+
+### All Ready Tasks
+
+```bash
+watchfire run all
+```
+
+Runs all tasks with `status: ready` sequentially. After each task completes, the next ready task is started automatically. This is equivalent to the Start All agent mode.
+
+## Examples
+
+```bash
+# Interactive chat session
+watchfire run
+
+# Run task #3
+watchfire run 3
+
+# Run all ready tasks in sequence
+watchfire run all
+```
