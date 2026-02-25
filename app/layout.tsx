@@ -18,6 +18,7 @@ const siteUrl = "https://watchfire.io";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  themeColor: "#e07040",
   title: {
     default: "Watchfire — Remote control for AI coding agents",
     template: "%s | Watchfire",
@@ -41,7 +42,12 @@ export const metadata: Metadata = {
     images: ["/og-image.png"],
   },
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32.svg", type: "image/svg+xml", sizes: "32x32" },
+      { url: "/favicon-16.svg", type: "image/svg+xml", sizes: "16x16" },
+    ],
+    apple: [{ url: "/favicon.svg" }],
   },
 };
 
