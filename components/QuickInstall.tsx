@@ -69,11 +69,11 @@ export default function QuickInstall() {
           </div>
 
           {/* Code lines */}
-          <div className="space-y-1 p-5 font-mono text-sm">
+          <div className="overflow-x-auto space-y-1 p-5 font-mono text-sm">
             {lines.map((line, i) => (
               <div key={i} className="flex gap-3">
-                <span className="select-none text-zinc-300 dark:text-zinc-600">$</span>
-                <code className="text-zinc-700 dark:text-zinc-300">{line.text}</code>
+                <span className="shrink-0 select-none text-zinc-300 dark:text-zinc-600">$</span>
+                <code className="whitespace-nowrap text-zinc-700 dark:text-zinc-300">{line.text}</code>
               </div>
             ))}
           </div>

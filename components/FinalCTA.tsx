@@ -47,15 +47,15 @@ export default function FinalCTA() {
 
         {/* Install command */}
         <div className="mt-10 flex justify-center">
-          <div className="group relative inline-flex items-center gap-3 rounded-lg border border-zinc-200 bg-white/80 px-5 py-3 font-mono text-sm backdrop-blur transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/80 dark:hover:border-zinc-700">
-            <span className="select-none text-zinc-400 dark:text-zinc-500">
+          <div className="group relative inline-flex max-w-full items-center gap-3 overflow-x-auto rounded-lg border border-zinc-200 bg-white/80 px-5 py-3 font-mono text-sm backdrop-blur transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/80 dark:hover:border-zinc-700">
+            <span className="shrink-0 select-none text-zinc-400 dark:text-zinc-500">
               $
             </span>
-            <code className="text-zinc-700 dark:text-zinc-300">{command}</code>
+            <code className="whitespace-nowrap text-zinc-700 dark:text-zinc-300">{command}</code>
             <button
               onClick={copy}
               aria-label="Copy install command"
-              className="ml-2 rounded p-1 text-zinc-400 transition-colors hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+              className="ml-2 shrink-0 rounded p-1 text-zinc-400 transition-colors hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300"
             >
               {copied ? (
                 <svg
