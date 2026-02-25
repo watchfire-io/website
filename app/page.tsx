@@ -6,6 +6,7 @@ import HowItWorks from "@/components/HowItWorks";
 import AgentModes from "@/components/AgentModes";
 import KeyFeatures from "@/components/KeyFeatures";
 import QuickInstall from "@/components/QuickInstall";
+import ScrollReveal from "@/components/ScrollReveal";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
@@ -25,7 +26,7 @@ export default function Home() {
         aria-hidden="true"
       />
 
-      <div className="relative mx-auto flex w-full max-w-7xl flex-col items-center gap-16 lg:flex-row lg:items-center lg:gap-20">
+      <div className="hero-entrance relative mx-auto flex w-full max-w-7xl flex-col items-center gap-16 lg:flex-row lg:items-center lg:gap-20">
         {/* Text content */}
         <div className="flex-1 text-center lg:text-left">
           <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-5xl lg:text-6xl">
@@ -76,19 +77,27 @@ export default function Home() {
     {/* Section divider */}
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
 
-    <HowItWorks />
+    <ScrollReveal staggerChildren>
+      <HowItWorks />
+    </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
 
-    <AgentModes />
+    <ScrollReveal staggerChildren>
+      <AgentModes />
+    </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
 
-    <KeyFeatures />
+    <ScrollReveal>
+      <KeyFeatures />
+    </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
 
-    <QuickInstall />
+    <ScrollReveal>
+      <QuickInstall />
+    </ScrollReveal>
     </main>
     <Footer />
     </>

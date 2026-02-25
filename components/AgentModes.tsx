@@ -84,7 +84,8 @@ export default function AgentModes() {
           {modes.map((mode) => (
             <div
               key={mode.name}
-              className={`group relative rounded-xl border p-6 transition-colors ${
+              data-stagger
+              className={`card-hover group relative rounded-xl border p-6 transition-colors ${
                 mode.highlighted
                   ? "border-purple-500/50 bg-purple-500/5 shadow-lg shadow-purple-500/10"
                   : "border-zinc-200 bg-white/60 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700"
