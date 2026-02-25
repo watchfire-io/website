@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Outfit, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
 });
 
@@ -31,12 +31,14 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Watchfire",
     url: siteUrl,
+    images: [{ url: "/og-image.png" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Watchfire — Remote control for AI coding agents",
     description:
       "Orchestrate AI coding agents with task management, git worktree isolation, and sandboxed execution.",
+    images: ["/og-image.png"],
   },
   icons: {
     icon: "/favicon.svg",
@@ -51,7 +53,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased transition-colors bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100`}
+        className={`${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased transition-colors bg-white text-zinc-900 dark:bg-[#16181d] dark:text-zinc-100`}
       >
         <ThemeProvider
           attribute="class"

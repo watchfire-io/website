@@ -7,35 +7,35 @@ const features = [
       <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
         {/* Task cards */}
         <rect x="40" y="30" width="140" height="40" rx="8" className="fill-zinc-100 stroke-zinc-300 dark:fill-zinc-800 dark:stroke-zinc-700" strokeWidth="1" />
-        <rect x="52" y="42" width="60" height="4" rx="2" fill="#a855f7" opacity="0.6" />
+        <rect x="52" y="42" width="60" height="4" rx="2" fill="#e07040" opacity="0.6" />
         <rect x="52" y="52" width="100" height="3" rx="1.5" className="fill-zinc-300 dark:fill-zinc-600" />
         <circle cx="160" cy="50" r="8" fill="#22c55e" opacity="0.2" />
         <polyline points="156,50 159,53 164,47" stroke="#22c55e" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
 
-        <rect x="40" y="85" width="140" height="40" rx="8" className="fill-zinc-100 dark:fill-zinc-800" stroke="#a855f7" strokeWidth="1" opacity="0.9" />
-        <rect x="52" y="97" width="50" height="4" rx="2" fill="#a855f7" opacity="0.8" />
+        <rect x="40" y="85" width="140" height="40" rx="8" className="fill-zinc-100 dark:fill-zinc-800" stroke="#e07040" strokeWidth="1" opacity="0.9" />
+        <rect x="52" y="97" width="50" height="4" rx="2" fill="#e07040" opacity="0.8" />
         <rect x="52" y="107" width="90" height="3" rx="1.5" className="fill-zinc-300 dark:fill-zinc-600" />
-        <circle cx="160" cy="105" r="8" fill="#a855f7" opacity="0.2" />
-        <rect x="157" y="102" width="6" height="6" rx="1" fill="none" stroke="#a855f7" strokeWidth="1.5" />
+        <circle cx="160" cy="105" r="8" fill="#e07040" opacity="0.2" />
+        <rect x="157" y="102" width="6" height="6" rx="1" fill="none" stroke="#e07040" strokeWidth="1.5" />
 
         <rect x="40" y="140" width="140" height="40" rx="8" className="fill-zinc-100 stroke-zinc-300 dark:fill-zinc-800 dark:stroke-zinc-700" strokeWidth="1" opacity="0.5" />
         <rect x="52" y="152" width="70" height="4" rx="2" className="fill-zinc-300 dark:fill-zinc-600" />
         <rect x="52" y="162" width="80" height="3" rx="1.5" className="fill-zinc-200 dark:fill-zinc-700" />
 
         {/* Arrow flow */}
-        <path d="M200 105 L240 105" stroke="#a855f7" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.5" />
-        <polygon points="240,101 248,105 240,109" fill="#a855f7" opacity="0.5" />
+        <path d="M200 105 L240 105" stroke="#e07040" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.5" />
+        <polygon points="240,101 248,105 240,109" fill="#e07040" opacity="0.5" />
 
         {/* Agent terminal */}
         <rect x="260" y="60" width="120" height="90" rx="8" className="fill-zinc-50 stroke-zinc-300 dark:fill-zinc-900 dark:stroke-zinc-700" strokeWidth="1" />
-        <circle cx="274" cy="74" r="3" fill="#ef4444" opacity="0.6" />
-        <circle cx="284" cy="74" r="3" fill="#eab308" opacity="0.6" />
-        <circle cx="294" cy="74" r="3" fill="#22c55e" opacity="0.6" />
-        <rect x="272" y="88" width="40" height="3" rx="1.5" fill="#a855f7" opacity="0.4" />
+        <circle cx="274" cy="74" r="3" fill="#ff5f57" opacity="0.6" />
+        <circle cx="284" cy="74" r="3" fill="#ffbd2e" opacity="0.6" />
+        <circle cx="294" cy="74" r="3" fill="#28c940" opacity="0.6" />
+        <rect x="272" y="88" width="40" height="3" rx="1.5" fill="#e07040" opacity="0.4" />
         <rect x="272" y="97" width="80" height="3" rx="1.5" className="fill-zinc-300 dark:fill-zinc-600" />
         <rect x="272" y="106" width="60" height="3" rx="1.5" className="fill-zinc-300 dark:fill-zinc-600" />
         <rect x="272" y="115" width="70" height="3" rx="1.5" className="fill-zinc-300 dark:fill-zinc-600" />
-        <rect x="272" y="127" width="8" height="10" rx="1" fill="#a855f7" opacity="0.6">
+        <rect x="272" y="127" width="8" height="10" rx="1" fill="#e07040" opacity="0.6">
           <animate attributeName="opacity" values="0.6;0.2;0.6" dur="1.2s" repeatCount="indefinite" />
         </rect>
       </svg>
@@ -49,8 +49,8 @@ const features = [
       <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
         {/* Main branch */}
         <line x1="60" y1="140" x2="340" y2="140" className="stroke-zinc-300 dark:stroke-zinc-700" strokeWidth="2" />
-        <circle cx="80" cy="140" r="6" fill="#a855f7" />
-        <circle cx="320" cy="140" r="6" fill="#a855f7" />
+        <circle cx="80" cy="140" r="6" fill="#e07040" />
+        <circle cx="320" cy="140" r="6" fill="#e07040" />
 
         {/* Branch 1 - top */}
         <path d="M120 140 C140 140 140 70 160 70" stroke="#22c55e" strokeWidth="1.5" fill="none" />
@@ -83,7 +83,7 @@ const features = [
     illustration: (
       <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
         {/* Shield outline */}
-        <path d="M200 40 L280 75 L280 160 C280 210 200 250 200 250 C200 250 120 210 120 160 L120 75 Z" fill="#a855f7" opacity="0.1" stroke="#a855f7" strokeWidth="1.5" />
+        <path d="M200 40 L280 75 L280 160 C280 210 200 250 200 250 C200 250 120 210 120 160 L120 75 Z" fill="#e07040" opacity="0.1" stroke="#e07040" strokeWidth="1.5" />
 
         {/* Inner shield */}
         <path d="M200 70 L255 95 L255 155 C255 190 200 220 200 220 C200 220 145 190 145 155 L145 95 Z" className="fill-white stroke-zinc-300 dark:fill-zinc-900 dark:stroke-zinc-700" strokeWidth="1" />
@@ -124,8 +124,8 @@ const features = [
     illustration: (
       <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
         {/* Central daemon */}
-        <rect x="155" y="110" width="90" height="60" rx="10" className="fill-white stroke-purple-500 dark:fill-zinc-900" strokeWidth="1.5" />
-        <text x="172" y="137" fill="#a855f7" fontSize="10" fontFamily="monospace">watchfired</text>
+        <rect x="155" y="110" width="90" height="60" rx="10" className="fill-white stroke-fire-500 dark:fill-zinc-900" strokeWidth="1.5" />
+        <text x="172" y="137" fill="#e07040" fontSize="10" fontFamily="monospace">watchfired</text>
         <text x="183" y="155" className="fill-zinc-400 dark:fill-zinc-600" fontSize="9" fontFamily="monospace">daemon</text>
 
         {/* Project 1 - top left */}
@@ -157,7 +157,7 @@ const features = [
         <line x1="300" y1="200" x2="225" y2="170" className="stroke-zinc-300 dark:stroke-zinc-700" strokeWidth="1" strokeDasharray="4 3" />
 
         {/* Pulse on daemon */}
-        <circle cx="200" cy="140" r="35" fill="none" stroke="#a855f7" strokeWidth="0.5" opacity="0.3">
+        <circle cx="200" cy="140" r="35" fill="none" stroke="#e07040" strokeWidth="0.5" opacity="0.3">
           <animate attributeName="r" values="35;50;35" dur="3s" repeatCount="indefinite" />
           <animate attributeName="opacity" values="0.3;0;0.3" dur="3s" repeatCount="indefinite" />
         </circle>
