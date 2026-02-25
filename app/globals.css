@@ -22,6 +22,45 @@
   --font-mono: var(--font-jetbrains-mono);
 }
 
+/* Fumadocs theme overrides — fire orange brand */
+:root {
+  --color-fd-primary: #b85a30;
+  --color-fd-primary-foreground: #fff5e6;
+  --color-fd-background: #fdfcfa;
+  --color-fd-card: #f7f5f2;
+  --color-fd-popover: #ffffff;
+  --color-fd-popover-foreground: #1a1d24;
+  --color-fd-border: #e5e2dc;
+  --color-fd-ring: #e07040;
+  --color-fd-accent: rgba(224, 112, 64, 0.1);
+  --color-fd-accent-foreground: #904520;
+}
+
+.dark {
+  --color-fd-primary: #e07040;
+  --color-fd-primary-foreground: #fff5e6;
+  --color-fd-background: #16181d;
+  --color-fd-foreground: #f4f4f5;
+  --color-fd-card: #1a1d24;
+  --color-fd-card-foreground: #f4f4f5;
+  --color-fd-popover: #22262f;
+  --color-fd-popover-foreground: #f4f4f5;
+  --color-fd-border: #2d3140;
+  --color-fd-muted: #1a1d24;
+  --color-fd-muted-foreground: rgba(244, 244, 245, 0.7);
+  --color-fd-secondary: #22262f;
+  --color-fd-secondary-foreground: #f4f4f5;
+  --color-fd-ring: #e07040;
+  --color-fd-accent: rgba(224, 112, 64, 0.15);
+  --color-fd-accent-foreground: #f0a070;
+}
+
+.dark #nd-sidebar {
+  --color-fd-muted: #1a1d24;
+  --color-fd-secondary: #22262f;
+  --color-fd-muted-foreground: rgba(244, 244, 245, 0.6);
+}
+
 html {
   scroll-behavior: smooth;
 }
