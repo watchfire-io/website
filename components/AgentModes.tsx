@@ -87,17 +87,17 @@ export default function AgentModes() {
               data-stagger
               className={`card-hover group relative rounded-xl border p-6 transition-colors ${
                 mode.highlighted
-                  ? "border-purple-500/50 bg-purple-500/5 shadow-lg shadow-purple-500/10"
+                  ? "border-fire-500/50 bg-fire-500/5 shadow-lg shadow-fire-500/10"
                   : "border-zinc-200 bg-white/60 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700"
               }`}
             >
               {mode.highlighted && (
-                <div className="absolute -inset-px -z-10 rounded-xl bg-gradient-to-b from-purple-500/20 to-transparent blur-sm" />
+                <div className="absolute -inset-px -z-10 rounded-xl bg-gradient-to-b from-fire-500/20 to-transparent blur-sm" />
               )}
               <div
                 className={`inline-flex rounded-lg p-2.5 ${
                   mode.highlighted
-                    ? "bg-purple-500/15 text-purple-500 dark:text-purple-400"
+                    ? "bg-fire-500/15 text-fire-500 dark:text-fire-400"
                     : "bg-zinc-100 text-zinc-500 group-hover:text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:group-hover:text-zinc-300"
                 }`}
               >
@@ -106,7 +106,7 @@ export default function AgentModes() {
               <h3 className="mt-4 font-semibold text-zinc-900 dark:text-white">
                 {mode.name}
                 {mode.highlighted && (
-                  <span className="ml-2 inline-block rounded-full bg-purple-500/20 px-2 py-0.5 text-xs font-medium text-purple-600 dark:text-purple-300">
+                  <span className="ml-2 inline-block rounded-full bg-fire-500/20 px-2 py-0.5 text-xs font-medium text-fire-600 dark:text-fire-300">
                     Flagship
                   </span>
                 )}

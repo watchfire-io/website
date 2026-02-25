@@ -82,7 +82,7 @@ export default function QuickInstall() {
         <div className="mt-8">
           <a
             href="/docs"
-            className="inline-flex items-center gap-1.5 text-purple-600 transition-colors hover:text-purple-500 dark:text-purple-400 dark:hover:text-purple-300"
+            className="inline-flex items-center gap-1.5 text-fire-600 transition-colors hover:text-fire-500 dark:text-fire-400 dark:hover:text-fire-300"
           >
             Read the docs
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

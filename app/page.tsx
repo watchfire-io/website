@@ -21,7 +21,7 @@ export default function Home() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 60% 50% at 50% 40%, rgba(168,85,247,0.12) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 50% at 50% 40%, rgba(224,112,64,0.12) 0%, transparent 70%)",
         }}
         aria-hidden="true"
       />
@@ -31,7 +31,7 @@ export default function Home() {
         <div className="flex-1 text-center lg:text-left">
           <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-5xl lg:text-6xl">
             Remote control for{" "}
-            <span className="bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-fire-400 to-ember-500 bg-clip-text text-transparent">
               AI coding agents
             </span>
           </h1>
@@ -44,7 +44,7 @@ export default function Home() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
             <a
               href="/docs"
-              className="rounded-lg bg-purple-600 px-6 py-3 font-medium text-white transition-colors hover:bg-purple-500"
+              className="rounded-lg bg-fire-500 px-6 py-3 font-medium text-white transition-colors hover:bg-fire-400"
             >
               Get Started
             </a>
