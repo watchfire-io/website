@@ -14,10 +14,33 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = "https://watchfire.io";
+
 export const metadata: Metadata = {
-  title: "Watchfire — Remote control for AI coding agents",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Watchfire — Remote control for AI coding agents",
+    template: "%s | Watchfire",
+  },
   description:
     "Watchfire orchestrates AI coding agents with task management, git worktree isolation, and sandboxed execution. A remote control for Claude Code and beyond.",
+  openGraph: {
+    title: "Watchfire — Remote control for AI coding agents",
+    description:
+      "Orchestrate AI coding agents with task management, git worktree isolation, and sandboxed execution.",
+    type: "website",
+    siteName: "Watchfire",
+    url: siteUrl,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Watchfire — Remote control for AI coding agents",
+    description:
+      "Orchestrate AI coding agents with task management, git worktree isolation, and sandboxed execution.",
+  },
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
