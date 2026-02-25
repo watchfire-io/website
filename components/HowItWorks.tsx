@@ -74,7 +74,7 @@ export default function HowItWorks() {
 
           <div className="grid grid-cols-5 gap-6">
             {steps.map((step) => (
-              <div key={step.number} className="relative flex flex-col items-center text-center">
+              <div key={step.number} data-stagger className="relative flex flex-col items-center text-center">
                 <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full border border-purple-500/30 bg-white text-purple-500 shadow-lg shadow-purple-500/10 dark:bg-zinc-900 dark:text-purple-400">
                   {step.icon}
                 </div>
@@ -97,7 +97,7 @@ export default function HowItWorks() {
             <div className="absolute bottom-0 left-5 top-0 w-px bg-gradient-to-b from-purple-500/40 via-purple-500/20 to-transparent" />
 
             {steps.map((step) => (
-              <div key={step.number} className="relative flex items-start gap-4">
+              <div key={step.number} data-stagger className="relative flex items-start gap-4">
                 <div className="absolute -left-5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-purple-500/30 bg-white text-purple-500 shadow-lg shadow-purple-500/10 dark:bg-zinc-900 dark:text-purple-400">
                   <span className="text-sm font-bold">{step.number}</span>
                 </div>
