@@ -75,18 +75,13 @@ Sandboxing is currently macOS-only, as it relies on `sandbox-exec`. On other pla
 
 ## Agent Permissions Flow
 
-```
-User starts task
-    ↓
-Daemon creates sandbox profile
-    ↓
-Daemon spawns: sandbox-exec -f <profile> claude ...
-    ↓
-Agent runs with --dangerously-skip-permissions
-    ↓
-Claude Code has full autonomy WITHIN sandbox boundaries
-    ↓
-Sandbox blocks access to sensitive files/directories
-```
+<Mermaid chart={`
+graph TD
+    A[User starts task] --> B[Daemon creates sandbox profile]
+    B --> C["Daemon spawns: sandbox-exec -f profile claude ..."]
+    C --> D["Agent runs with --dangerously-skip-permissions"]
+    D --> E["Full autonomy WITHIN sandbox boundaries"]
+    E --> F["Sandbox blocks sensitive files/directories"]
+`} />
 
 The `--dangerously-skip-permissions` flag tells Claude Code to skip its own permission prompts. This is safe because the macOS sandbox enforces stricter boundaries at the OS level.

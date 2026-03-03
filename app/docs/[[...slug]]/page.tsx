@@ -8,6 +8,7 @@ import {
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import DownloadButton from "@/components/DownloadButton";
+import Mermaid from "@/components/Mermaid";
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -28,7 +29,7 @@ export default async function Page(props: {
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>
-        <MDXContent components={{ DownloadButton }} />
+        <MDXContent components={{ DownloadButton, Mermaid }} />
       </DocsBody>
     </DocsPage>
   );

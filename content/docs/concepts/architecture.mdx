@@ -17,15 +17,34 @@ Watchfire follows a daemon + thin client architecture. A single daemon process (
 
 ## Data Flow
 
-```
-User → CLI/TUI or GUI → gRPC → Daemon → PTY → Coding Agent (Claude Code)
-                                   ↓
-                              Git Worktrees
-                              File Watching
-                              Sandbox (macOS)
-```
+<Mermaid chart={`
+graph LR
+    U[User] --> C[CLI/TUI]
+    U --> G[GUI]
+    C -->|gRPC| D[Daemon]
+    G -->|gRPC-Web| D
+    D -->|PTY| A[Coding Agent]
+    D --> W[Git Worktrees]
+    D --> F[File Watching]
+    D --> S[Sandbox]
+`} />
 
 The daemon is the single source of truth. Clients are stateless views that subscribe to updates.
+
+## PTY and Terminal Emulation
+
+Watchfire uses a real PTY (pseudo-terminal) to run coding agents, with terminal emulation to parse escape codes:
+
+<Mermaid chart={`
+graph TD
+    SB["sandbox-exec (macOS)"] --> AG["Coding Agent (Claude Code)"]
+    AG --> PTY["PTY (creack/pty)"]
+    PTY --> VT["vt10x Terminal Parser"]
+    VT --> BUF["Screen Buffer (rows × cols)"]
+    BUF -->|gRPC stream| CL[Clients]
+`} />
+
+The screen buffer is a 2D grid of cells, each with character, foreground/background color, and style attributes (bold, italic, underline, inverse). The cursor position is also tracked.
 
 ## Network
 
@@ -35,26 +54,6 @@ The daemon is the single source of truth. Clients are stateless views that subsc
 | **Port** | Dynamic allocation (OS assigns free port) |
 | **Discovery** | Connection info written to `~/.watchfire/daemon.yaml` |
 | **Clients** | CLI/TUI use native gRPC, GUI uses gRPC-Web |
-
-## PTY and Terminal Emulation
-
-Watchfire uses a real PTY (pseudo-terminal) to run coding agents, with terminal emulation to parse escape codes:
-
-```
-sandbox-exec (macOS sandbox)
-       ↓ contains
-Coding Agent (e.g., Claude Code)
-       ↓ runs inside
-     PTY (github.com/creack/pty)
-       ↓ raw output with escape codes
-   vt10x (github.com/hinshun/vt10x)
-       ↓ parsed into
-   Screen Buffer (rows × cols grid)
-       ↓ streamed via
-     gRPC to clients
-```
-
-The screen buffer is a 2D grid of cells, each with character, foreground/background color, and style attributes (bold, italic, underline, inverse). The cursor position is also tracked.
 
 ## File Watching
 

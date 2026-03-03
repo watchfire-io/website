@@ -28,15 +28,9 @@ The daemon watches task files for changes. When an agent marks a task as done, W
 ## Quick Example
 
 ```bash
-# Initialize a project
 cd your-project
-watchfire init
-
-# Add tasks
-watchfire task add
-
-# Launch the TUI
-watchfire
+watchfire init        # Initialize project & define what you're building
+watchfire wildfire    # Agents generate tasks, code, and merge — autonomously
 ```
 
 ## Next Steps

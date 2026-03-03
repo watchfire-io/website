@@ -23,13 +23,13 @@ Wildfire is Watchfire's fully autonomous mode. It runs a continuous three-phase 
 
 The daemon cycles through three phases based on the current state of your task list:
 
-```
-Execute (ready tasks) → Refine (draft tasks) → Generate (no tasks left)
-         ↑                      ↑                         |
-         └──────────────────────└─────────────────────────┘
-                                                (if new tasks → loop)
-                                                (if no new tasks → chat mode)
-```
+<Mermaid chart={`
+graph LR
+    E["Phase 1: Execute\n(ready tasks)"] --> R["Phase 2: Refine\n(draft tasks)"]
+    R --> G["Phase 3: Generate\n(no tasks left)"]
+    G -->|new tasks created| E
+    G -->|no new tasks| C[Chat Mode]
+`} />
 
 ### Phase 1: Execute
 

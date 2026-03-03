@@ -77,13 +77,13 @@ When no draft tasks remain, the agent:
 
 ### Wildfire State Machine
 
-```
-Execute (ready tasks) → Refine (draft tasks) → Generate (no tasks left)
-         ↑                      ↑                         |
-         └──────────────────────┘─────────────────────────┘
-                                                (if new tasks → loop)
-                                                (if no new tasks → chat mode)
-```
+<Mermaid chart={`
+graph LR
+    E["Phase 1: Execute\n(ready tasks)"] --> R["Phase 2: Refine\n(draft tasks)"]
+    R --> G["Phase 3: Generate\n(no tasks left)"]
+    G -->|new tasks created| E
+    G -->|no new tasks| C[Chat Mode]
+`} />
 
 When the Generate phase creates no new tasks, Wildfire transitions to chat mode. You can also stop it at any time with Ctrl+C.
 
