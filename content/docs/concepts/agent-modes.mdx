@@ -82,10 +82,10 @@ Execute (ready tasks) → Refine (draft tasks) → Generate (no tasks left)
          ↑                      ↑                         |
          └──────────────────────┘─────────────────────────┘
                                                 (if new tasks → loop)
-                                                (if no new tasks → stop)
+                                                (if no new tasks → chat mode)
 ```
 
-Wildfire stops when the Generate phase creates no new tasks, or when you press Ctrl+C.
+When the Generate phase creates no new tasks, Wildfire transitions to chat mode. You can also stop it at any time with Ctrl+C.
 
 ## Generate Definition
 

@@ -38,14 +38,26 @@ Inside the sandbox, agents can:
 - **Execute** installed tools (git, npm, make, etc.)
 - **Network** — Full network access for package installation, API calls, etc.
 
+## Write-Allowed Paths
+
+Beyond the project directory and temp dirs, agents can write to:
+
+- Package manager caches — `~/.npm`, `~/.yarn`, `~/.pnpm-store`, `~/.cache`, `~/Library/Caches/*`
+- Dev tool caches — `~/.cargo`, `~/go`, `~/.rustup`
+- Claude config — `~/.claude`
+- CLI tool config — `~/Library/Application Support`
+
 ## What's Blocked
 
-The sandbox restricts access to sensitive locations:
+The sandbox restricts read and write access to sensitive locations:
 
 - `~/.ssh` — SSH keys and configuration
 - `~/.aws` — AWS credentials
 - `~/.gnupg` — GPG keys
+- `~/.netrc` — Network credentials
+- `~/.npmrc` — npm credentials
 - `~/Desktop`, `~/Documents`, `~/Downloads` — Personal directories
+- `~/Music`, `~/Movies`, `~/Pictures` — Media directories
 - `.env` files — Environment secrets
 - `.git/hooks` — Git hooks (prevents hook injection)
 

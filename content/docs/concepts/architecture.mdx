@@ -65,6 +65,8 @@ The daemon uses `fsnotify` to watch for changes to task files:
 | **Mechanism** | fsnotify with debouncing |
 | **Global watched** | `~/.watchfire/projects.yaml` |
 | **Per-project watched** | `.watchfire/project.yaml`, `.watchfire/tasks/*.yaml` |
+| **Robustness** | Handles create-then-rename pattern (common with AI tools) |
+| **Re-watch on chain** | When agents chain (wildfire/start-all), re-watches to pick up new directories |
 | **Polling fallback** | Task-mode agents poll task YAML every 5s as safety net |
 | **Reaction** | File changes trigger real-time updates to connected clients |
 
@@ -101,6 +103,8 @@ The daemon uses `fsnotify` to watch for changes to task files:
 │   │   ├── 0001.yaml
 │   │   ├── 0002.yaml
 │   │   └── ...
+│   ├── secrets/        # Secrets and setup instructions
+│   │   └── instructions.md
 │   └── worktrees/      # Git worktrees (one per active task)
 │       └── <task_number>/
 └── <project files>
