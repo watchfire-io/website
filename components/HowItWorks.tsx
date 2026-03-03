@@ -92,13 +92,13 @@ export default function HowItWorks() {
 
         {/* Mobile: vertical timeline */}
         <div className="mt-12 lg:hidden">
-          <div className="relative space-y-10 pl-10">
+          <div className="relative space-y-10 pl-14">
             {/* Vertical line */}
-            <div className="absolute bottom-0 left-5 top-0 w-px bg-gradient-to-b from-fire-500/40 via-fire-500/20 to-transparent" />
+            <div className="absolute bottom-0 left-[1.25rem] top-0 w-px bg-gradient-to-b from-fire-500/40 via-fire-500/20 to-transparent" />
 
             {steps.map((step) => (
               <div key={step.number} data-stagger className="relative flex items-start gap-4">
-                <div className="absolute -left-5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-fire-500/30 bg-white text-fire-500 shadow-lg shadow-fire-500/10 dark:bg-zinc-900 dark:text-fire-400">
+                <div className="absolute -left-14 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-fire-500/30 bg-white text-fire-500 shadow-lg shadow-fire-500/10 dark:bg-zinc-900 dark:text-fire-400">
                   <span className="text-sm font-bold">{step.number}</span>
                 </div>
                 <div>

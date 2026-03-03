@@ -4,18 +4,21 @@ import DownloadInstall from "@/components/DownloadInstall";
 import GitHubStars from "@/components/GitHubStars";
 import HowItWorks from "@/components/HowItWorks";
 import AgentModes from "@/components/AgentModes";
+import ComponentsOverview from "@/components/ComponentsOverview";
 import KeyFeatures from "@/components/KeyFeatures";
 import FinalCTA from "@/components/FinalCTA";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { getDmgUrl } from "@/lib/dmg-url";
 
-export default function Home() {
+export default async function Home() {
+  const dmgUrl = await getDmgUrl();
   return (
     <>
     <Header />
     <main>
-    <section className="relative flex min-h-screen items-center overflow-hidden px-6 py-24">
+    <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden px-4 py-16 sm:px-6 sm:py-24">
       {/* Background gradient */}
       <div
         className="pointer-events-none absolute inset-0"
@@ -26,29 +29,33 @@ export default function Home() {
         aria-hidden="true"
       />
 
-      <div className="hero-entrance relative mx-auto flex w-full max-w-7xl flex-col items-center gap-16 lg:flex-row lg:items-center lg:gap-20">
+      <div className="hero-entrance relative mx-auto flex w-full max-w-7xl flex-col items-center gap-6 sm:gap-10 md:flex-row md:items-center md:gap-12 lg:gap-20">
+        {/* Illustration — on mobile: shown above text, on md+: shown to the right */}
+        <div className="w-full max-w-xs sm:max-w-sm md:order-2 md:max-w-none md:flex-1">
+          <HeroIllustration />
+        </div>
+
         {/* Text content */}
-        <div className="flex-1 text-center lg:text-left">
-          <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-5xl lg:text-6xl">
+        <div className="min-w-0 flex-1 overflow-hidden text-center md:order-1 md:text-left">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl lg:text-6xl">
             Better context.{" "}
             <span className="bg-gradient-to-r from-fire-400 to-ember-500 bg-clip-text text-transparent">
               Better code.
             </span>
           </h1>
 
-          <p className="mt-3 text-xl font-medium text-zinc-700 dark:text-zinc-300 sm:text-2xl">
+          <p className="mt-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 sm:text-lg md:text-2xl">
             Give your coding agents the right context and let them ship.
           </p>
 
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
-            Define your project once. Watchfire feeds agents the right specs,
-            constraints, and codebase context — so they write better code.
+          <p className="mx-auto mt-4 max-w-xl text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 sm:mt-6 sm:text-sm md:mx-0 lg:text-lg">
+            Define your project once. Watchfire feeds agents the right specs, constraints, and codebase context&nbsp;&mdash; so they write better code.
           </p>
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3 sm:mt-10 sm:gap-4 md:justify-start">
             <a
               href="/docs"
-              className="rounded-lg border border-zinc-300 bg-white/60 px-5 py-3 font-medium text-zinc-700 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-white"
+              className="rounded-lg border border-zinc-300 bg-white/60 px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-white sm:px-5 sm:py-3 sm:text-base"
             >
               Documentation
             </a>
@@ -58,9 +65,9 @@ export default function Home() {
                   href="https://github.com/watchfire-io/watchfire"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white/60 px-5 py-3 font-medium text-zinc-700 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-white"
+                  className="inline-flex items-center gap-2.5 rounded-full border border-zinc-200 bg-white/70 px-5 py-2.5 text-sm font-medium text-zinc-700 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300"
                 >
-                  GitHub
+                  Star on GitHub
                 </a>
               }
             >
@@ -72,11 +79,6 @@ export default function Home() {
             <DownloadInstall />
           </Suspense>
         </div>
-
-        {/* Illustration */}
-        <div className="flex-1">
-          <HeroIllustration />
-        </div>
       </div>
     </section>
 
@@ -85,6 +87,12 @@ export default function Home() {
 
     <ScrollReveal staggerChildren>
       <HowItWorks />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
+
+    <ScrollReveal staggerChildren>
+      <ComponentsOverview />
     </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
@@ -102,7 +110,7 @@ export default function Home() {
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
 
     <ScrollReveal>
-      <FinalCTA />
+      <FinalCTA dmgUrl={dmgUrl} />
     </ScrollReveal>
     </main>
     <Footer />

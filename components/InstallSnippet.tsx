@@ -17,7 +17,7 @@ export default function InstallSnippet({ dmgUrl }: { dmgUrl: string }) {
   }
 
   return (
-    <div className="mt-8 flex flex-col items-center gap-4 lg:items-start">
+    <div className="mt-8 flex w-full flex-col items-center gap-4 md:items-start">
       {/* Download button */}
       <a
         href={dmgUrl}
@@ -31,27 +31,45 @@ export default function InstallSnippet({ dmgUrl }: { dmgUrl: string }) {
         Download for macOS
       </a>
 
-      {/* Homebrew alternative */}
-      <div className="flex flex-col items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400 lg:items-start">
-        <span>or via Homebrew:</span>
-        <div className="group inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50/80 px-3 py-1.5 font-mono text-xs backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
-          <code className="text-zinc-600 dark:text-zinc-300">{command}</code>
+      {/* Homebrew terminal card */}
+      <div className="w-full max-w-full overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 md:max-w-xl">
+        <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-1.5 dark:border-zinc-800">
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1.5">
+              <div className="h-2 w-2 rounded-full bg-red-500/60" />
+              <div className="h-2 w-2 rounded-full bg-yellow-500/60" />
+              <div className="h-2 w-2 rounded-full bg-green-500/60" />
+            </div>
+            <span className="text-[10px] text-zinc-400 dark:text-zinc-600">or install via Homebrew</span>
+          </div>
           <button
             onClick={copy}
             aria-label="Copy install command"
-            className="shrink-0 text-zinc-400 transition-colors hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
           >
             {copied ? (
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3.5 8.5 6.5 11.5 12.5 5.5" />
-              </svg>
+              <>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3.5 8.5 6.5 11.5 12.5 5.5" />
+                </svg>
+                Copied
+              </>
             ) : (
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="5" y="5" width="8" height="8" rx="1.5" />
-                <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" />
-              </svg>
+              <>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="5" y="5" width="8" height="8" rx="1.5" />
+                  <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" />
+                </svg>
+                Copy
+              </>
             )}
           </button>
+        </div>
+        <div className="px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 select-none font-mono text-xs text-zinc-300 dark:text-zinc-600">$</span>
+            <code className="break-all font-mono text-xs text-zinc-700 dark:text-zinc-300">{command}</code>
+          </div>
         </div>
       </div>
     </div>

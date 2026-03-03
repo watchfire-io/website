@@ -81,6 +81,41 @@ pre code {
   white-space: pre;
 }
 
+/* Code block container styling */
+figure:has(pre .line),
+pre:has(code .line):not(figure pre) {
+  background: var(--color-fd-card, #1a1d24) !important;
+  border: 1px solid var(--color-fd-border, #2d3140) !important;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+/* Remove per-token and per-line orange backgrounds/borders from Shiki */
+pre code span,
+pre code .line {
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove prose inline-code styling from code blocks */
+.prose pre code {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-size: inherit !important;
+  color: inherit !important;
+}
+
+/* Keep highlighted line styling but use subtle neutral */
+pre .line.highlighted {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-left-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+
 /* Hero entrance animation */
 .hero-entrance {
   animation: hero-enter 0.8s ease-out both;

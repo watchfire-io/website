@@ -13,7 +13,7 @@ const lines = [
   { prompt: true, text: "watchfire start --all" },
 ];
 
-export default function FinalCTA() {
+export default function FinalCTA({ dmgUrl = "https://github.com/watchfire-io/watchfire/releases/latest" }: { dmgUrl?: string }) {
   const [copied, setCopied] = useState(false);
 
   const fullText = lines.map((l) => l.text).join("\n");
@@ -55,6 +55,22 @@ export default function FinalCTA() {
         </h2>
         <p className="mt-4 text-lg text-zinc-600 dark:text-zinc-400">
           Install in seconds. Define tasks. Let agents ship code for you.
+        </p>
+
+        {/* Download app — recommended */}
+        <a
+          href={dmgUrl}
+          className="mt-10 inline-flex items-center gap-3 rounded-xl bg-fire-500 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-fire-500/25 transition-all hover:bg-fire-400 hover:shadow-xl hover:shadow-fire-500/30"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Download for macOS
+        </a>
+        <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+          Recommended — includes GUI, CLI, and daemon
         </p>
 
         {/* Install command - terminal style */}
@@ -107,13 +123,15 @@ export default function FinalCTA() {
           </div>
         </div>
 
-        {/* CTA buttons */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+
+
+        {/* Secondary CTA buttons */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
           <a
             href="https://github.com/watchfire-io/watchfire"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg bg-fire-500 px-6 py-3 font-medium text-white transition-colors hover:bg-fire-400"
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white/60 px-6 py-3 font-medium text-zinc-700 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-white"
           >
             <svg
               width="20"
