@@ -41,7 +41,7 @@ If there are tasks with `status: draft`, the agent reviews and refines them — 
 
 ### Phase 3: Generate
 
-If no tasks remain, the agent analyzes the project definition and completed work to generate new tasks. If no new tasks are created, wildfire transitions to chat mode.
+If no tasks remain, the agent analyzes the project definition and completed work to generate new tasks. If new tasks are created, the loop restarts from Phase 1. If no new tasks are created, wildfire transitions to chat mode.
 
 ## Stopping
 
