@@ -3,7 +3,11 @@
 import { useState } from "react";
 
 const lines = [
-  { prompt: true, text: "brew install watchfire-io/tap/watchfire" },
+  { prompt: false, text: "# Install via Homebrew" },
+  { prompt: true, text: "brew tap watchfire-io/tap" },
+  { prompt: true, text: "brew install --cask watchfire-io/tap/watchfire" },
+  { prompt: false, text: "" },
+  { prompt: false, text: "# Set up your project and go" },
   { prompt: true, text: "watchfire init" },
   { prompt: true, text: 'watchfire task add "Build the login page"' },
   { prompt: true, text: "watchfire start --all" },
@@ -71,15 +75,34 @@ export default function QuickInstall() {
           {/* Code lines */}
           <div className="overflow-x-auto space-y-1 p-5 font-mono text-sm">
             {lines.map((line, i) => (
-              <div key={i} className="flex gap-3">
-                <span className="shrink-0 select-none text-zinc-300 dark:text-zinc-600">$</span>
-                <code className="whitespace-nowrap text-zinc-700 dark:text-zinc-300">{line.text}</code>
+              <div key={i} className={`flex gap-3 ${!line.prompt && !line.text ? "h-4" : ""}`}>
+                {line.prompt ? (
+                  <>
+                    <span className="shrink-0 select-none text-zinc-300 dark:text-zinc-600">$</span>
+                    <code className="whitespace-nowrap text-zinc-700 dark:text-zinc-300">{line.text}</code>
+                  </>
+                ) : line.text ? (
+                  <code className="whitespace-nowrap text-zinc-400 dark:text-zinc-500">{line.text}</code>
+                ) : null}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-6">
+          <a
+            href="https://github.com/watchfire-io/watchfire/releases/latest"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg bg-fire-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-fire-400"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download for macOS
+          </a>
           <a
             href="/docs"
             className="inline-flex items-center gap-1.5 text-fire-600 transition-colors hover:text-fire-500 dark:text-fire-400 dark:hover:text-fire-300"

@@ -6,6 +6,8 @@ import {
   DocsDescription,
 } from "fumadocs-ui/layouts/docs/page";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import DownloadButton from "@/components/DownloadButton";
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -26,7 +28,7 @@ export default async function Page(props: {
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>
-        <MDXContent />
+        <MDXContent components={{ DownloadButton }} />
       </DocsBody>
     </DocsPage>
   );

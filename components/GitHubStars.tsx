@@ -2,7 +2,7 @@ async function getStarCount(): Promise<number | null> {
   try {
     const res = await fetch(
       "https://api.github.com/repos/watchfire-io/watchfire",
-      { next: { revalidate: 3600 } }
+      { next: { revalidate: 900 } }
     );
     if (!res.ok) return null;
     const data = await res.json();

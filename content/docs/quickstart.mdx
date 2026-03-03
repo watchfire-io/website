@@ -1,11 +1,11 @@
 ---
 title: Quick Start
-description: Get up and running with Watchfire in minutes. Initialize a project, create tasks, and start your first AI agent.
+description: Get up and running with Watchfire in minutes. Initialize a project and let Wildfire mode handle the rest.
 ---
 
 # Quick Start
 
-This guide walks you through setting up your first Watchfire project, creating tasks, and running an AI agent.
+Two commands to go from zero to autonomous coding agents.
 
 ## 1. Initialize a Project
 
@@ -32,9 +32,29 @@ During initialization, you'll configure:
 - **Auto-start tasks** — Start the agent when a task is set to ready
 - **Default branch** — The branch to merge completed work into (default: `main`)
 
-## 2. Create Tasks
+## 2. Launch Wildfire
 
-Add tasks that describe what you want built:
+Let Watchfire take it from here:
+
+```bash
+watchfire wildfire
+```
+
+Wildfire mode is the fastest way to go from an empty project to working code. It autonomously:
+
+1. **Generates a project definition** from your codebase
+2. **Creates tasks** based on the definition
+3. **Executes each task** in isolated git worktrees
+4. **Merges completed work** back to your default branch
+5. **Loops** — refining drafts and generating new tasks as needed
+
+Sit back and watch your project take shape.
+
+## Going Further
+
+### Add tasks manually
+
+You can also create tasks yourself:
 
 ```bash
 watchfire task add
@@ -59,7 +79,13 @@ acceptance_criteria: |
 status: draft
 ```
 
-## 3. Launch the TUI
+### Configure secrets
+
+Store API keys, environment setup, and service credentials in `.watchfire/secrets/instructions.md`. Watchfire injects these into the agent's system prompt automatically — so agents can access external services without you hardcoding secrets into task prompts.
+
+See [Secrets & Setup Instructions](/docs/concepts/secrets) for details.
+
+### Launch the TUI
 
 Start the interactive TUI to manage tasks and monitor agents:
 
@@ -84,38 +110,22 @@ The TUI shows a split view with your task list on the left and the agent termina
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## 4. Start an Agent
-
-Select a task and press `s` to start the agent. Watchfire will:
-
-1. Create a git worktree for the task (`watchfire/0001` branch)
-2. Spawn Claude Code in a sandboxed PTY inside the worktree
-3. Stream the agent's terminal output to your TUI
-
-The agent works autonomously, reading the task prompt and acceptance criteria. When it's done, it updates the task file and Watchfire handles the rest.
-
-## 5. Review and Merge
-
-When a task completes:
-- The agent marks the task as `done` with `success: true`
-- Watchfire detects the change via file watching
-- If auto-merge is enabled, the worktree is merged to your default branch
-- The worktree and branch are cleaned up
-
-You can also run all ready tasks sequentially:
+### Run tasks from the CLI
 
 ```bash
+# Run a single task
+watchfire run 1
+
+# Run all ready tasks sequentially
 watchfire run all
-```
 
-Or enter Wildfire mode for fully autonomous operation:
-
-```bash
-watchfire wildfire
+# Interactive chat mode
+watchfire run
 ```
 
 ## Next Steps
 
+- [Secrets & Setup Instructions](/docs/concepts/secrets) — Give agents access to external services
 - [Agent Modes](/docs/concepts/agent-modes) — Learn about Chat, Task, Wildfire, and more
 - [Projects and Tasks](/docs/concepts/projects-and-tasks) — Understand the YAML schemas
 - [CLI Reference](/docs/components/cli) — Full command reference

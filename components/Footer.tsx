@@ -12,7 +12,7 @@ export function Footer() {
               <span className="font-semibold text-zinc-900 dark:text-white">Watchfire</span>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-              Remote control for AI coding agents. Orchestrate tasks, isolate worktrees, sandbox execution.
+              Give your coding agents the right context and let them ship. Orchestrate tasks, isolate worktrees, sandbox execution.
             </p>
           </div>
 

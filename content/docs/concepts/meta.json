@@ -5,6 +5,7 @@
     "projects-and-tasks",
     "agent-modes",
     "worktrees",
-    "sandboxing"
+    "sandboxing",
+    "secrets"
   ]
 }
