@@ -32,15 +32,19 @@ export default function Home() {
         {/* Text content */}
         <div className="flex-1 text-center lg:text-left">
           <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-5xl lg:text-6xl">
-            Remote control for{" "}
+            Better context.{" "}
             <span className="bg-gradient-to-r from-fire-400 to-ember-500 bg-clip-text text-transparent">
-              AI coding agents
+              Better code.
             </span>
           </h1>
 
+          <p className="mt-3 text-xl font-medium text-zinc-700 dark:text-zinc-300 sm:text-2xl">
+            Remote control for AI coding agents
+          </p>
+
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
-            Orchestrate Claude Code sessions with task files, git worktree
-            isolation, and sandboxed execution.
+            Define your project once. Watchfire feeds agents the right specs,
+            constraints, and codebase context — so they write better code.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
