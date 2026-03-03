@@ -6,7 +6,6 @@ import HowItWorks from "@/components/HowItWorks";
 import AgentModes from "@/components/AgentModes";
 import KeyFeatures from "@/components/KeyFeatures";
 import QuickInstall from "@/components/QuickInstall";
-import SocialProof from "@/components/SocialProof";
 import FinalCTA from "@/components/FinalCTA";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Header } from "@/components/Header";
@@ -103,12 +102,6 @@ export default function Home() {
 
     <ScrollReveal>
       <QuickInstall />
-    </ScrollReveal>
-
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
-
-    <ScrollReveal staggerChildren>
-      <SocialProof />
     </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
