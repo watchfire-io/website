@@ -5,7 +5,6 @@ import GitHubStars from "@/components/GitHubStars";
 import HowItWorks from "@/components/HowItWorks";
 import AgentModes from "@/components/AgentModes";
 import KeyFeatures from "@/components/KeyFeatures";
-import QuickInstall from "@/components/QuickInstall";
 import FinalCTA from "@/components/FinalCTA";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Header } from "@/components/Header";
@@ -98,12 +97,6 @@ export default function Home() {
 
     <ScrollReveal>
       <KeyFeatures />
-    </ScrollReveal>
-
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
-
-    <ScrollReveal>
-      <QuickInstall />
     </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />

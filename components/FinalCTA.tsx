@@ -2,13 +2,25 @@
 
 import { useState } from "react";
 
+const lines = [
+  { prompt: false, text: "# Install via Homebrew" },
+  { prompt: true, text: "brew tap watchfire-io/tap" },
+  { prompt: true, text: "brew install --cask watchfire-io/tap/watchfire" },
+  { prompt: false, text: "" },
+  { prompt: false, text: "# Set up your project and go" },
+  { prompt: true, text: "watchfire init" },
+  { prompt: true, text: 'watchfire task add "Build the login page"' },
+  { prompt: true, text: "watchfire start --all" },
+];
+
 export default function FinalCTA() {
   const [copied, setCopied] = useState(false);
-  const command = "brew install watchfire-io/tap/watchfire";
+
+  const fullText = lines.map((l) => l.text).join("\n");
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(command);
+      await navigator.clipboard.writeText(fullText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -45,47 +57,53 @@ export default function FinalCTA() {
           Install in seconds. Define tasks. Let agents ship code for you.
         </p>
 
-        {/* Install command */}
-        <div className="mt-10 flex justify-center">
-          <div className="group relative inline-flex max-w-full items-center gap-3 overflow-x-auto rounded-lg border border-zinc-200 bg-white/80 px-5 py-3 font-mono text-sm backdrop-blur transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/80 dark:hover:border-zinc-700">
-            <span className="shrink-0 select-none text-zinc-400 dark:text-zinc-500">
-              $
-            </span>
-            <code className="whitespace-nowrap text-zinc-700 dark:text-zinc-300">{command}</code>
+        {/* Install command - terminal style */}
+        <div className="relative mx-auto mt-10 max-w-2xl overflow-hidden rounded-xl border border-zinc-200 bg-white text-left dark:border-zinc-800 dark:bg-zinc-950">
+          {/* Terminal chrome */}
+          <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+            <div className="flex gap-2">
+              <div className="h-3 w-3 rounded-full bg-red-500/60" />
+              <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
+              <div className="h-3 w-3 rounded-full bg-green-500/60" />
+            </div>
             <button
               onClick={copy}
-              aria-label="Copy install command"
-              className="ml-2 shrink-0 rounded p-1 text-zinc-400 transition-colors hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+              aria-label="Copy commands"
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
             >
               {copied ? (
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="3.5 8.5 6.5 11.5 12.5 5.5" />
-                </svg>
+                <>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3.5 8.5 6.5 11.5 12.5 5.5" />
+                  </svg>
+                  Copied
+                </>
               ) : (
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="5" y="5" width="8" height="8" rx="1.5" />
-                  <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" />
-                </svg>
+                <>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="5" y="5" width="8" height="8" rx="1.5" />
+                    <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" />
+                  </svg>
+                  Copy
+                </>
               )}
             </button>
+          </div>
+
+          {/* Code lines */}
+          <div className="overflow-x-auto space-y-1 p-5 font-mono text-sm">
+            {lines.map((line, i) => (
+              <div key={i} className={`flex gap-3 ${!line.prompt && !line.text ? "h-4" : ""}`}>
+                {line.prompt ? (
+                  <>
+                    <span className="shrink-0 select-none text-zinc-300 dark:text-zinc-600">$</span>
+                    <code className="whitespace-nowrap text-zinc-700 dark:text-zinc-300">{line.text}</code>
+                  </>
+                ) : line.text ? (
+                  <code className="whitespace-nowrap text-zinc-400 dark:text-zinc-500">{line.text}</code>
+                ) : null}
+              </div>
+            ))}
           </div>
         </div>
 
