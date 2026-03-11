@@ -1,0 +1,43 @@
+---
+title: watchfire update
+description: Self-update Watchfire from GitHub Releases.
+---
+
+# watchfire update
+
+Self-update Watchfire by downloading the latest release from GitHub.
+
+## Usage
+
+```bash
+watchfire update
+```
+
+## Description
+
+`watchfire update` checks for and installs the latest version of Watchfire. It queries the GitHub Releases API, downloads architecture-specific binaries, and replaces the current installation.
+
+## What It Does
+
+1. Queries the GitHub Releases API for the latest version
+2. Downloads architecture-specific binaries (CLI and daemon)
+3. Stops the daemon if it's currently running
+4. Atomically replaces the CLI (`watchfire`) and daemon (`watchfired`) binaries
+5. Restarts the daemon
+
+## Notes
+
+- Requires network access to reach GitHub Releases
+- The daemon is automatically stopped and restarted during the update
+- Both the CLI and daemon binaries are updated together
+- The GUI application updates separately via its built-in `electron-updater`
+
+## Examples
+
+```bash
+# Update to the latest version
+watchfire update
+
+# Check current version before updating
+watchfire version
+```

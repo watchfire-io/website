@@ -1,0 +1,48 @@
+---
+title: watchfire definition
+description: Edit the project definition that guides agent behavior.
+---
+
+# watchfire definition
+
+Edit the project definition in your default editor.
+
+## Usage
+
+```bash
+watchfire define
+watchfire def        # alias
+```
+
+## Description
+
+`watchfire define` opens the project definition in `$EDITOR` for editing. The project definition describes your project — its structure, tech stack, goals, and conventions — and is injected into every agent session to provide context.
+
+A well-written definition helps agents produce better, more consistent code by giving them the information they need about your project upfront.
+
+## What the Definition Contains
+
+The definition is stored in the `definition` field of `.watchfire/project.yaml`. A typical definition includes:
+
+- Project name and purpose
+- Technical stack and frameworks
+- Architecture overview
+- Coding conventions and constraints
+- Goals or current priorities
+
+## Notes
+
+- Uses the editor set in your `$EDITOR` environment variable
+- Changes are saved directly to `project.yaml`
+- The definition is included in agent context for all modes (chat, task, wildfire)
+- To auto-generate a definition from your codebase, use [`watchfire generate`](/docs/commands/generate)
+
+## Examples
+
+```bash
+# Edit the project definition
+watchfire define
+
+# Using the alias
+watchfire def
+```

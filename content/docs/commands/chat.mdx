@@ -1,0 +1,37 @@
+---
+title: watchfire chat
+description: Start an interactive chat session with the coding agent.
+---
+
+# watchfire chat
+
+Start an interactive chat session with the coding agent.
+
+## Usage
+
+```bash
+watchfire chat
+```
+
+## Description
+
+`watchfire chat` opens a terminal-attached agent session for free-form conversation. The agent has full access to your project directory but is not assigned a specific task — it runs in the project root rather than an isolated worktree.
+
+This is useful for exploring your codebase, asking questions, making quick edits, or prototyping changes without creating a formal task.
+
+## Notes
+
+- The agent runs in the project root directory (not a worktree)
+- No task context is injected — the agent operates in free-form mode
+- The daemon starts automatically if it's not already running
+- `watchfire run` (with no arguments) provides equivalent functionality
+
+## Examples
+
+```bash
+# Start a chat session
+watchfire chat
+
+# Equivalent using the run command
+watchfire run
+```
