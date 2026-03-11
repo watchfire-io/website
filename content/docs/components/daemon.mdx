@@ -89,6 +89,18 @@ The daemon runs a system tray icon with a menu:
 | **Open GUI** | Launches Electron GUI |
 | **Quit** | Shuts down daemon |
 
+## Desktop Notifications
+
+The daemon sends desktop notifications when agents complete tasks or encounter errors, via the `internal/daemon/notify` package.
+
+| Platform | Backend |
+|----------|---------|
+| **macOS** | Native `UNUserNotificationCenter` via CGo (displays Watchfire icon) |
+| **Linux** | `github.com/gen2brain/beeep` |
+| **Other** | No-op (logs to stderr) |
+
+Notifications are triggered by the `tray` package calling `notify.Send(title, message)`. The Watchfire icon is embedded in the `notify` package.
+
 ## Daemon Commands
 
 ```bash
