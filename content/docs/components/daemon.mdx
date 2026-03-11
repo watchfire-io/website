@@ -101,6 +101,16 @@ The daemon sends desktop notifications when agents complete tasks or encounter e
 
 Notifications are triggered by the `tray` package calling `notify.Send(title, message)`. The Watchfire icon is embedded in the `notify` package.
 
+## Health Check
+
+The daemon exposes a `Ping` RPC — a lightweight health check that clients can use to verify the daemon is alive and accepting connections. Unlike `GetStatus`, which returns detailed daemon information, `Ping` is a simple empty-to-empty call designed for fast connection verification.
+
+## Startup Reliability
+
+The daemon guarantees that `~/.watchfire/daemon.yaml` (the connection discovery file) is only written after the gRPC server is fully ready and accepting connections. This eliminates race conditions where clients would read the file and attempt to connect before the port was open.
+
+CLI and GUI both verify port readiness before proceeding after launching the daemon, so commands like `watchfire agent start` will not fail with "connection refused" errors even when starting the daemon for the first time.
+
 ## Daemon Commands
 
 ```bash

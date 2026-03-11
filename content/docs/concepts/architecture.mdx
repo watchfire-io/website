@@ -52,7 +52,8 @@ The screen buffer is a 2D grid of cells, each with character, foreground/backgro
 |--------|----------|
 | **Protocol** | gRPC + gRPC-Web (multiplexed on same port) |
 | **Port** | Dynamic allocation (OS assigns free port) |
-| **Discovery** | Connection info written to `~/.watchfire/daemon.yaml` |
+| **Discovery** | Connection info written to `~/.watchfire/daemon.yaml` (only after the gRPC port is accepting connections) |
+| **Health check** | `Ping` RPC — lightweight empty-to-empty call for connection verification |
 | **Clients** | CLI/TUI use native gRPC, GUI uses gRPC-Web |
 
 ## File Watching
