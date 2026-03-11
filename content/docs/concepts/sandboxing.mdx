@@ -69,6 +69,10 @@ macOS `sandbox-exec` provides kernel-level enforcement through the App Sandbox f
 - Even if the agent writes malicious code, it runs within the same sandbox
 - Child processes inherit the sandbox profile
 
+## Environment Variable Isolation
+
+The daemon strips internal environment variables (such as `CLAUDECODE`) from agent subprocess environments. This prevents issues like Claude Code detecting the variable and entering a nested mode instead of running normally. Agents always start with a clean environment, free of daemon-internal state.
+
 ## Platform Support
 
 Sandboxing is currently macOS-only, as it relies on `sandbox-exec`. On other platforms, agents run without sandbox restrictions. Linux sandboxing support (via seccomp/AppArmor) is planned for a future release.
