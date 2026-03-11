@@ -1,0 +1,42 @@
+---
+title: watchfire status
+description: Show current project status including active agents and task progress.
+---
+
+# watchfire status
+
+Show current project status including active agents, task progress, and daemon connection.
+
+## Usage
+
+```bash
+watchfire status
+```
+
+## Description
+
+`watchfire status` displays a summary of the current project's state. It connects to the daemon and reports on active agent sessions, task progress, and connection details.
+
+## Output
+
+The status output includes:
+
+| Field | Description |
+|-------|-------------|
+| **Project name** | Name of the current project |
+| **Daemon connection** | Whether the daemon is running and reachable |
+| **Active agents** | Currently running agent sessions for this project |
+| **Task summary** | Count of tasks by status (draft, ready, done) |
+
+## Notes
+
+- Requires being inside a Watchfire project directory
+- The daemon must be running to retrieve full status information
+- For daemon-specific status (host, port, PID, uptime), use `watchfire daemon status`
+
+## Examples
+
+```bash
+# Show project status
+watchfire status
+```

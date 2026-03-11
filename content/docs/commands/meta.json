@@ -4,8 +4,13 @@
     "init",
     "task",
     "run",
+    "chat",
     "wildfire",
     "generate",
-    "daemon"
+    "daemon",
+    "definition",
+    "settings",
+    "status",
+    "update"
   ]
 }
