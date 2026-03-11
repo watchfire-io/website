@@ -101,6 +101,8 @@ The daemon sends desktop notifications when agents complete tasks or encounter e
 
 Notifications are triggered by the `tray` package calling `notify.Send(title, message)`. The Watchfire icon is embedded in the `notify` package.
 
+On macOS, notifications are safely handled when running outside the `.app` bundle (e.g., during development or when launched directly). The daemon checks for app bundle availability before sending notifications to avoid crashes. This was fixed in v0.4.0 — previously, a notification outside the `.app` bundle could cause a daemon crash (exit code 2) due to an unhandled `NSInternalInconsistencyException`.
+
 ## Health Check
 
 The daemon exposes a `Ping` RPC — a lightweight health check that clients can use to verify the daemon is alive and accepting connections. Unlike `GetStatus`, which returns detailed daemon information, `Ping` is a simple empty-to-empty call designed for fast connection verification.
