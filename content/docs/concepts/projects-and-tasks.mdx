@@ -46,6 +46,25 @@ The `definition` field provides context for AI agents working on your project. I
 
 Agents read this definition to understand the codebase before working on tasks.
 
+## Directory Structure
+
+Each project's `.watchfire/` directory contains:
+
+```
+.watchfire/
+├── project.yaml            # Project configuration
+├── tasks/                  # Task YAML files
+├── memory.md               # Persistent project knowledge across agent sessions
+├── secrets/                # Secrets and setup instructions
+│   └── instructions.md
+└── worktrees/              # Git worktrees (one per active task)
+    └── <task_number>/
+```
+
+## Agent Memory
+
+Watchfire provides a `memory.md` file in `.watchfire/` that agents can read and update to persist project-specific knowledge across sessions. Agents use this to store conventions, user preferences, recurring patterns, and workflow notes so that future sessions don't start from scratch. The file is automatically available to agents working in any task for the project.
+
 ## Task Schema
 
 Tasks are stored as individual YAML files in `.watchfire/tasks/`:
