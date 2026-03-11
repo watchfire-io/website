@@ -35,7 +35,7 @@ your-project/
 | Aspect | Behavior |
 |--------|----------|
 | **Branch naming** | `watchfire/<task_number>` (e.g., `watchfire/0001`) |
-| **Creation** | Created from current HEAD of the default branch |
+| **Creation** | Created from current HEAD of the checked-out branch |
 | **Stale branches** | If a branch already exists, it's deleted and recreated from current HEAD |
 | **Cleanup** | Branch deleted after successful merge (if `auto_delete_branch` is enabled) |
 
@@ -43,7 +43,7 @@ your-project/
 
 When a task completes successfully:
 
-1. The daemon merges the worktree branch into the target branch (usually `main`)
+1. The daemon merges the worktree branch into the currently checked-out branch
 2. If the merge succeeds, the worktree and branch are cleaned up
 3. If a merge conflict occurs:
    - `git merge --abort` restores a clean working directory

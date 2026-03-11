@@ -21,7 +21,7 @@ Watchfire orchestrates coding agent sessions (starting with Claude Code) based o
 2. **Create tasks** describing what you want built
 3. **Start agents** that work in isolated git worktrees (one branch per task)
 4. **Monitor** progress through the TUI or GUI with live terminal output
-5. **Review and merge** completed work back to your default branch
+5. **Review and merge** completed work
 
 The daemon watches task files for changes. When an agent marks a task as done, Watchfire automatically stops the agent, merges the worktree (if auto-merge is enabled), and chains to the next task.
 
