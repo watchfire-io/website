@@ -18,6 +18,8 @@ The GUI is a multi-project client built with Electron. Unlike the CLI/TUI (which
 │  - Projects list  │                              │  - Branches  │
 │  - Add Project    │                              │  - Logs      │
 │  - Settings       │                              │              │
+│                   ├──────────────────────────────┤              │
+│                   │  Terminal (footer, Cmd+`)     │              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -70,6 +72,28 @@ A split layout with tabs for managing individual projects:
 | **Chat** | Live agent terminal streamed from daemon. Tasks created by agents during chat sessions appear in real-time in the Tasks tab without needing a manual refresh. |
 | **Branches** | List of worktrees/branches with status and actions |
 | **Logs** | Past session logs per task |
+
+## Integrated Terminal
+
+The GUI includes a built-in shell terminal, separate from the agent Chat terminal in the right panel. It appears as a footer bar at the bottom of the Project View.
+
+### Opening the Terminal
+
+- Click the footer bar at the bottom of the project view, or
+- Press <kbd>Cmd</kbd>+<kbd>`</kbd> (backtick) to toggle
+
+The footer bar expands upward into a resizable bottom panel. Drag the top edge to adjust height.
+
+### Features
+
+| Feature | Details |
+|---------|---------|
+| **Tabbed sessions** | Up to 5 shell tabs per project |
+| **Powered by node-pty** | Runs in the Electron main process, not the daemon |
+| **Nerd Font support** | Rich terminal rendering with icons and glyphs |
+| **Session cleanup** | Sessions are cleaned up on project switch or app quit |
+
+This is a general-purpose shell — use it for running builds, git commands, or anything else without leaving the GUI. The agent Chat terminal in the right panel streams the coding agent's output from the daemon and is a separate interface.
 
 ## Task Status Display
 
