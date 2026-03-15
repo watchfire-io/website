@@ -28,6 +28,16 @@ export function Footer() {
                 Changelog
               </a>
             </li>
+            <li>
+              <a href="https://x.com/watchfire_dev" target="_blank" rel="noopener noreferrer" className="text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
+                𝕏
+              </a>
+            </li>
+            <li>
+              <a href="mailto:info@watchfire.io" className="text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
+                Contact
+              </a>
+            </li>
           </ul>
         </div>
 
