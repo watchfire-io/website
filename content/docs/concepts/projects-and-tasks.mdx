@@ -15,7 +15,7 @@ Each project has a `project.yaml` file in `.watchfire/`:
 project_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
 name: my-project
 default_agent: claude-code
-sandbox: sandbox-exec
+sandbox: auto
 auto_merge: true
 auto_delete_branch: true
 auto_start_tasks: true
@@ -29,7 +29,7 @@ next_task_number: 5
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `default_agent` | `claude-code` | The coding agent to use |
-| `sandbox` | `sandbox-exec` | Sandbox mechanism (macOS) |
+| `sandbox` | `auto` | Sandbox mechanism (auto-detects platform backend) |
 | `auto_merge` | `true` | Merge worktree on task completion |
 | `auto_delete_branch` | `true` | Delete branch after successful merge |
 | `auto_start_tasks` | `true` | Start agent when task set to ready |
