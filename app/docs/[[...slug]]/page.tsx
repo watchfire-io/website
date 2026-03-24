@@ -7,6 +7,7 @@ import {
 } from "fumadocs-ui/layouts/docs/page";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { Callout } from "fumadocs-ui/components/callout";
 import DownloadButton from "@/components/DownloadButton";
 import Mermaid from "@/components/Mermaid";
 
@@ -29,7 +30,7 @@ export default async function Page(props: {
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>
-        <MDXContent components={{ DownloadButton, Mermaid }} />
+        <MDXContent components={{ Callout, DownloadButton, Mermaid }} />
       </DocsBody>
     </DocsPage>
   );
