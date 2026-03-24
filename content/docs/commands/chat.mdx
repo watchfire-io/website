@@ -19,6 +19,15 @@ watchfire chat
 
 This is useful for exploring your codebase, asking questions, making quick edits, or prototyping changes without creating a formal task.
 
+## Flags
+
+| Flag | Description |
+|------|-------------|
+| `--sandbox <backend>` | Override the sandbox backend. Valid values: `auto`, `seatbelt`, `landlock`, `bubblewrap`, `none`. |
+| `--no-sandbox` | Shorthand for `--sandbox none` — disables sandboxing entirely. |
+
+Sandbox priority: CLI flag → project setting (`project.yaml`) → global default (`settings.yaml`).
+
 ## Notes
 
 - The agent runs in the project root directory (not a worktree)
