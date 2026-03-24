@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+const RELEASES_URL = "https://github.com/watchfire-io/watchfire/releases/latest";
+
 export default function InstallSnippet({ dmgUrl }: { dmgUrl: string }) {
   const [copied, setCopied] = useState(false);
   const command = "brew tap watchfire-io/tap && brew install --cask watchfire-io/tap/watchfire";
@@ -18,18 +20,26 @@ export default function InstallSnippet({ dmgUrl }: { dmgUrl: string }) {
 
   return (
     <div className="mt-8 flex w-full flex-col items-center gap-4 md:items-start">
-      {/* Download button */}
-      <a
-        href={dmgUrl}
-        className="inline-flex items-center gap-2 rounded-lg bg-fire-500 px-6 py-3 font-medium text-white transition-colors hover:bg-fire-400"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-          <polyline points="7 10 12 15 17 10" />
-          <line x1="12" y1="15" x2="12" y2="3" />
-        </svg>
-        Download for macOS
-      </a>
+      {/* Download buttons */}
+      <div className="flex flex-wrap items-center gap-3">
+        <a
+          href={dmgUrl}
+          className="inline-flex items-center gap-2 rounded-lg bg-fire-500 px-6 py-3 font-medium text-white transition-colors hover:bg-fire-400"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Download for macOS
+        </a>
+        <a
+          href={RELEASES_URL}
+          className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white/60 px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-white"
+        >
+          Linux &amp; Windows
+        </a>
+      </div>
 
       {/* Homebrew terminal card */}
       <div className="w-full max-w-full overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 md:max-w-xl">
@@ -40,7 +50,7 @@ export default function InstallSnippet({ dmgUrl }: { dmgUrl: string }) {
               <div className="h-2 w-2 rounded-full bg-yellow-500/60" />
               <div className="h-2 w-2 rounded-full bg-green-500/60" />
             </div>
-            <span className="text-[10px] text-zinc-400 dark:text-zinc-600">or install via Homebrew</span>
+            <span className="text-[10px] text-zinc-400 dark:text-zinc-600">or install via Homebrew (macOS)</span>
           </div>
           <button
             onClick={copy}

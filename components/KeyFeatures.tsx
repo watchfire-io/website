@@ -79,7 +79,7 @@ const features = [
   {
     title: "Sandboxed Execution",
     description:
-      "Agents run inside macOS sandbox-exec with restricted permissions. Credentials, sensitive directories, and git hooks are blocked. Full network access and installed tools remain available.",
+      "Agents run inside a platform-native sandbox — Seatbelt on macOS, Landlock or Bubblewrap on Linux. Credentials, sensitive directories, and git hooks are blocked. Full network access and installed tools remain available.",
     illustration: (
       <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
         {/* Shield outline */}

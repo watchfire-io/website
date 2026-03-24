@@ -110,7 +110,7 @@ export default async function Home() {
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
 
     <ScrollReveal>
-      <FinalCTA dmgUrl={dmgUrl} />
+      <FinalCTA />
     </ScrollReveal>
     </main>
     <Footer />

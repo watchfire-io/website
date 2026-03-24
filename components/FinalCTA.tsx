@@ -2,8 +2,12 @@
 
 import { useState } from "react";
 
-const lines = [
-  { prompt: false, text: "# Install via Homebrew" },
+type Platform = "macOS" | "Linux" | "Windows";
+
+const RELEASES_URL = "https://github.com/watchfire-io/watchfire/releases/latest";
+
+const macLines = [
+  { prompt: false, text: "# Install via Homebrew (macOS)" },
   { prompt: true, text: "brew tap watchfire-io/tap" },
   { prompt: true, text: "brew install --cask watchfire-io/tap/watchfire" },
   { prompt: false, text: "" },
@@ -13,9 +17,37 @@ const lines = [
   { prompt: true, text: "watchfire start --all" },
 ];
 
-export default function FinalCTA({ dmgUrl = "https://github.com/watchfire-io/watchfire/releases/latest" }: { dmgUrl?: string }) {
-  const [copied, setCopied] = useState(false);
+const linuxLines = [
+  { prompt: false, text: "# Install via shell script (macOS / Linux)" },
+  { prompt: true, text: "curl -fsSL https://raw.githubusercontent.com/watchfire-io/watchfire/main/scripts/install.sh | sh" },
+  { prompt: false, text: "" },
+  { prompt: false, text: "# Set up your project and go" },
+  { prompt: true, text: "watchfire init" },
+  { prompt: true, text: 'watchfire task add "Build the login page"' },
+  { prompt: true, text: "watchfire start --all" },
+];
 
+const windowsLines = [
+  { prompt: false, text: "# Install via PowerShell (Windows)" },
+  { prompt: true, text: "irm https://raw.githubusercontent.com/watchfire-io/watchfire/main/scripts/install.ps1 | iex" },
+  { prompt: false, text: "" },
+  { prompt: false, text: "# Set up your project and go" },
+  { prompt: true, text: "watchfire init" },
+  { prompt: true, text: 'watchfire task add "Build the login page"' },
+  { prompt: true, text: "watchfire start --all" },
+];
+
+const platformData: Record<Platform, { lines: typeof macLines; note: string }> = {
+  macOS: { lines: macLines, note: "Includes GUI, CLI, and daemon. Also available via Homebrew." },
+  Linux: { lines: linuxLines, note: "CLI and daemon. Sandboxed via Landlock or Bubblewrap." },
+  Windows: { lines: windowsLines, note: "CLI and daemon. Runs without sandbox." },
+};
+
+export default function FinalCTA() {
+  const [copied, setCopied] = useState(false);
+  const [platform, setPlatform] = useState<Platform>("macOS");
+
+  const { lines, note } = platformData[platform];
   const fullText = lines.map((l) => l.text).join("\n");
 
   async function copy() {
@@ -57,9 +89,9 @@ export default function FinalCTA({ dmgUrl = "https://github.com/watchfire-io/wat
           Install in seconds. Define tasks. Let agents ship code for you.
         </p>
 
-        {/* Download app — recommended */}
+        {/* Download button */}
         <a
-          href={dmgUrl}
+          href={RELEASES_URL}
           className="mt-10 inline-flex items-center gap-3 rounded-xl bg-fire-500 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-fire-500/25 transition-all hover:bg-fire-400 hover:shadow-xl hover:shadow-fire-500/30"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -67,14 +99,33 @@ export default function FinalCTA({ dmgUrl = "https://github.com/watchfire-io/wat
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          Download for macOS
+          Download Watchfire
         </a>
         <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-          Recommended — includes GUI, CLI, and daemon
+          Available for macOS, Linux, and Windows
         </p>
 
+        {/* Platform tabs */}
+        <div className="mx-auto mt-10 max-w-2xl">
+          <div className="flex items-center justify-center gap-1 rounded-lg border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-800 dark:bg-zinc-900">
+            {(["macOS", "Linux", "Windows"] as Platform[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => { setPlatform(p); setCopied(false); }}
+                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                  platform === p
+                    ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white"
+                    : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Install command - terminal style */}
-        <div className="relative mx-auto mt-10 max-w-2xl overflow-hidden rounded-xl border border-zinc-200 bg-white text-left dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="relative mx-auto mt-4 max-w-2xl overflow-hidden rounded-xl border border-zinc-200 bg-white text-left dark:border-zinc-800 dark:bg-zinc-950">
           {/* Terminal chrome */}
           <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
             <div className="flex gap-2">
@@ -123,7 +174,9 @@ export default function FinalCTA({ dmgUrl = "https://github.com/watchfire-io/wat
           </div>
         </div>
 
-
+        <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+          {note}
+        </p>
 
         {/* Secondary CTA buttons */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
