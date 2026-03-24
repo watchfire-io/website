@@ -37,7 +37,7 @@ Watchfire uses a real PTY (pseudo-terminal) to run coding agents, with terminal 
 
 <Mermaid chart={`
 graph TD
-    SB["sandbox-exec (macOS)"] --> AG["Coding Agent (Claude Code)"]
+    SB["Sandbox (platform-specific)"] --> AG["Coding Agent (Claude Code)"]
     AG --> PTY["PTY (creack/pty)"]
     PTY --> VT["vt10x Terminal Parser"]
     VT --> BUF["Screen Buffer (rows × cols)"]
