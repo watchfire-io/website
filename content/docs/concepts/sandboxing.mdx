@@ -1,55 +1,62 @@
 ---
 title: Sandboxing
-description: Watchfire runs agents inside macOS sandbox-exec profiles, restricting filesystem and network access to limit blast radius.
+description: Watchfire sandboxes coding agents using platform-specific backends — Seatbelt on macOS, Landlock or Bubblewrap on Linux — to restrict filesystem access and limit blast radius.
 ---
 
 # Sandboxing
 
-Watchfire runs coding agents inside a macOS sandbox using `sandbox-exec`. This limits what the agent process can access, reducing the blast radius of any unintended actions.
+Watchfire runs coding agents inside platform-specific sandboxes that restrict what the agent process can access. This limits the blast radius of any unintended actions — the agent has full autonomy **inside** the sandbox, but the sandbox controls what "full autonomy" actually means.
 
-## How It Works
+## Auto-Detection
 
-Every agent process is wrapped in a sandbox:
+The default sandbox setting is `"auto"`. When set, Watchfire automatically selects the best available backend for the current platform:
+
+| Platform | Auto-detected backend |
+|----------|----------------------|
+| **macOS** | Seatbelt (`sandbox-exec`) |
+| **Linux** | Landlock (kernel 5.13+) → Bubblewrap fallback → unsandboxed |
+| **Windows** | Unsandboxed (no sandbox support) |
+
+On Linux, Watchfire tries Landlock first. If the kernel doesn't support it (pre-5.13), it falls back to Bubblewrap. If neither is available, the agent runs unsandboxed.
+
+### Priority Chain
+
+Sandbox backend resolution follows a strict priority order:
+
+1. **CLI flag** — `--sandbox <backend>` or `--no-sandbox` (highest priority)
+2. **Project setting** — `sandbox` field in `project.yaml`
+3. **Global default** — `defaults.default_sandbox` in `settings.yaml`
+
+If none are set, the default is `"auto"`.
+
+## macOS — Seatbelt
+
+On macOS, Watchfire uses `sandbox-exec` (Apple's Seatbelt framework) to enforce kernel-level restrictions.
 
 ```bash
 sandbox-exec -f <profile> claude --dangerously-skip-permissions --append-system-prompt "..." [--prompt "..."]
 ```
 
-The sandbox profile is embedded in the Watchfire binary and is not user-visible or editable. This ensures consistent security boundaries across all agent sessions.
+The sandbox profile is generated at runtime from an internal `SandboxPolicy` struct. It is not user-visible or editable.
 
-## Security Model
+### Why Seatbelt?
 
-| Aspect | Behavior |
-|--------|----------|
-| **Sandbox** | Agent process runs inside macOS `sandbox-exec` |
-| **Profile** | Custom profile restricting filesystem/network access |
-| **Profile storage** | Embedded in binary, not user-visible |
-| **Agent permissions** | Agent runs in "yolo mode" — full permissions within sandbox |
-| **Claude Code flag** | `--dangerously-skip-permissions` |
+- **Kernel-level enforcement** — the agent process cannot bypass the sandbox
+- **Child process inheritance** — even code the agent writes and executes runs within the same sandbox
+- **Regex pattern support** — allows fine-grained rules like blocking `.env` files and `.git/hooks` by pattern
 
-The key insight: the agent has free reign **inside** the sandbox. The sandbox limits what "free reign" actually means.
+### Allowed Operations
 
-## What's Allowed
+| Operation | Details |
+|-----------|---------|
+| **Read** | Most of the filesystem (project files, system libraries, tools) |
+| **Write** | Project directory, temp dirs, package manager caches (`~/.npm`, `~/.yarn`, `~/.pnpm-store`, `~/.cache`, `~/Library/Caches/*`), dev tool caches (`~/.cargo`, `~/go`, `~/.rustup`), Claude config (`~/.claude`), CLI tool config (`~/Library/Application Support`) |
+| **Execute** | Installed tools (git, npm, make, etc.) |
+| **Network** | Full network access |
 
-Inside the sandbox, agents can:
+### Blocked Paths
 
-- **Read** most of the filesystem (project files, system libraries, tools)
-- **Write** to the project directory and temporary directories
-- **Execute** installed tools (git, npm, make, etc.)
-- **Network** — Full network access for package installation, API calls, etc.
-
-## Write-Allowed Paths
-
-Beyond the project directory and temp dirs, agents can write to:
-
-- Package manager caches — `~/.npm`, `~/.yarn`, `~/.pnpm-store`, `~/.cache`, `~/Library/Caches/*`
-- Dev tool caches — `~/.cargo`, `~/go`, `~/.rustup`
-- Claude config — `~/.claude`
-- CLI tool config — `~/Library/Application Support`
-
-## What's Blocked
-
-The sandbox restricts read and write access to sensitive locations:
+Read **and** write access is denied to:
 
 - `~/.ssh` — SSH keys and configuration
 - `~/.aws` — AWS credentials
@@ -61,31 +68,143 @@ The sandbox restricts read and write access to sensitive locations:
 - `.env` files — Environment secrets
 - `.git/hooks` — Git hooks (prevents hook injection)
 
-## Why sandbox-exec?
+## Linux — Landlock
 
-macOS `sandbox-exec` provides kernel-level enforcement through the App Sandbox framework. Unlike userspace restrictions:
+Landlock is the preferred Linux backend. It uses the kernel's Landlock LSM (available since kernel 5.13) to enforce filesystem restrictions with **zero external dependencies**.
 
-- The agent process **cannot bypass** the sandbox
-- Even if the agent writes malicious code, it runs within the same sandbox
-- Child processes inherit the sandbox profile
+### How It Works
+
+The daemon re-invokes itself as a helper process to apply Landlock restrictions before exec-ing the agent:
+
+```bash
+watchfired --sandbox-exec <config.json>
+# → applies Landlock restrictions → exec() claude ...
+```
+
+This approach ensures Landlock rules are applied before the agent process starts, with no way to escape them.
+
+### Requirements
+
+- Linux kernel **5.13 or later**
+- No additional packages or tools required
+- Uses [go-landlock](https://github.com/landlock-lsm/go-landlock) — a pure Go binding
+
+### Allowed and Blocked Paths
+
+Same policy as macOS (derived from the shared `SandboxPolicy`), except:
+
+- No regex-based pattern blocking (Landlock operates on file paths, not patterns)
+- Personal directories (`~/Desktop`, `~/Documents`, etc.) are not blocked (these are macOS-specific paths)
+
+## Linux — Bubblewrap (Fallback)
+
+If Landlock is not available (kernel older than 5.13), Watchfire falls back to [Bubblewrap](https://github.com/containers/bubblewrap) (`bwrap`), a namespace-based sandbox.
+
+### How It Works
+
+Bubblewrap creates an isolated mount namespace with controlled visibility:
+
+```bash
+bwrap --ro-bind / / --bind <project> <project> --tmpfs ~/.ssh ... -- claude ...
+```
+
+- The root filesystem is mounted **read-only**
+- The project directory is mounted **read-write**
+- Sensitive directories (like `~/.ssh`) are replaced with empty tmpfs mounts, effectively hiding them
+
+### Requirements
+
+- `bwrap` must be installed on the system
+- Available in most Linux distribution package managers (e.g., `apt install bubblewrap`, `dnf install bubblewrap`)
+- Requires user namespace support (enabled by default on most modern distributions)
+
+### Limitations
+
+If Bubblewrap is not installed, the agent runs **unsandboxed** on Linux. A warning is logged when this happens.
+
+## Windows
+
+Windows does not currently have sandbox support. Agents run **unsandboxed** with full access to the filesystem and network.
+
+### Implications
+
+- The agent process has the same permissions as the user running the daemon
+- All filesystem paths are accessible (no credential or personal directory protection)
+- The `--dangerously-skip-permissions` flag is still used, giving the agent full autonomy without OS-level restrictions
+
+### Recommendations
+
+When running Watchfire on Windows:
+
+- Review agent output carefully, especially for tasks that modify files outside the project directory
+- Consider running the daemon under a restricted user account
+- Use the `--no-sandbox` flag explicitly to acknowledge the unsandboxed state
+
+## Configuration
+
+### CLI Flags
+
+The `--sandbox` and `--no-sandbox` flags are available on `run`, `chat`, `plan`, `generate`, and `wildfire` commands:
+
+```bash
+# Use a specific backend
+watchfire agent start --sandbox landlock
+
+# Disable sandboxing entirely
+watchfire agent start --no-sandbox
+```
+
+Valid backend values: `auto`, `seatbelt`, `landlock`, `bwrap`, `none`.
+
+### Per-Project (`project.yaml`)
+
+```yaml
+sandbox: "auto"  # "auto" | "seatbelt" | "landlock" | "bwrap" | "none"
+```
+
+### Global Default (`settings.yaml`)
+
+```yaml
+defaults:
+  default_sandbox: "auto"
+```
+
+Located at `~/.watchfire/settings.yaml`.
+
+## Security Model
+
+| Aspect | macOS (Seatbelt) | Linux (Landlock) | Linux (Bubblewrap) | Windows |
+|--------|-------------------|-------------------|---------------------|---------|
+| **Enforcement** | Kernel (App Sandbox) | Kernel (LSM) | Namespace isolation | None |
+| **Profile source** | Runtime `SandboxPolicy` | Runtime `SandboxPolicy` | Runtime `SandboxPolicy` | N/A |
+| **Agent permissions** | Full within sandbox | Full within sandbox | Full within sandbox | Full (unrestricted) |
+| **Claude Code flag** | `--dangerously-skip-permissions` | `--dangerously-skip-permissions` | `--dangerously-skip-permissions` | `--dangerously-skip-permissions` |
+| **Credential dirs blocked** | Yes | Yes | Yes (hidden via tmpfs) | No |
+| **Personal dirs blocked** | Yes | No (Linux paths differ) | No (Linux paths differ) | No |
+| **`.env` / `.git/hooks`** | Blocked (regex) | Not blocked (no regex) | Not blocked | Not blocked |
+| **Network** | Full access | Full access | Full access | Full access |
+| **Child process isolation** | Inherited | Inherited | Inherited | None |
+| **External dependencies** | None (built-in) | None (kernel) | `bwrap` package | N/A |
 
 ## Environment Variable Isolation
 
-The daemon strips internal environment variables (such as `CLAUDECODE`) from agent subprocess environments. This prevents issues like Claude Code detecting the variable and entering a nested mode instead of running normally. Agents always start with a clean environment, free of daemon-internal state.
-
-## Platform Support
-
-Sandboxing is currently macOS-only, as it relies on `sandbox-exec`. On other platforms, agents run without sandbox restrictions. Linux sandboxing support (via seccomp/AppArmor) is planned for a future release.
+Across all platforms, the daemon strips internal environment variables (such as `CLAUDECODE`) from agent subprocess environments. This prevents issues like Claude Code detecting the variable and entering a nested mode. Agents always start with a clean environment, free of daemon-internal state.
 
 ## Agent Permissions Flow
 
 <Mermaid chart={`
 graph TD
-    A[User starts task] --> B[Daemon creates sandbox profile]
-    B --> C["Daemon spawns: sandbox-exec -f profile claude ..."]
-    C --> D["Agent runs with --dangerously-skip-permissions"]
-    D --> E["Full autonomy WITHIN sandbox boundaries"]
-    E --> F["Sandbox blocks sensitive files/directories"]
+    A[User starts task] --> B[Daemon resolves sandbox backend]
+    B --> C{Platform?}
+    C -->|macOS| D["sandbox-exec -f profile claude ..."]
+    C -->|Linux + Landlock| E["watchfired --sandbox-exec config.json → exec claude ..."]
+    C -->|Linux + Bubblewrap| F["bwrap --ro-bind / / ... -- claude ..."]
+    C -->|Windows / None| G["claude ... (unsandboxed)"]
+    D --> H["Agent runs with --dangerously-skip-permissions"]
+    E --> H
+    F --> H
+    G --> H
+    H --> I["Full autonomy within sandbox boundaries"]
 `} />
 
-The `--dangerously-skip-permissions` flag tells Claude Code to skip its own permission prompts. This is safe because the macOS sandbox enforces stricter boundaries at the OS level.
+The `--dangerously-skip-permissions` flag tells Claude Code to skip its own permission prompts. On macOS and Linux, this is safe because the OS-level sandbox enforces stricter boundaries. On Windows, the agent runs without OS-level restrictions.
