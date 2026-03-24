@@ -1,13 +1,13 @@
 ---
 title: Installation
-description: Install Watchfire via direct download or Homebrew.
+description: Install Watchfire on macOS, Linux, or Windows.
 ---
 
 # Installation
 
 ## Prerequisites
 
-- **macOS** — Sandbox support uses `sandbox-exec` (macOS only)
+- **macOS, Linux, or Windows** — Watchfire runs on all three platforms with platform-specific sandboxing
 - **Claude Code** — The AI coding agent that Watchfire orchestrates
 
 ## Download (macOS)
@@ -18,7 +18,9 @@ Download the latest `.dmg` directly:
 
 ## Install via Homebrew
 
-**Desktop app** (GUI + CLI):
+Works on both macOS and Linux.
+
+**Desktop app** (GUI + CLI, macOS only):
 
 ```bash
 brew tap watchfire-io/tap
@@ -30,6 +32,52 @@ brew install --cask watchfire-io/tap/watchfire
 ```bash
 brew tap watchfire-io/tap
 brew install watchfire-io/tap/watchfire
+```
+
+## Linux
+
+Download the binary for your architecture from [GitHub Releases](https://github.com/watchfire-io/watchfire/releases/latest):
+
+```bash
+# Download (choose your architecture)
+curl -Lo watchfire https://github.com/watchfire-io/watchfire/releases/latest/download/watchfire-linux-amd64
+# or: watchfire-linux-arm64
+
+# Make executable and move to PATH
+chmod +x watchfire
+sudo mv watchfire /usr/local/bin/
+```
+
+Alternatively, use the install script:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/watchfire-io/watchfire/main/scripts/install.sh | bash
+```
+
+**Sandboxing:** Watchfire automatically detects the best sandbox backend on Linux. It uses **Landlock** (kernel 5.13+) for zero-dependency kernel-based sandboxing, or falls back to **Bubblewrap** for namespace-based isolation. No manual configuration is needed.
+
+## Windows
+
+Download `watchfire-windows-amd64.exe` from [GitHub Releases](https://github.com/watchfire-io/watchfire/releases/latest):
+
+```powershell
+irm https://raw.githubusercontent.com/watchfire-io/watchfire/main/scripts/install.ps1 | iex
+```
+
+<Callout type="warn">
+Windows currently runs **without sandboxing**. Agent processes are not isolated from the rest of the system.
+</Callout>
+
+## Build from Source
+
+Watchfire is written in Go and builds on all three platforms:
+
+```bash
+git clone https://github.com/watchfire-io/watchfire.git
+cd watchfire
+make install-tools   # Dev tools (golangci-lint, air, protoc plugins)
+make build           # Build daemon + CLI
+make install         # Install to /usr/local/bin
 ```
 
 ## Verify Installation
