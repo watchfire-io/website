@@ -43,6 +43,15 @@ If there are tasks with `status: draft`, the agent reviews and refines them — 
 
 If no tasks remain, the agent analyzes the project definition and completed work to generate new tasks. If new tasks are created, the loop restarts from Phase 1. If no new tasks are created, wildfire transitions to chat mode.
 
+## Flags
+
+| Flag | Description |
+|------|-------------|
+| `--sandbox <backend>` | Override the sandbox backend. Valid values: `auto`, `seatbelt`, `landlock`, `bubblewrap`, `none`. |
+| `--no-sandbox` | Shorthand for `--sandbox none` — disables sandboxing entirely. |
+
+Sandbox priority: CLI flag → project setting (`project.yaml`) → global default (`settings.yaml`).
+
 ## Stopping
 
 Press **Ctrl+C** to stop wildfire at any time. The current agent session will be terminated gracefully.

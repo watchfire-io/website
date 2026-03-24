@@ -44,6 +44,15 @@ watchfire run all
 
 Runs all tasks with `status: ready` sequentially. After each task completes, the next ready task is started automatically. This is equivalent to the Start All agent mode.
 
+## Flags
+
+| Flag | Description |
+|------|-------------|
+| `--sandbox <backend>` | Override the sandbox backend. Valid values: `auto`, `seatbelt`, `landlock`, `bubblewrap`, `none`. |
+| `--no-sandbox` | Shorthand for `--sandbox none` — disables sandboxing entirely. |
+
+Sandbox priority: CLI flag → project setting (`project.yaml`) → global default (`settings.yaml`).
+
 ## Examples
 
 ```bash

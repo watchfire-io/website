@@ -21,6 +21,17 @@ watchfire generate
 
 The generated definition is saved to your `project.yaml` and serves as context for all future agent sessions.
 
+## Flags
+
+| Flag | Description |
+|------|-------------|
+| `--sandbox <backend>` | Override the sandbox backend. Valid values: `auto`, `seatbelt`, `landlock`, `bubblewrap`, `none`. |
+| `--no-sandbox` | Shorthand for `--sandbox none` — disables sandboxing entirely. |
+
+Sandbox priority: CLI flag → project setting (`project.yaml`) → global default (`settings.yaml`).
+
+These flags also apply to `watchfire plan`.
+
 ## Related: watchfire plan
 
 To generate tasks from an existing project definition, use:
