@@ -246,7 +246,7 @@ export default function PlatformInstall({ dmgUrl }: { dmgUrl: string }) {
   }
 
   return (
-    <div className="mt-8 flex w-full flex-col items-center gap-4 md:items-start">
+    <div className="mt-8 flex w-full flex-col items-center gap-4 overflow-visible md:items-start">
       {/* Download buttons row */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Primary CTA */}
@@ -279,7 +279,7 @@ export default function PlatformInstall({ dmgUrl }: { dmgUrl: string }) {
           </button>
 
           {dropdownOpen && (
-            <div className="absolute left-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="absolute bottom-full left-0 z-50 mb-2 w-72 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
               {groups.map((group) => (
                 <div key={group.platform}>
                   <div className="flex items-center gap-2 border-b border-zinc-100 bg-zinc-50 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-zinc-400">
