@@ -1,8 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 
 type Platform = "macos" | "linux" | "windows";
+
+const subscribe = () => () => {};
+function usePlatform(): Platform {
+  return useSyncExternalStore(
+    subscribe,
+    () => detectPlatform(),
+    () => "macos" as Platform
+  );
+}
 
 const BINARY_BASE =
   "https://github.com/watchfire-io/watchfire/releases/latest/download";
@@ -90,13 +99,9 @@ export default function DownloadButtonClient({
 }: {
   dmgUrl: string;
 }) {
-  const [platform, setPlatform] = useState<Platform>("macos");
+  const platform = usePlatform();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setPlatform(detectPlatform());
-  }, []);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {

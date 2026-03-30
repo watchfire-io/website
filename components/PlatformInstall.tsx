@@ -1,8 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 
 type Platform = "macos" | "linux" | "windows";
+
+const subscribe = () => () => {};
+function usePlatform(): Platform {
+  return useSyncExternalStore(
+    subscribe,
+    () => detectPlatform(),
+    () => "macos" as Platform
+  );
+}
 
 const BINARY_BASE =
   "https://github.com/watchfire-io/watchfire/releases/latest/download";
@@ -201,14 +210,10 @@ function getPrimaryHref(
 }
 
 export default function PlatformInstall({ dmgUrl }: { dmgUrl: string }) {
-  const [platform, setPlatform] = useState<Platform>("macos");
+  const platform = usePlatform();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setPlatform(detectPlatform());
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

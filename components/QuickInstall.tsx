@@ -1,8 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 
 type Platform = "macos" | "linux" | "windows";
+
+const subscribe = () => () => {};
+function usePlatform(): Platform {
+  return useSyncExternalStore(
+    subscribe,
+    () => detectPlatform(),
+    () => "macos" as Platform
+  );
+}
 
 function detectPlatform(): Platform {
   if (typeof navigator === "undefined") return "macos";
@@ -58,12 +68,10 @@ const PLATFORM_LABELS: Record<Platform, string> = {
 };
 
 export default function QuickInstall() {
-  const [platform, setPlatform] = useState<Platform>("macos");
+  const detectedPlatform = usePlatform();
+  const [userOverride, setUserOverride] = useState<Platform | null>(null);
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    setPlatform(detectPlatform());
-  }, []);
+  const platform = userOverride ?? detectedPlatform;
 
   const lines = [...INSTALL_LINES[platform], ...USAGE_LINES];
   const fullText = lines.map((l) => l.text).join("\n");
@@ -99,7 +107,7 @@ export default function QuickInstall() {
           {(["macos", "linux", "windows"] as Platform[]).map((p) => (
             <button
               key={p}
-              onClick={() => setPlatform(p)}
+              onClick={() => setUserOverride(p)}
               className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
                 platform === p
                   ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white"
@@ -210,7 +218,7 @@ export default function QuickInstall() {
             </svg>
             Download from GitHub
           </a>
-          <a
+          <Link
             href="/docs"
             className="inline-flex items-center gap-1.5 text-fire-600 transition-colors hover:text-fire-500 dark:text-fire-400 dark:hover:text-fire-300"
           >
@@ -227,7 +235,7 @@ export default function QuickInstall() {
             >
               <path d="M3 8h10M9 4l4 4-4 4" />
             </svg>
-          </a>
+          </Link>
         </div>
       </div>
     </section>
