@@ -51,4 +51,6 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - name: Generate sources
+        run: npx fumadocs-mdx
       - run: npx tsc --noEmit

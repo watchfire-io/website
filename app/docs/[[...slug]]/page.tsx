@@ -6,7 +6,6 @@ import {
   DocsDescription,
 } from "fumadocs-ui/layouts/docs/page";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { Callout } from "fumadocs-ui/components/callout";
 import DownloadButton from "@/components/DownloadButton";
 import Mermaid from "@/components/Mermaid";

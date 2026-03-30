@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
 import { GitHubStarsClient } from "./GitHubStarsClient";
 
@@ -12,19 +13,19 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.svg" alt="Watchfire" width={28} height={28} />
           <span className="text-lg font-semibold text-zinc-900 dark:text-white">Watchfire</span>
-        </a>
+        </Link>
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex">
-          <a
+          <Link
             href="/docs"
             className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
           >
             Docs
-          </a>
+          </Link>
           <a
             href="https://github.com/watchfire-io/watchfire"
             target="_blank"
@@ -78,13 +79,13 @@ export function Header() {
       {mobileOpen && (
         <div className="border-t border-zinc-200 bg-white px-6 py-4 dark:border-zinc-800 dark:bg-zinc-950 md:hidden">
           <nav className="flex flex-col gap-1">
-            <a
+            <Link
               href="/docs"
               onClick={() => setMobileOpen(false)}
               className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
             >
               Docs
-            </a>
+            </Link>
             <a
               href="https://github.com/watchfire-io/watchfire"
               target="_blank"

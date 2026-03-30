@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export function Footer() {
   return (
@@ -14,9 +15,9 @@ export function Footer() {
           {/* Links */}
           <ul className="flex items-center gap-6 text-sm">
             <li>
-              <a href="/docs" className="text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
+              <Link href="/docs" className="text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
                 Documentation
-              </a>
+              </Link>
             </li>
             <li>
               <a href="https://github.com/watchfire-io/watchfire" target="_blank" rel="noopener noreferrer" className="text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">

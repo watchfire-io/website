@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 type Platform = "macOS" | "Linux" | "Windows";
 
@@ -197,12 +198,12 @@ export default function FinalCTA() {
             </svg>
             View on GitHub
           </a>
-          <a
+          <Link
             href="/docs"
             className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white/60 px-6 py-3 font-medium text-zinc-700 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-white"
           >
             Read the Docs
-          </a>
+          </Link>
         </div>
       </div>
     </section>

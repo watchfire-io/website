@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import HeroIllustration from "@/components/HeroIllustration";
 import DownloadInstall from "@/components/DownloadInstall";
 import GitHubStars from "@/components/GitHubStars";
@@ -10,10 +11,8 @@ import FinalCTA from "@/components/FinalCTA";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { getDmgUrl } from "@/lib/dmg-url";
 
 export default async function Home() {
-  const dmgUrl = await getDmgUrl();
   return (
     <>
     <Header />
@@ -53,12 +52,12 @@ export default async function Home() {
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3 sm:mt-10 sm:gap-4 md:justify-start">
-            <a
+            <Link
               href="/docs"
               className="rounded-lg border border-zinc-300 bg-white/60 px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-white sm:px-5 sm:py-3 sm:text-base"
             >
               Documentation
-            </a>
+            </Link>
             <Suspense
               fallback={
                 <a
