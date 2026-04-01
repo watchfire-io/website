@@ -1,7 +1,7 @@
-import InstallSnippet from "./InstallSnippet";
-import { getDmgUrl } from "@/lib/dmg-url";
+import PlatformInstall from "./PlatformInstall";
+import { getInstallerUrls } from "@/lib/installer-urls";
 
 export default async function DownloadInstall() {
-  const dmgUrl = await getDmgUrl();
-  return <InstallSnippet dmgUrl={dmgUrl} />;
+  const installerUrls = await getInstallerUrls();
+  return <PlatformInstall installerUrls={installerUrls} />;
 }

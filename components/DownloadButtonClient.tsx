@@ -1,43 +1,22 @@
 "use client";
 
-import { useState, useEffect, useRef, useSyncExternalStore } from "react";
-
-type Platform = "macos" | "linux" | "windows";
-
-const subscribe = () => () => {};
-function usePlatform(): Platform {
-  return useSyncExternalStore(
-    subscribe,
-    () => detectPlatform(),
-    () => "macos" as Platform
-  );
-}
+import { useState, useEffect, useRef } from "react";
+import type { InstallerUrls } from "@/lib/installer-urls";
+import { type Platform, usePlatform, PLATFORM_LABELS } from "@/lib/platform";
 
 const BINARY_BASE =
   "https://github.com/watchfire-io/watchfire/releases/latest/download";
-
-function detectPlatform(): Platform {
-  if (typeof navigator === "undefined") return "macos";
-  const ua = navigator.userAgent.toLowerCase();
-  const p = (
-    (navigator as { userAgentData?: { platform?: string } }).userAgentData
-      ?.platform ?? navigator.platform
-  ).toLowerCase();
-  if (p.includes("win") || ua.includes("windows")) return "windows";
-  if (p.includes("linux") || ua.includes("linux")) return "linux";
-  return "macos";
-}
 
 interface DownloadOption {
   label: string;
   href: string;
 }
 
-function getOptions(platform: Platform, dmgUrl: string): DownloadOption[] {
+function getOptions(platform: Platform, urls: InstallerUrls): DownloadOption[] {
   switch (platform) {
     case "macos":
       return [
-        { label: "Download .dmg (Universal)", href: dmgUrl },
+        { label: "Download .dmg (Universal)", href: urls.mac },
         {
           label: "CLI — Apple Silicon (arm64)",
           href: `${BINARY_BASE}/watchfire-darwin-arm64`,
@@ -49,6 +28,8 @@ function getOptions(platform: Platform, dmgUrl: string): DownloadOption[] {
       ];
     case "linux":
       return [
+        { label: "Download .AppImage (x64)", href: urls.linuxAppImage },
+        { label: "Download .deb (x64)", href: urls.linuxDeb },
         {
           label: "CLI — x86_64 (amd64)",
           href: `${BINARY_BASE}/watchfire-linux-amd64`,
@@ -68,6 +49,7 @@ function getOptions(platform: Platform, dmgUrl: string): DownloadOption[] {
       ];
     case "windows":
       return [
+        { label: "Download .exe Installer (x64)", href: urls.windows },
         {
           label: "CLI — x86_64 (amd64)",
           href: `${BINARY_BASE}/watchfire-windows-amd64.exe`,
@@ -88,16 +70,10 @@ function getOptions(platform: Platform, dmgUrl: string): DownloadOption[] {
   }
 }
 
-const PLATFORM_LABELS: Record<Platform, string> = {
-  macos: "macOS",
-  linux: "Linux",
-  windows: "Windows",
-};
-
 export default function DownloadButtonClient({
-  dmgUrl,
+  installerUrls,
 }: {
-  dmgUrl: string;
+  installerUrls: InstallerUrls;
 }) {
   const platform = usePlatform();
   const [open, setOpen] = useState(false);
@@ -115,7 +91,7 @@ export default function DownloadButtonClient({
     }
   }, [open]);
 
-  const options = getOptions(platform, dmgUrl);
+  const options = getOptions(platform, installerUrls);
   const primary = options[0];
 
   return (

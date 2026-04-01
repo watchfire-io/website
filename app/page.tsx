@@ -7,7 +7,7 @@ import HowItWorks from "@/components/HowItWorks";
 import AgentModes from "@/components/AgentModes";
 import ComponentsOverview from "@/components/ComponentsOverview";
 import KeyFeatures from "@/components/KeyFeatures";
-import FinalCTA from "@/components/FinalCTA";
+import FinalCTAServer from "@/components/FinalCTAServer";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -109,7 +109,7 @@ export default async function Home() {
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
 
     <ScrollReveal>
-      <FinalCTA />
+      <FinalCTAServer />
     </ScrollReveal>
     </main>
     <Footer />

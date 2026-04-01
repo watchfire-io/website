@@ -2,10 +2,27 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import type { InstallerUrls } from "@/lib/installer-urls";
+import { type Platform, usePlatform, PLATFORM_ICONS } from "@/lib/platform";
 
-type Platform = "macOS" | "Linux" | "Windows";
+type PlatformKey = "macOS" | "Linux" | "Windows";
 
-const RELEASES_URL = "https://github.com/watchfire-io/watchfire/releases/latest";
+const PLATFORM_MAP: Record<PlatformKey, Platform> = {
+  macOS: "macos",
+  Linux: "linux",
+  Windows: "windows",
+};
+
+function getPrimaryHref(platform: Platform, urls: InstallerUrls): string {
+  switch (platform) {
+    case "macos":
+      return urls.mac;
+    case "windows":
+      return urls.windows;
+    case "linux":
+      return urls.linuxAppImage;
+  }
+}
 
 const macLines = [
   { prompt: false, text: "# Install via Homebrew (macOS)" },
@@ -20,7 +37,10 @@ const macLines = [
 
 const linuxLines = [
   { prompt: false, text: "# Install via shell script (macOS / Linux)" },
-  { prompt: true, text: "curl -fsSL https://raw.githubusercontent.com/watchfire-io/watchfire/main/scripts/install.sh | sh" },
+  {
+    prompt: true,
+    text: "curl -fsSL https://raw.githubusercontent.com/watchfire-io/watchfire/main/scripts/install.sh | sh",
+  },
   { prompt: false, text: "" },
   { prompt: false, text: "# Set up your project and go" },
   { prompt: true, text: "watchfire init" },
@@ -30,7 +50,10 @@ const linuxLines = [
 
 const windowsLines = [
   { prompt: false, text: "# Install via PowerShell (Windows)" },
-  { prompt: true, text: "irm https://raw.githubusercontent.com/watchfire-io/watchfire/main/scripts/install.ps1 | iex" },
+  {
+    prompt: true,
+    text: "irm https://raw.githubusercontent.com/watchfire-io/watchfire/main/scripts/install.ps1 | iex",
+  },
   { prompt: false, text: "" },
   { prompt: false, text: "# Set up your project and go" },
   { prompt: true, text: "watchfire init" },
@@ -38,18 +61,46 @@ const windowsLines = [
   { prompt: true, text: "watchfire start --all" },
 ];
 
-const platformData: Record<Platform, { lines: typeof macLines; note: string }> = {
-  macOS: { lines: macLines, note: "Includes GUI, CLI, and daemon. Also available via Homebrew." },
-  Linux: { lines: linuxLines, note: "CLI and daemon. Sandboxed via Landlock or Bubblewrap." },
-  Windows: { lines: windowsLines, note: "CLI and daemon. Runs without sandbox." },
+const platformData: Record<
+  PlatformKey,
+  { lines: typeof macLines; note: string }
+> = {
+  macOS: {
+    lines: macLines,
+    note: "Includes GUI, CLI, and daemon. Also available via Homebrew.",
+  },
+  Linux: {
+    lines: linuxLines,
+    note: "Includes GUI, CLI, and daemon. Sandboxed via Landlock or Bubblewrap.",
+  },
+  Windows: {
+    lines: windowsLines,
+    note: "Includes GUI, CLI, and daemon. Runs without sandbox.",
+  },
 };
 
-export default function FinalCTA() {
+export default function FinalCTA({
+  installerUrls,
+}: {
+  installerUrls: InstallerUrls;
+}) {
+  const detectedPlatform = usePlatform();
   const [copied, setCopied] = useState(false);
-  const [platform, setPlatform] = useState<Platform>("macOS");
+  const [platformKey, setPlatformKey] = useState<PlatformKey | null>(null);
 
-  const { lines, note } = platformData[platform];
+  // Derive the active tab from detected platform or user override
+  const activeKey =
+    platformKey ??
+    (detectedPlatform === "macos"
+      ? "macOS"
+      : detectedPlatform === "linux"
+        ? "Linux"
+        : "Windows");
+  const activePlatform = PLATFORM_MAP[activeKey];
+
+  const { lines, note } = platformData[activeKey];
   const fullText = lines.map((l) => l.text).join("\n");
+  const primaryHref = getPrimaryHref(activePlatform, installerUrls);
 
   async function copy() {
     try {
@@ -90,17 +141,13 @@ export default function FinalCTA() {
           Install in seconds. Define tasks. Let agents ship code for you.
         </p>
 
-        {/* Download button */}
+        {/* Platform-aware download button */}
         <a
-          href={RELEASES_URL}
+          href={primaryHref}
           className="mt-10 inline-flex items-center gap-3 rounded-xl bg-fire-500 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-fire-500/25 transition-all hover:bg-fire-400 hover:shadow-xl hover:shadow-fire-500/30"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          Download Watchfire
+          {PLATFORM_ICONS[activePlatform]}
+          Download for {activeKey}
         </a>
         <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
           Available for macOS, Linux, and Windows
@@ -109,12 +156,15 @@ export default function FinalCTA() {
         {/* Platform tabs */}
         <div className="mx-auto mt-10 max-w-2xl">
           <div className="flex items-center justify-center gap-1 rounded-lg border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-800 dark:bg-zinc-900">
-            {(["macOS", "Linux", "Windows"] as Platform[]).map((p) => (
+            {(["macOS", "Linux", "Windows"] as PlatformKey[]).map((p) => (
               <button
                 key={p}
-                onClick={() => { setPlatform(p); setCopied(false); }}
+                onClick={() => {
+                  setPlatformKey(p);
+                  setCopied(false);
+                }}
                 className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                  platform === p
+                  activeKey === p
                     ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-white"
                     : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
                 }`}
@@ -141,14 +191,32 @@ export default function FinalCTA() {
             >
               {copied ? (
                 <>
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <polyline points="3.5 8.5 6.5 11.5 12.5 5.5" />
                   </svg>
                   Copied
                 </>
               ) : (
                 <>
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <rect x="5" y="5" width="8" height="8" rx="1.5" />
                     <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" />
                   </svg>
@@ -159,25 +227,32 @@ export default function FinalCTA() {
           </div>
 
           {/* Code lines */}
-          <div className="overflow-x-auto space-y-1 p-5 font-mono text-sm">
+          <div className="space-y-1 overflow-x-auto p-5 font-mono text-sm">
             {lines.map((line, i) => (
-              <div key={i} className={`flex gap-3 ${!line.prompt && !line.text ? "h-4" : ""}`}>
+              <div
+                key={i}
+                className={`flex gap-3 ${!line.prompt && !line.text ? "h-4" : ""}`}
+              >
                 {line.prompt ? (
                   <>
-                    <span className="shrink-0 select-none text-zinc-300 dark:text-zinc-600">$</span>
-                    <code className="whitespace-nowrap text-zinc-700 dark:text-zinc-300">{line.text}</code>
+                    <span className="shrink-0 select-none text-zinc-300 dark:text-zinc-600">
+                      $
+                    </span>
+                    <code className="whitespace-nowrap text-zinc-700 dark:text-zinc-300">
+                      {line.text}
+                    </code>
                   </>
                 ) : line.text ? (
-                  <code className="whitespace-nowrap text-zinc-400 dark:text-zinc-500">{line.text}</code>
+                  <code className="whitespace-nowrap text-zinc-400 dark:text-zinc-500">
+                    {line.text}
+                  </code>
                 ) : null}
               </div>
             ))}
           </div>
         </div>
 
-        <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-          {note}
-        </p>
+        <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">{note}</p>
 
         {/* Secondary CTA buttons */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-4">

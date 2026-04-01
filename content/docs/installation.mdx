@@ -10,9 +10,9 @@ description: Install Watchfire on macOS, Linux, or Windows.
 - **macOS, Linux, or Windows** — Watchfire runs on all three platforms with platform-specific sandboxing
 - **Claude Code** — The AI coding agent that Watchfire orchestrates
 
-## Download (macOS)
+## Download
 
-Download the latest `.dmg` directly:
+Download the latest installer for your platform. The desktop app includes the GUI, CLI, and daemon.
 
 <DownloadButton />
 
@@ -34,9 +34,23 @@ brew tap watchfire-io/tap
 brew install watchfire-io/tap/watchfire
 ```
 
+## macOS
+
+The `.dmg` installer is a Universal binary that runs natively on both Apple Silicon and Intel Macs. It includes the GUI, CLI, and daemon.
+
+Alternatively, download individual CLI or daemon binaries from [GitHub Releases](https://github.com/watchfire-io/watchfire/releases/latest).
+
 ## Linux
 
-Download the binary for your architecture from [GitHub Releases](https://github.com/watchfire-io/watchfire/releases/latest):
+The **AppImage** and **.deb** packages include the GUI, CLI, and daemon for x64 Linux.
+
+Alternatively, install the CLI and daemon via the install script:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/watchfire-io/watchfire/main/scripts/install.sh | bash
+```
+
+Or download individual binaries for your architecture from [GitHub Releases](https://github.com/watchfire-io/watchfire/releases/latest):
 
 ```bash
 # Download (choose your architecture)
@@ -48,17 +62,13 @@ chmod +x watchfire
 sudo mv watchfire /usr/local/bin/
 ```
 
-Alternatively, use the install script:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/watchfire-io/watchfire/main/scripts/install.sh | bash
-```
-
 **Sandboxing:** Watchfire automatically detects the best sandbox backend on Linux. It uses **Landlock** (kernel 5.13+) for zero-dependency kernel-based sandboxing, or falls back to **Bubblewrap** for namespace-based isolation. No manual configuration is needed.
 
 ## Windows
 
-Download `watchfire-windows-amd64.exe` from [GitHub Releases](https://github.com/watchfire-io/watchfire/releases/latest):
+The **.exe installer** includes the GUI, CLI, and daemon for x64 Windows.
+
+Alternatively, install the CLI and daemon via PowerShell:
 
 ```powershell
 irm https://raw.githubusercontent.com/watchfire-io/watchfire/main/scripts/install.ps1 | iex
