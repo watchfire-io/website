@@ -68,6 +68,10 @@ Read **and** write access is denied to:
 - `.env` files — Environment secrets
 - `.git/hooks` — Git hooks (prevents hook injection)
 
+<Callout type="info">
+**Projects inside protected directories work correctly.** The sandbox profile is generated dynamically — if your project is located inside a protected folder (e.g., `~/Documents/my-project`), the deny rule for that folder is automatically skipped so the agent can access the project files. This was fixed in v1.0.0 ([#17](https://github.com/watchfire-io/watchfire/issues/17)).
+</Callout>
+
 ## Linux — Landlock
 
 Landlock is the preferred Linux backend. It uses the kernel's Landlock LSM (available since kernel 5.13) to enforce filesystem restrictions with **zero external dependencies**.
