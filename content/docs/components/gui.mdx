@@ -60,7 +60,7 @@ A split layout with tabs for managing individual projects:
 
 | Tab | Content |
 |-----|---------|
-| **Tasks** | Grouped by status (Draft, Ready, Done) with search and filters |
+| **Tasks** | Grouped by status (Draft, Ready, Done) with search and filters. The task editor preserves form contents during background polling — edits are not lost when the task list refreshes. |
 | **Definition** | Markdown editor for project definition |
 | **Trash** | Soft-deleted tasks with restore and permanent delete |
 | **Settings** | Git config, automation toggles, project color. Changes like project color apply immediately across all views (sidebar, dashboard) without needing a refresh. |
@@ -69,9 +69,9 @@ A split layout with tabs for managing individual projects:
 
 | Tab | Content |
 |-----|---------|
-| **Chat** | Live agent terminal streamed from daemon. Tasks created by agents during chat sessions appear in real-time in the Tasks tab without needing a manual refresh. |
+| **Chat** | Live agent terminal streamed from daemon. The terminal is cleared before each new subscription, so switching projects or wildfire phase transitions won't accumulate stale output. Tasks created by agents during chat sessions appear in real-time in the Tasks tab without needing a manual refresh. |
 | **Branches** | List of worktrees/branches with status and actions |
-| **Logs** | Past session logs per task |
+| **Logs** | Past session logs per task. Displays formatted conversation transcripts (User/Assistant messages with tool call summaries) when available, falling back to raw PTY scrollback otherwise. |
 
 ## Integrated Terminal
 
