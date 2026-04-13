@@ -49,6 +49,10 @@ The chain stops if:
 - A merge conflict occurs (prevents cascading failures)
 - You cancel with Ctrl+C
 
+### Restart Protection
+
+If the same task is restarted 3 or more times consecutively without completing (e.g., due to rate limits, crashes, or auth errors), the daemon stops chaining and transitions to chat mode instead. This prevents infinite loops where a failing task blocks progress. The restart counter resets when a different task is chained (successful progression) or you stop the agent manually.
+
 ## Wildfire
 
 The flagship mode. A fully autonomous three-phase loop that can plan, execute, and iterate without human intervention.
@@ -86,6 +90,10 @@ graph LR
 `} />
 
 When the Generate phase creates no new tasks, Wildfire transitions to chat mode. You can also stop it at any time with Ctrl+C.
+
+### Restart Protection
+
+If the same task is restarted 3 or more times consecutively without completing (e.g., due to rate limits, crashes, or auth errors), the daemon stops the Wildfire loop and transitions to chat mode instead. This prevents infinite loops where a failing task blocks the entire autonomous cycle. The restart counter resets when a different task is chained (successful progression) or you stop the agent manually.
 
 ## Generate Definition
 
