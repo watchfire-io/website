@@ -77,6 +77,28 @@ The daemon uses `fsnotify` to watch for changes to task files:
 | **Daemon crashes mid-task** | On restart, user must manually restart task |
 | **Agent crashes** | Daemon detects PTY exit, stops task |
 
+## JSONL Transcript Logging
+
+Session logs capture Claude Code's structured JSONL transcripts in addition to raw PTY scrollback. This provides clean, formatted conversation history for reviewing what an agent did during a session.
+
+**Transcript discovery:** On agent exit, the daemon finds Claude Code's JSONL transcript at `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl` by matching the `customTitle` field (first line of the JSONL file) against the `--name` session name passed to Claude. The matched JSONL file is then copied to the Watchfire logs directory.
+
+**Log viewing:** The `ReadLog` RPC prefers the `.jsonl` transcript and formats it as a readable User/Assistant conversation with tool call summaries. If no JSONL transcript is available, it falls back to the `.log` PTY scrollback.
+
+Both file types are stored side-by-side in `~/.watchfire/logs/<project_id>/` — see the directory structure below for details.
+
+## Restart Protection
+
+Wildfire and start-all modes automatically stop chaining after repeated failures on the same task to prevent infinite loops caused by rate limits, crashes, or auth expiry.
+
+| Aspect | Behavior |
+|--------|----------|
+| **Trigger** | Same task restarted 3+ times consecutively without reaching `status: done` |
+| **Action** | Stop wildfire/start-all chaining, start chat-mode agent instead |
+| **Counter** | Per-project in-memory map (reset on task progression) |
+| **Reset** | Counter resets when a different task is chained (successful progression) or agent is stopped by user |
+| **Logging** | Warning logged with task number and restart count when limit reached |
+
 ## Directory Structures
 
 ### Global (`~/.watchfire/`)
@@ -90,8 +112,14 @@ The daemon uses `fsnotify` to watch for changes to task files:
 ├── installation_id     # Stable UUID for analytics
 └── logs/               # Session logs
     └── <project_id>/
-        └── <task_number>-<session>-<timestamp>.log
+        ├── <task_number>-<session>-<timestamp>.log      # PTY scrollback (fallback)
+        └── <task_number>-<session>-<timestamp>.jsonl     # Claude JSONL transcript (preferred)
 ```
+
+**Log filename examples:**
+- `0001-1-2026-02-03T13-05-00.log` — task 1, session 1 (PTY scrollback)
+- `0001-1-2026-02-03T13-05-00.jsonl` — task 1, session 1 (Claude JSONL transcript)
+- `chat-1-2026-02-03T15-00-00.log` — chat mode (no task)
 
 ### Per-Project (`<project>/.watchfire/`)
 
