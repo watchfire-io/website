@@ -2,7 +2,7 @@ const features = [
   {
     title: "Task Orchestration",
     description:
-      "Define tasks in YAML, let agents execute them. The daemon watches task files for changes — when an agent marks a task as done, Watchfire automatically stops the session and chains to the next task.",
+      "Define tasks in YAML, let agents execute them. The daemon watches task files for changes — when an agent marks a task as done, Watchfire automatically stops the session and chains to the next task. Every session produces a clean, readable transcript log.",
     illustration: (
       <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
         {/* Task cards */}
@@ -79,7 +79,7 @@ const features = [
   {
     title: "Sandboxed Execution",
     description:
-      "Agents run inside a platform-native sandbox — Seatbelt on macOS, Landlock or Bubblewrap on Linux. Credentials, sensitive directories, and git hooks are blocked. Full network access and installed tools remain available.",
+      "Agents run inside a platform-native sandbox — Seatbelt on macOS, Landlock or Bubblewrap on Linux. Credentials, sensitive directories, and git hooks are blocked. Built-in restart protection keeps agents from getting stuck in infinite loops.",
     illustration: (
       <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
         {/* Shield outline */}
