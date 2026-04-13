@@ -36,6 +36,12 @@ export default async function Home() {
 
         {/* Text content */}
         <div className="min-w-0 flex-1 overflow-hidden text-center md:order-1 md:text-left">
+          <div className="mb-4 flex justify-center md:justify-start">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-fire-500/30 bg-fire-500/10 px-3 py-1 text-xs font-medium text-fire-500 dark:border-fire-400/30 dark:bg-fire-400/10 dark:text-fire-400 sm:text-sm">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-fire-500 dark:bg-fire-400" />
+              v1.0.0 — Stable Release
+            </span>
+          </div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl lg:text-6xl">
             Better context.{" "}
             <span className="bg-gradient-to-r from-fire-400 to-ember-500 bg-clip-text text-transparent">
