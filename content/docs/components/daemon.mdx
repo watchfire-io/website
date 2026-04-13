@@ -65,6 +65,23 @@ The daemon manages the reactive task lifecycle:
 9. Daemon starts next task (if queued and merge succeeded)
 ```
 
+## Session Logging
+
+The daemon captures two types of logs for each agent session, stored in `~/.watchfire/logs/<project_id>/`:
+
+| Format | Filename | Source |
+|--------|----------|--------|
+| **PTY scrollback** | `<task_number>-<session>-<timestamp>.log` | Raw terminal output captured during the session |
+| **JSONL transcript** | `<task_number>-<session>-<timestamp>.jsonl` | Structured Claude Code conversation transcript (preferred) |
+
+### Transcript Auto-Discovery
+
+On agent exit, the daemon automatically discovers the Claude Code JSONL transcript from `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl`. It matches the transcript's `customTitle` field against the `--name` session name used to launch the agent, then copies the file to the logs directory.
+
+### Log Viewer
+
+The `ReadLog` RPC serves session logs to clients (TUI and GUI). It prefers the `.jsonl` transcript when available, formatting it as a readable User/Assistant conversation with tool call summaries. If no JSONL transcript exists, it falls back to the `.log` file (raw PTY scrollback).
+
 ## Phase Completion Signals
 
 The daemon detects phase completion via signal files:
