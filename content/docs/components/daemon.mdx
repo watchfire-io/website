@@ -49,20 +49,59 @@ The daemon uses `fsnotify` to watch for changes:
 | **Polling fallback** | 5s polling as safety net for missed watcher events |
 | **Re-watch on chain** | Re-watches directories created during earlier phases |
 
+## Agent Backends
+
+The daemon dispatches all agent-specific behavior through a pluggable `Backend` interface. Each supported agent — Claude Code, OpenAI Codex, opencode, and Gemini CLI — is a `Backend` implementation registered with a process-wide registry at startup. The daemon looks backends up by name and asks them to:
+
+- Resolve the agent binary (user-configured path → `PATH` → common install locations)
+- Build the PTY command line (binary, args, env, initial prompt handling)
+- Install the composed Watchfire system prompt into whatever form the agent expects (CLI flag, `AGENTS.md`, `system.md`, …)
+- Locate and format the JSONL transcript the session produced
+- Contribute writable paths, cache patterns, and env vars to strip to the sandbox policy
+
+### Agent Resolution
+
+When spawning a session, the daemon walks a four-step chain to pick the backend:
+
+```
+task.agent → project.default_agent → settings.defaults.default_agent → claude-code
+```
+
+Empty string at any level defers to the next. Chat and wildfire-refine/generate sessions aren't scoped to a single task, so they skip the task step.
+
+### Per-Session Homes
+
+Codex, opencode, and Gemini each run with an isolated per-session home so the Watchfire system prompt and per-session data don't leak into the user's personal config, while auth still flows from the real config directory:
+
+| Backend | Env var(s) | Per-session path |
+|---------|------------|------------------|
+| **Codex** | `CODEX_HOME` | `~/.watchfire/codex-home/<session>/` |
+| **opencode** | `OPENCODE_CONFIG_DIR`, `OPENCODE_DATA_DIR` | `~/.watchfire/opencode-home/<session>/` |
+| **Gemini** | `GEMINI_SYSTEM_MD` | `~/.watchfire/gemini-home/<session>/system.md` |
+
+Claude Code has no isolation — the daemon delivers the system prompt via the `--append-system-prompt` CLI flag and uses `~/.claude/` directly.
+
+### SettingsService.ListAgents
+
+The daemon exposes a `SettingsService.ListAgents` RPC that returns the registered backends (name + display name). The GUI (and TUI settings tab) call this to populate agent-picker dropdowns, so any new backend registered in the daemon automatically appears in the UI.
+
 ## Task Lifecycle
 
 The daemon manages the reactive task lifecycle:
 
 ```
 1. Client calls StartTask(task_id)
-2. Daemon creates git worktree for task
-3. Daemon spawns coding agent in sandboxed PTY (inside worktree)
-4. Daemon streams screen buffer to subscribed clients
-5. Agent updates task file when done (status: done)
-6. Daemon detects via fsnotify OR polling fallback (5s)
-7. Daemon kills agent (if still running)
-8. Daemon processes git rules (merge, delete worktree)
-9. Daemon starts next task (if queued and merge succeeded)
+2. Daemon resolves the backend (task → project → global → claude-code)
+3. Daemon creates git worktree for task
+4. Daemon calls backend.InstallSystemPrompt (e.g. writes AGENTS.md into a per-session home)
+5. Daemon spawns coding agent in sandboxed PTY (inside worktree)
+6. Daemon streams screen buffer to subscribed clients
+7. Agent updates task file when done (status: done)
+8. Daemon detects via fsnotify OR polling fallback (5s)
+9. Daemon kills agent (if still running)
+10. Daemon calls backend.LocateTranscript and copies JSONL to logs
+11. Daemon processes git rules (merge, delete worktree)
+12. Daemon starts next task (if queued and merge succeeded)
 ```
 
 ## Session Logging
@@ -72,15 +111,22 @@ The daemon captures two types of logs for each agent session, stored in `~/.watc
 | Format | Filename | Source |
 |--------|----------|--------|
 | **PTY scrollback** | `<task_number>-<session>-<timestamp>.log` | Raw terminal output captured during the session |
-| **JSONL transcript** | `<task_number>-<session>-<timestamp>.jsonl` | Structured Claude Code conversation transcript (preferred) |
+| **JSONL transcript** | `<task_number>-<session>-<timestamp>.jsonl` | Structured conversation transcript from the active backend (preferred) |
 
 ### Transcript Auto-Discovery
 
-On agent exit, the daemon automatically discovers the Claude Code JSONL transcript from `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl`. It matches the transcript's `customTitle` field against the `--name` session name used to launch the agent, then copies the file to the logs directory.
+Transcript discovery is owned by each backend — the daemon calls `backend.LocateTranscript` on agent exit and copies (or synthesizes) the resulting JSONL into the logs directory:
+
+| Backend | Source |
+|---------|--------|
+| **Claude Code** | `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl`, matched by `customTitle` against the session name |
+| **Codex** | `<CODEX_HOME>/sessions/**/rollout-*.jsonl` in the per-session home |
+| **opencode** | Per-message JSON files under `<OPENCODE_DATA_DIR>/storage/message/` collated into a synthesized `transcript.jsonl` |
+| **Gemini** | `~/.gemini/tmp/<project_hash>/chats/session-*.jsonl` (or legacy `logs.json`) |
 
 ### Log Viewer
 
-The `ReadLog` RPC serves session logs to clients (TUI and GUI). It prefers the `.jsonl` transcript when available, formatting it as a readable User/Assistant conversation with tool call summaries. If no JSONL transcript exists, it falls back to the `.log` file (raw PTY scrollback).
+The `ReadLog` RPC serves session logs to clients (TUI and GUI). It prefers the `.jsonl` transcript when available and dispatches to the active backend's `FormatTranscript` to render a readable User/Assistant conversation with tool-call summaries. If no JSONL transcript exists, it falls back to the `.log` file (raw PTY scrollback). The same flow runs for every backend — no special-casing for Claude Code.
 
 ## Phase Completion Signals
 

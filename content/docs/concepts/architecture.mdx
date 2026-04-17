@@ -31,13 +31,52 @@ graph LR
 
 The daemon is the single source of truth. Clients are stateless views that subscribe to updates.
 
+## Pluggable Agent Backends
+
+Every agent-specific detail — which binary to launch, how to assemble the command line, how to deliver the system prompt, where its transcripts live, and what the sandbox must allow for it — is encapsulated in a `Backend` implementation. Backends register themselves with a process-wide registry at startup, and the daemon looks them up by name when spawning a session.
+
+| Aspect | Behavior |
+|--------|----------|
+| **Interface** | `Backend` in `internal/daemon/agent/backend/` — one struct per agent |
+| **Registry** | Process-wide `Register`/`Get`/`List` keyed by name (`claude-code`, `codex`, `opencode`, `gemini`) |
+| **Shipped backends** | Claude Code, OpenAI Codex, opencode, Gemini CLI |
+| **Command construction** | Backends own `BuildCommand` — binary path, args, env, whether the initial prompt is embedded or pasted after launch |
+| **System prompt delivery** | Watchfire composes one canonical prompt; each backend's `InstallSystemPrompt` delivers it (CLI flag for Claude Code, `AGENTS.md` for Codex/opencode, `system.md` for Gemini) |
+| **Transcript discovery** | Backends own `LocateTranscript` and `FormatTranscript` — the daemon copies and renders whatever the backend returns |
+| **Sandbox extras** | `SandboxExtras()` contributes writable paths, cache patterns, and env vars to strip; the sandbox layer merges these with the base policy |
+
+### Agent Resolution Chain
+
+When the daemon spawns a session, it resolves the backend through a four-step chain:
+
+```
+task.agent → project.default_agent → settings.defaults.default_agent → claude-code
+```
+
+Empty string at any level defers to the next. Chat, wildfire-refine, and wildfire-generate sessions aren't scoped to a single task, so they skip the task step and start from the project default.
+
+### Per-Session Homes
+
+Three of the four backends get an isolated per-session home so the Watchfire system prompt never contaminates the user's real configuration, while auth and global settings continue to flow from the shared location:
+
+| Backend | Isolation | Location | What's isolated | What's reused |
+|---------|-----------|----------|------------------|---------------|
+| **Claude Code** | None needed | — | — | `--append-system-prompt` flag delivers the prompt; user's `~/.claude/` is used directly |
+| **Codex** | `CODEX_HOME` | `~/.watchfire/codex-home/<session>/` | `AGENTS.md`, session transcripts | Auth + config from real `~/.codex/` |
+| **opencode** | `OPENCODE_CONFIG_DIR` + `OPENCODE_DATA_DIR` | `~/.watchfire/opencode-home/<session>/` | `AGENTS.md`, permission config, per-message JSON | Auth/providers/agents symlinked from `~/.config/opencode/` |
+| **Gemini** | `GEMINI_SYSTEM_MD` | `~/.watchfire/gemini-home/<session>/system.md` | Watchfire system prompt | Auth, settings, hierarchical `GEMINI.md` from `~/.gemini/` |
+
+### Adding a Backend
+
+A new backend is one file in `internal/daemon/agent/backend/<name>.go` — implement the `Backend` interface, register in `init()`, and contribute sandbox extras. Chat, task, start-all, and wildfire modes work against the registry generically, so no wiring changes are needed in the manager, sandbox, or UX surfaces.
+
 ## PTY and Terminal Emulation
 
 Watchfire uses a real PTY (pseudo-terminal) to run coding agents, with terminal emulation to parse escape codes:
 
 <Mermaid chart={`
 graph TD
-    SB["Sandbox (platform-specific)"] --> AG["Coding Agent (Claude Code)"]
+    SB["Sandbox (platform-specific)"] --> AG["Coding Agent (Claude Code / Codex / opencode / Gemini)"]
     AG --> PTY["PTY (creack/pty)"]
     PTY --> VT["vt10x Terminal Parser"]
     VT --> BUF["Screen Buffer (rows × cols)"]
@@ -79,11 +118,20 @@ The daemon uses `fsnotify` to watch for changes to task files:
 
 ## JSONL Transcript Logging
 
-Session logs capture Claude Code's structured JSONL transcripts in addition to raw PTY scrollback. This provides clean, formatted conversation history for reviewing what an agent did during a session.
+Session logs capture the agent's structured JSONL transcript in addition to raw PTY scrollback. This provides a clean, formatted conversation history for reviewing what an agent did during a session, across all supported backends — not just Claude Code.
 
-**Transcript discovery:** On agent exit, the daemon finds Claude Code's JSONL transcript at `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl` by matching the `customTitle` field (first line of the JSONL file) against the `--name` session name passed to Claude. The matched JSONL file is then copied to the Watchfire logs directory.
+**Transcript discovery:** On agent exit, the daemon calls the active backend's `LocateTranscript` to find the session's JSONL file:
 
-**Log viewing:** The `ReadLog` RPC prefers the `.jsonl` transcript and formats it as a readable User/Assistant conversation with tool call summaries. If no JSONL transcript is available, it falls back to the `.log` PTY scrollback.
+| Backend | Source location |
+|---------|-----------------|
+| **Claude Code** | `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl` matched by `customTitle` |
+| **Codex** | `<CODEX_HOME>/sessions/**/rollout-*.jsonl` (per-session home) |
+| **opencode** | Per-message JSON under `<OPENCODE_DATA_DIR>/storage/message/` collated into a synthesized `transcript.jsonl` |
+| **Gemini** | `~/.gemini/tmp/<project_hash>/chats/session-*.jsonl` (or legacy `logs.json`) |
+
+The backend copies or synthesizes a JSONL file into the Watchfire logs directory.
+
+**Log viewing:** The `ReadLog` RPC prefers the `.jsonl` transcript and dispatches to the backend's `FormatTranscript` to render it as a readable User/Assistant conversation with tool-call summaries. If no JSONL transcript is available, it falls back to the `.log` PTY scrollback.
 
 Both file types are stored side-by-side in `~/.watchfire/logs/<project_id>/` — see the directory structure below for details.
 
@@ -113,13 +161,22 @@ Wildfire and start-all modes automatically stop chaining after repeated failures
 └── logs/               # Session logs
     └── <project_id>/
         ├── <task_number>-<session>-<timestamp>.log      # PTY scrollback (fallback)
-        └── <task_number>-<session>-<timestamp>.jsonl     # Claude JSONL transcript (preferred)
+        └── <task_number>-<session>-<timestamp>.jsonl     # Agent JSONL transcript (preferred)
 ```
 
 **Log filename examples:**
 - `0001-1-2026-02-03T13-05-00.log` — task 1, session 1 (PTY scrollback)
-- `0001-1-2026-02-03T13-05-00.jsonl` — task 1, session 1 (Claude JSONL transcript)
+- `0001-1-2026-02-03T13-05-00.jsonl` — task 1, session 1 (agent JSONL transcript)
 - `chat-1-2026-02-03T15-00-00.log` — chat mode (no task)
+
+Per-backend session homes live alongside `logs/`:
+
+```
+~/.watchfire/
+├── codex-home/<session>/          # Per-session CODEX_HOME (Codex)
+├── opencode-home/<session>/       # Per-session config + data dirs (opencode)
+└── gemini-home/<session>/         # Per-session system.md (Gemini)
+```
 
 ### Per-Project (`<project>/.watchfire/`)
 

@@ -64,11 +64,15 @@ The CLI/TUI is the primary interface for developers. A single binary (`watchfire
 3. Create initial project.yaml
 4. Append .watchfire/ to .gitignore
 5. Commit .gitignore change
-6. Prompt for project definition (optional)
-7. Prompt for project settings
-8. Save project.yaml
-9. Register project in ~/.watchfire/projects.yaml
+6. Prompt for the coding agent (Claude Code, Codex, opencode, Gemini)
+   — seeded into project.default_agent
+7. Prompt for project definition (optional)
+8. Prompt for project settings
+9. Save project.yaml
+10. Register project in ~/.watchfire/projects.yaml
 ```
+
+The agent prompt only appears when the global default is set to "Ask per project" (or unset). If a global default is configured, init skips the prompt and uses it. See the [Supported Agents](/docs/concepts/supported-agents) doc for backend-specific setup.
 
 ## TUI Mode
 
@@ -82,9 +86,10 @@ Launch by running `watchfire` with no arguments. The TUI provides a split-view i
 │                                │                                     │
 │  Draft (2)                     │  > Starting session...              │
 │    #0001 Setup structure       │                                     │
-│    #0004 Add authentication    │  Claude Code v2.1                   │
+│    #0004 Add authentication    │  > Working on task...               │
+│      [codex]                   │                                     │
 │                                │                                     │
-│  Ready (1)                     │  > Working on task...               │
+│  Ready (1)                     │                                     │
 │  ● #0002 Implement login [▶]  │                                     │
 │                                │                                     │
 │  Done (2)                      │                                     │
@@ -94,6 +99,8 @@ Launch by running `watchfire` with no arguments. The TUI provides a split-view i
 │ Ctrl+q quit  Ctrl+h help  Tab switch panel           a add  s start │
 └──────────────────────────────────────────────────────────────────────┘
 ```
+
+A compact **agent badge** (e.g. `[codex]`) appears next to a task title when its `agent` field is set and differs from the project default. Tasks that defer to the project default show no badge, keeping the list visually quiet for the common case.
 
 ### Navigation
 
@@ -126,16 +133,20 @@ When the task list is focused:
 
 | Tab | Content |
 |-----|---------|
-| **Tasks** | Task list grouped by status |
+| **Tasks** | Task list grouped by status. Tasks with a per-task `agent` override show an agent badge next to the title. |
 | **Definition** | Project definition (press `e` to edit in $EDITOR) |
-| **Settings** | Git config, automation toggles |
+| **Settings** | Git config, automation toggles, and a **coding agent** selector that cycles through the registered backends (project default). |
 
 ### Right Panel Tabs
 
 | Tab | Content |
 |-----|---------|
 | **Chat** | Live agent terminal output |
-| **Logs** | Past session logs per task |
+| **Logs** | Past session logs per task. Formatted transcripts render for all supported backends (Claude Code, Codex, opencode, Gemini), falling back to PTY scrollback when no transcript is available. |
+
+### Task Form
+
+The Add / Edit Task overlay includes an **agent** field — a cycling selector below the existing fields. The first option, `Project default (<name>)`, maps to the empty string and keeps the task on whatever the project is configured for. The remaining options are the registered backends. Saving the form writes the chosen value to the task's `agent` field.
 
 ### TUI Features
 

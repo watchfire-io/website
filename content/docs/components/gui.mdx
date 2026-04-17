@@ -47,6 +47,7 @@ A three-step wizard for adding new projects:
 - Auto-merge on completion
 - Delete branch after merge
 - Auto-start tasks
+- Coding agent — picker populated from the daemon's `SettingsService.ListAgents` RPC (Claude Code, Codex, opencode, Gemini, plus any future backends). Seeds `project.default_agent`.
 
 ### Step 3 — Project Definition
 - Markdown editor for project context
@@ -60,10 +61,10 @@ A split layout with tabs for managing individual projects:
 
 | Tab | Content |
 |-----|---------|
-| **Tasks** | Grouped by status (Draft, Ready, Done) with search and filters. The task editor preserves form contents during background polling — edits are not lost when the task list refreshes. |
+| **Tasks** | Grouped by status (Draft, Ready, Done) with search and filters. Each task shows a compact agent badge when its `agent` field overrides the project default. The task modal includes an agent picker (populated from `SettingsService.ListAgents`) with a leading `Project default (<name>)` option that maps to the empty string. The task editor preserves form contents during background polling — edits are not lost when the task list refreshes. |
 | **Definition** | Markdown editor for project definition |
 | **Trash** | Soft-deleted tasks with restore and permanent delete |
-| **Settings** | Git config, automation toggles, project color. Changes like project color apply immediately across all views (sidebar, dashboard) without needing a refresh. |
+| **Settings** | Git config, automation toggles, project color, and a **coding agent** picker for the project's default backend (powered by `SettingsService.ListAgents`). Changes like project color apply immediately across all views (sidebar, dashboard) without needing a refresh. |
 
 ### Right Panel (Collapsible)
 
@@ -71,7 +72,7 @@ A split layout with tabs for managing individual projects:
 |-----|---------|
 | **Chat** | Live agent terminal streamed from daemon. The terminal is cleared before each new subscription, so switching projects or wildfire phase transitions won't accumulate stale output. Tasks created by agents during chat sessions appear in real-time in the Tasks tab without needing a manual refresh. |
 | **Branches** | List of worktrees/branches with status and actions |
-| **Logs** | Past session logs per task. Displays formatted conversation transcripts (User/Assistant messages with tool call summaries) when available, falling back to raw PTY scrollback otherwise. |
+| **Logs** | Past session logs per task. Displays formatted conversation transcripts (User/Assistant messages with tool call summaries) for every supported backend — Claude Code, Codex, opencode, and Gemini — falling back to raw PTY scrollback when no transcript is available. |
 
 ## Integrated Terminal
 
@@ -109,9 +110,9 @@ This is a general-purpose shell — use it for running builds, git commands, or 
 
 | Section | Content |
 |---------|---------|
-| **Defaults** | Automation toggles for new projects |
+| **Defaults** | Automation toggles for new projects, plus the **default coding agent** used when a project hasn't chosen one. Includes an **"Ask per project"** option that forces `watchfire init` to prompt every time. |
 | **Appearance** | Theme (System/Light/Dark) |
-| **Claude CLI** | Path detection, custom path, install instructions |
+| **Agents** | Per-backend binary paths — `claude`, `codex`, `opencode`, `gemini`. Leave blank to fall back to `PATH` and common install locations. Also shows auto-detection status and install instructions for each backend. |
 | **Updates** | Check frequency, auto-download toggle |
 
 ## Installation
