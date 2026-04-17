@@ -48,8 +48,8 @@ export default function HeroIllustration() {
           <circle cx="80" cy="98" r="6" fill="#28c940" opacity="0.9" />
           <text x="80" y="101" textAnchor="middle" fill="white" fontSize="8" fontFamily="monospace">✓</text>
           <text x="96" y="102" fill="#e4e4e7" fontSize="12" fontFamily="monospace">Build auth module</text>
-          <rect x="340" y="90" width="60" height="16" rx="4" fill="#166534" opacity="0.6" />
-          <text x="370" y="101" textAnchor="middle" fill="#4ade80" fontSize="9" fontFamily="monospace">done</text>
+          <rect x="316" y="90" width="84" height="16" rx="4" fill="#27272a" stroke="#3f3f46" strokeWidth="0.5" />
+          <text x="358" y="101" textAnchor="middle" fill="#a1a1aa" fontSize="9" fontFamily="monospace">claude-code</text>
         </g>
 
         <g className="hero-task hero-task-2">
@@ -58,24 +58,24 @@ export default function HeroIllustration() {
           {/* Spinning indicator */}
           <circle cx="80" cy="142" r="6" fill="none" stroke="#e07040" strokeWidth="1.5" strokeDasharray="8 24" className="hero-spinner" />
           <text x="96" y="146" fill="#e4e4e7" fontSize="12" fontFamily="monospace">Add API endpoints</text>
-          <rect x="324" y="134" width="76" height="16" rx="4" fill="#4a2510" opacity="0.6" />
-          <text x="362" y="145" textAnchor="middle" fill="#e88050" fontSize="9" fontFamily="monospace">running</text>
+          <rect x="346" y="134" width="54" height="16" rx="4" fill="#4a2510" opacity="0.7" stroke="#e07040" strokeWidth="0.5" strokeOpacity="0.4" />
+          <text x="373" y="145" textAnchor="middle" fill="#e88050" fontSize="9" fontFamily="monospace">codex</text>
         </g>
 
         <g className="hero-task hero-task-3">
           <rect x="60" y="168" width="360" height="36" rx="6" fill="#1c1c1f" stroke="#3f3f46" strokeWidth="0.5" />
           <circle cx="80" cy="186" r="6" fill="none" stroke="#52525b" strokeWidth="1.5" />
           <text x="96" y="190" fill="#a1a1aa" fontSize="12" fontFamily="monospace">Write integration tests</text>
-          <rect x="340" y="178" width="60" height="16" rx="4" fill="#27272a" />
-          <text x="370" y="189" textAnchor="middle" fill="#71717a" fontSize="9" fontFamily="monospace">ready</text>
+          <rect x="330" y="178" width="70" height="16" rx="4" fill="#27272a" stroke="#3f3f46" strokeWidth="0.5" />
+          <text x="365" y="189" textAnchor="middle" fill="#a1a1aa" fontSize="9" fontFamily="monospace">opencode</text>
         </g>
 
         <g className="hero-task hero-task-4">
           <rect x="60" y="212" width="360" height="36" rx="6" fill="#1c1c1f" stroke="#3f3f46" strokeWidth="0.5" />
           <circle cx="80" cy="230" r="6" fill="none" stroke="#52525b" strokeWidth="1.5" />
           <text x="96" y="234" fill="#a1a1aa" fontSize="12" fontFamily="monospace">Update documentation</text>
-          <rect x="340" y="222" width="60" height="16" rx="4" fill="#27272a" />
-          <text x="370" y="233" textAnchor="middle" fill="#71717a" fontSize="9" fontFamily="monospace">draft</text>
+          <rect x="340" y="222" width="60" height="16" rx="4" fill="#27272a" stroke="#3f3f46" strokeWidth="0.5" />
+          <text x="370" y="233" textAnchor="middle" fill="#a1a1aa" fontSize="9" fontFamily="monospace">gemini</text>
         </g>
 
         {/* Decorative git branch lines */}
