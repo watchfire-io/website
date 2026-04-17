@@ -1,11 +1,11 @@
 ---
 title: Overview
-description: Watchfire is a remote control for AI coding agents. Orchestrate Claude Code sessions with task files, git worktree isolation, and sandboxed execution.
+description: Watchfire is a remote control for AI coding agents. Orchestrate Claude Code, Codex, opencode, and Gemini CLI sessions with task files, git worktree isolation, and sandboxed execution.
 ---
 
 # Watchfire
 
-Watchfire orchestrates coding agent sessions (starting with Claude Code) based on task files. It manages multiple projects in parallel, spawning agents in sandboxed PTYs with git worktree isolation. A daemon handles all orchestration while thin clients (CLI/TUI and GUI) connect over gRPC.
+Watchfire orchestrates coding agent sessions based on task files. It supports **Claude Code**, **OpenAI Codex**, **opencode**, and **Gemini CLI**, and manages multiple projects in parallel by spawning agents in sandboxed PTYs with git worktree isolation. A daemon handles all orchestration while thin clients (CLI/TUI and GUI) connect over gRPC.
 
 ## Components
 
@@ -36,5 +36,6 @@ watchfire wildfire    # Agents generate tasks, code, and merge — autonomously
 ## Next Steps
 
 - [Installation](/docs/installation) — Install Watchfire from source or Homebrew
+- [Supported Agents](/docs/concepts/supported-agents) — Choose a backend and set up auth
 - [Quick Start](/docs/quickstart) — Get up and running in minutes
 - [Architecture](/docs/concepts/architecture) — Understand how the pieces fit together

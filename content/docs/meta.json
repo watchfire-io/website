@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "installation",
+    "concepts/supported-agents",
     "quickstart",
     "---Concepts---",
     "concepts",
