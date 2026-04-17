@@ -14,7 +14,7 @@ Each project has a `project.yaml` file in `.watchfire/`:
 ```yaml
 project_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
 name: my-project
-default_agent: claude-code
+default_agent: codex
 sandbox: auto
 auto_merge: true
 auto_delete_branch: true
@@ -28,12 +28,25 @@ next_task_number: 5
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `default_agent` | `claude-code` | The coding agent to use |
+| `default_agent` | (optional) | Project-level default agent backend for new sessions |
 | `sandbox` | `auto` | Sandbox mechanism (auto-detects platform backend) |
 | `auto_merge` | `true` | Merge worktree on task completion |
 | `auto_delete_branch` | `true` | Delete branch after successful merge |
 | `auto_start_tasks` | `true` | Start agent when task set to ready |
 | `definition` | (empty) | Project context for the AI agent |
+
+### Agent Selection
+
+`default_agent` is a first-class project setting. Set it when you want a project to prefer one backend by default, such as `codex`, `claude-code`, `opencode`, or `gemini`.
+
+The field is optional. When Watchfire needs to decide which backend to run for a task or session, it resolves the effective agent in this order:
+
+1. `task.agent`
+2. `project.default_agent`
+3. Global default agent from Watchfire settings
+4. `claude-code`
+
+This means you only need to set `default_agent` when the project should override the global default. If both the task and project omit an agent, Watchfire still falls back automatically.
 
 ### Project Definition
 
@@ -73,6 +86,7 @@ Tasks are stored as individual YAML files in `.watchfire/tasks/`:
 task_id: a1b2c3d4
 task_number: 1
 title: "Setup project structure"
+agent: codex
 prompt: |
   Create the initial project structure with a Next.js app,
   Tailwind CSS, and TypeScript configuration.
@@ -96,12 +110,29 @@ updated_at: "2026-01-15T10:30:00Z"
 | `task_id` | string | 8-character alphanumeric identifier |
 | `task_number` | int | Sequential number, used for file naming |
 | `title` | string | Short description of the task |
+| `agent` | string (optional) | Override backend for this task only |
 | `prompt` | string | Detailed instructions for the agent |
 | `acceptance_criteria` | string | How to verify the task is complete |
 | `status` | enum | `draft`, `ready`, or `done` |
 | `success` | bool/null | `null` (pending), `true`, or `false` |
 | `failure_reason` | string | Explanation if `success: false` |
 | `position` | int | Order within the task list |
+
+### Task Agent Override
+
+Use `agent` on a task when one task should run on a different backend than the rest of the project.
+
+```yaml
+title: "Refactor docs search"
+agent: gemini
+status: ready
+```
+
+If `agent` is omitted, the task inherits from the same fallback chain described above:
+
+1. `project.default_agent`
+2. Global default agent
+3. `claude-code`
 
 ## Task Lifecycle
 
