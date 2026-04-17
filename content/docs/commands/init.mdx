@@ -21,11 +21,11 @@ watchfire init
 
 1. Checks for an existing git repository — initializes one if missing
 2. Creates the `.watchfire/` directory structure (including `tasks/`)
-3. Generates an initial `project.yaml` with a UUID and project name (derived from the folder name)
+3. Generates an initial `project.yaml` with a UUID, project name, and selected project default agent
 4. Appends `.watchfire/` to `.gitignore` (creates the file if missing)
 5. Commits the `.gitignore` change
 6. Prompts for an optional project definition
-7. Prompts for project settings
+7. Prompts for project settings, including which agent/backend the project should prefer
 
 ## Interactive Prompts
 
@@ -33,16 +33,40 @@ During initialization, you'll be asked to configure:
 
 | Setting | Description | Default |
 |---------|-------------|---------|
+| **Agent/backend** | Project default agent written to `.watchfire/project.yaml` | Global default agent if set, otherwise `claude-code` |
 | **Project definition** | A description of your project for the AI agent | Empty |
 | **Auto-merge** | Automatically merge completed task branches | `true` |
 | **Auto-delete branches** | Delete worktree branches after merge | `true` |
 | **Auto-start tasks** | Start an agent when a task is set to ready | `true` |
+
+The selected backend is stored as `default_agent` in the project config. You can change it later in project settings.
+
+If you leave agent selection unset at the project level, Watchfire resolves the effective backend using:
+
+1. `task.agent`
+2. `project.default_agent`
+3. Global default agent
+4. `claude-code`
 
 ## Example
 
 ```bash
 cd my-project
 watchfire init
+```
+
+Example generated config:
+
+```yaml
+project_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+name: my-project
+default_agent: codex
+sandbox: auto
+auto_merge: true
+auto_delete_branch: true
+auto_start_tasks: true
+definition: ""
+next_task_number: 1
 ```
 
 After running, your project directory will contain:

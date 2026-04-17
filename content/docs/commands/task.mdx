@@ -23,7 +23,9 @@ Create a new task interactively.
 watchfire task add
 ```
 
-Opens interactive prompts to set the task title, prompt, acceptance criteria, and status. The task is saved as a YAML file in `.watchfire/tasks/`.
+Opens interactive prompts to set the task title, prompt, acceptance criteria, status, and (optionally) the agent backend to run this task on. The task is saved as a YAML file in `.watchfire/tasks/`.
+
+If you skip the agent prompt, the field is omitted and the task uses the project's default agent at execution time.
 
 ### task list
 
@@ -49,7 +51,7 @@ watchfire task 1
 watchfire task 3
 ```
 
-Opens the specified task (by task number) for interactive editing. You can modify the title, prompt, acceptance criteria, and status.
+Opens the specified task (by task number) for interactive editing. You can modify the title, prompt, acceptance criteria, status, and agent override.
 
 ### task delete
 
@@ -72,6 +74,32 @@ watchfire task restore <number>
 
 Clears the `deleted_at` timestamp, making the task visible again.
 
+## Task Agent Override
+
+Each task YAML may include an optional `agent` field to pin the backend used for that task:
+
+```yaml
+task_id: a1b2c3d4
+task_number: 2
+title: "Refactor docs search"
+agent: gemini
+prompt: |
+  Replace the existing search index with a fuzzy matcher.
+acceptance_criteria: |
+  - Search returns results for partial matches
+  - Existing tests pass
+status: ready
+```
+
+When `agent` is omitted, Watchfire resolves the effective backend in this order:
+
+1. `task.agent`
+2. `project.default_agent`
+3. Global default agent
+4. `claude-code`
+
+See [Projects and Tasks](/docs/concepts/projects-and-tasks#agent-selection) for the full schema and [Supported Agents](/docs/concepts/supported-agents) for the available backends.
+
 ## Examples
 
 ```bash
@@ -81,7 +109,7 @@ watchfire task add
 # List all active tasks
 watchfire task list
 
-# Edit task #2
+# Edit task #2 (including its agent override)
 watchfire task 2
 
 # Delete task #5

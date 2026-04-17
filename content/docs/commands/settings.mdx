@@ -1,6 +1,6 @@
 ---
 title: watchfire settings
-description: Configure project settings interactively.
+description: Configure project settings interactively, including agent selection and custom binary paths.
 ---
 
 # watchfire settings
@@ -18,6 +18,8 @@ watchfire config       # alias
 
 `watchfire configure` lets you interactively update your project's settings. It presents each configurable option and saves changes to `.watchfire/project.yaml`.
 
+Global Watchfire settings (the default agent for new projects and custom binary paths) are managed from the GUI Settings panel and persisted to `~/.watchfire/settings.yaml`. The CLI configure command only edits the per-project file.
+
 ## Configurable Settings
 
 | Setting | Description | Default |
@@ -26,15 +28,40 @@ watchfire config       # alias
 | **Auto-merge** | Automatically merge completed task branches to the default branch | `true` |
 | **Auto-delete branch** | Delete worktree branches after successful merge | `true` |
 | **Auto-start tasks** | Start an agent automatically when a task status is set to ready | `true` |
-| **Default agent** | The coding agent to use for sessions | `claude-code` |
+| **Default agent** | Project default backend (`claude-code`, `codex`, `opencode`, or `gemini`) | Inherited from global default |
 | **Project color** | Hex color used to identify the project in the GUI | — |
+
+The **Default agent** picker writes to `default_agent` in `.watchfire/project.yaml`. Leave it unset and Watchfire falls back to the global default agent (and ultimately to `claude-code` if no default is configured anywhere).
+
+## Settings UI (GUI)
+
+The GUI Settings panel exposes both project and global settings, including dedicated controls for agent selection and binary discovery:
+
+- **Project default agent** — picker that selects which backend the project should prefer
+- **Per-task agent** — pickers in the task editor for overriding the agent on individual tasks
+- **Global default agent** — used by any project that does not set its own `default_agent`
+- **Custom binary paths** — per-backend path override for `claude`, `codex`, `opencode`, and `gemini` when Watchfire cannot locate the binary on `PATH`
+
+When a custom path is set, Watchfire uses it instead of searching `PATH` or known install locations. See [Supported Agents](/docs/concepts/supported-agents) for the resolution order Watchfire applies to each backend.
+
+## Effective Agent Resolution
+
+When Watchfire launches a session it picks the backend in this order:
+
+1. `task.agent` (if defined on the task YAML)
+2. `project.default_agent` (from `.watchfire/project.yaml`)
+3. Global default agent (from `~/.watchfire/settings.yaml`)
+4. `claude-code`
+
+This means project and global settings only apply when a task does not pin its own agent.
 
 ## Notes
 
-- Settings are stored in `.watchfire/project.yaml`
+- Project settings are stored in `.watchfire/project.yaml`
+- Global settings (default agent, custom binary paths) are stored in `~/.watchfire/settings.yaml`
 - Changes take effect immediately for new agent sessions
 - Running agent sessions are not affected by settings changes
-- Initial settings are configured during `watchfire init`
+- Initial project settings are configured during `watchfire init`
 
 ## Examples
 
