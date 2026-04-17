@@ -3,6 +3,47 @@ title: Changelog
 description: Release history for Watchfire.
 ---
 
+## [2.0.1] Spark
+
+### Fixed
+
+- **Silently discarded work when an agent forgot to commit** — if an agent edited files in its worktree and set `status: done` without running `git commit`, Watchfire saw no diff on the branch, skipped the merge, and deleted the branch and worktree — losing everything the agent did. The merge step now runs `git add -A && git commit --no-verify` inside the worktree as a safety net before the diff check, so uncommitted edits are always captured even when the agent skips the commit step
+- **Codex commit reminder** — Codex sessions' per-session `AGENTS.md` now includes an explicit `CRITICAL: Commit before marking a task done` addendum at the end, making the rule the last thing Codex reads before starting work
+
+## [2.0.0] Spark
+
+Watchfire is no longer Claude Code only. Spark introduces a pluggable agent backend and ships first-class support for **Claude Code**, **OpenAI Codex**, **opencode**, and **Gemini CLI** — selectable per project or per task.
+
+### Added
+
+- **Pluggable agent backend interface** — any CLI coding agent can now be plugged into Watchfire through a single `AgentBackend` contract (executable resolution, command construction, sandbox extras, system-prompt delivery, transcript discovery and formatting). All existing surfaces — chat, task, start-all, wildfire — work against the backend registry unchanged
+- **Four first-class backends** — [Claude Code](https://www.claude.com/product/claude-code), [OpenAI Codex](https://github.com/openai/codex), [opencode](https://opencode.ai), and [Gemini CLI](https://github.com/google-gemini/gemini-cli) ship out of the box and are interchangeable across every agent mode
+- **Project default agent** — `watchfire init` now asks which agent to use and seeds `default_agent` in `project.yaml`
+- **Per-task agent override** — each task can pin itself to a specific backend via a new optional `agent` field in its YAML, letting you mix and match agents within a single project (e.g. Claude Code for architecture work, Codex for trivial edits, or re-running a failed task under a different agent without touching project settings). An empty value defers to the project default, keeping existing tasks behaving exactly as before
+- **Agent picker in `watchfire init`** — the init wizard prompts for the coding agent to use when the global "Ask per project" setting is active
+- **Agent selector in project settings (TUI + GUI)** — switch an existing project's agent without re-running `watchfire init`. The GUI populates its selector from the daemon via a new `SettingsService.ListAgents` RPC, reaching parity with the TUI
+- **Global settings UI for agent paths** — new settings overlay registers custom binary paths per backend and picks the global default agent, including an "Ask per project" option that forces `watchfire init` to prompt every time
+- **Agent badge on task lists** — TUI and GUI render a compact agent badge next to a task's title whenever `task.agent` is set and differs from the project default. Tasks that defer to the project default render no badge, keeping the list visually quiet for the common case
+- **Per-session homes for Codex, opencode, and Gemini** — each backend runs inside its own per-session home so the Watchfire system prompt stays isolated from your personal configuration, while auth and global settings keep flowing from your real `~/.codex`, `~/.config/opencode`, and `~/.gemini`
+- **Transcripts for every backend** — the log viewer now renders JSONL transcripts for Codex, opencode, and Gemini sessions in the same User/Assistant format as Claude Code. Transcript discovery is owned by each backend, so any future agent automatically gets the full log viewer experience
+
+### Changed
+
+- **Agent resolution chain** — the daemon resolves the backend for each session through a predictable four-step chain: `task.agent` → `project.default_agent` → `settings.defaults.default_agent` → `claude-code`. Empty strings defer to the next level, and chat / wildfire-refine / wildfire-generate sessions (which aren't scoped to a single task) skip the task step and start from the project default
+- **Backend-owned transcript discovery** — JSONL transcript location and formatting moved out of the agent manager and into each backend's implementation
+- **Backend-contributed sandbox paths** — writable paths, cache patterns, and stripped environment variables are now contributed by each backend instead of being hardcoded, keeping new agents self-contained
+
+### Fixed
+
+- **Agent auth failure when launched from GUI** — macOS GUI apps inherit a minimal environment (`PATH=/usr/bin:/bin:/usr/sbin:/sbin`) missing user-installed tool paths like `~/.local/bin`. This caused Claude Code to misroute API calls through "extra usage" billing instead of the user's subscription, producing spurious "You're out of extra usage" errors in Task, Run All, and Wildfire modes while Chat worked fine. The Electron daemon spawner now resolves the user's full login-shell `PATH` before launching `watchfired`, and the macOS sandbox enrichment adds `~/.local/bin` alongside the usual Homebrew prefixes
+- **GUI blank window on macOS** — the production renderer is now served over a custom `app://` protocol instead of `file://`, restoring execution of the `crossorigin` ES-module entry bundle that Chromium was silently blocking. Global `error` / `unhandledrejection` handlers in the renderer entry now surface any future module-init failure in the window instead of rendering blank
+
+### Migration
+
+- Existing projects without `default_agent` continue to use Claude Code — no action required
+- Existing tasks without an `agent` field continue to use the project default — no action required
+- Custom `codex`, `opencode`, and `gemini` binary paths can be configured via the new global settings UI or by hand in `~/.watchfire/settings.yaml`
+
 ## [1.0.0] Ember
 
 ### Added
