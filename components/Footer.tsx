@@ -25,9 +25,9 @@ export function Footer() {
               </a>
             </li>
             <li>
-              <a href="https://github.com/watchfire-io/watchfire/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" className="text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
+              <Link href="/docs/changelog" className="text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
                 Changelog
-              </a>
+              </Link>
             </li>
             <li>
               <a href="https://x.com/watchfire_dev" target="_blank" rel="noopener noreferrer" className="text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
