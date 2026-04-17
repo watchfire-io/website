@@ -2,7 +2,7 @@ const features = [
   {
     title: "Task Orchestration",
     description:
-      "Define tasks in YAML, let agents execute them. The daemon watches task files for changes — when an agent marks a task as done, Watchfire automatically stops the session and chains to the next task. Every session produces a clean, readable transcript log.",
+      "Define tasks in YAML, let agents execute them. The daemon watches task files for changes — when an agent marks a task as done, Watchfire automatically stops the session and chains to the next task. Every session produces a clean, readable transcript, regardless of which backend ran it.",
     illustration: (
       <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
         {/* Task cards */}

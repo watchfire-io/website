@@ -5,6 +5,7 @@ import DownloadInstall from "@/components/DownloadInstall";
 import GitHubStars from "@/components/GitHubStars";
 import HowItWorks from "@/components/HowItWorks";
 import AgentModes from "@/components/AgentModes";
+import AgentBackends from "@/components/AgentBackends";
 import ComponentsOverview from "@/components/ComponentsOverview";
 import KeyFeatures from "@/components/KeyFeatures";
 import FinalCTAServer from "@/components/FinalCTAServer";
@@ -36,25 +37,28 @@ export default async function Home() {
 
         {/* Text content */}
         <div className="min-w-0 flex-1 overflow-hidden text-center md:order-1 md:text-left">
-          <div className="mb-4 flex justify-center md:justify-start">
+          <div className="mb-4 flex flex-wrap justify-center gap-2 md:justify-start">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-fire-500/30 bg-fire-500/10 px-3 py-1 text-xs font-medium text-fire-500 dark:border-fire-400/30 dark:bg-fire-400/10 dark:text-fire-400 sm:text-sm">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-fire-500 dark:bg-fire-400" />
-              v1.0.0 — Stable Release
+              v2.0.0 — Spark
+            </span>
+            <span className="inline-flex items-center rounded-full border border-zinc-300 bg-white/60 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300 sm:text-sm">
+              Multi-agent backends
             </span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl lg:text-6xl">
-            Better context.{" "}
+            Remote control for{" "}
             <span className="bg-gradient-to-r from-fire-400 to-ember-500 bg-clip-text text-transparent">
-              Better code.
+              AI coding agents.
             </span>
           </h1>
 
           <p className="mt-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 sm:text-lg md:text-2xl">
-            Give your coding agents the right context and let them ship.
+            Orchestrate Claude Code, Codex, opencode, and Gemini CLI across every project.
           </p>
 
           <p className="mx-auto mt-4 max-w-xl text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 sm:mt-6 sm:text-sm md:mx-0 lg:text-lg">
-            Define your project once. Watchfire feeds agents the right specs, constraints, and codebase context&nbsp;&mdash; so they write better code.
+            Define your project once. Pick a default agent, or let each task choose its own. Watchfire handles tasks, worktrees, sandboxing, and clean transcripts&nbsp;&mdash; so you stay in control while agents ship code.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3 sm:mt-10 sm:gap-4 md:justify-start">
@@ -98,6 +102,12 @@ export default async function Home() {
 
     <ScrollReveal staggerChildren>
       <ComponentsOverview />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
+
+    <ScrollReveal staggerChildren>
+      <AgentBackends />
     </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
