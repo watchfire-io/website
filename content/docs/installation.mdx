@@ -8,7 +8,11 @@ description: Install Watchfire on macOS, Linux, or Windows.
 ## Prerequisites
 
 - **macOS, Linux, or Windows** — Watchfire runs on all three platforms with platform-specific sandboxing
-- **Claude Code** — The AI coding agent that Watchfire orchestrates
+- **One supported agent backend** — Install and authenticate at least one of: Claude Code, OpenAI Codex, opencode, or Gemini CLI
+
+Watchfire does not bundle the coding agent itself. Install your preferred backend separately, sign in through that backend's normal CLI flow, then select it in Watchfire.
+
+See [Supported Agents](/docs/concepts/supported-agents) for backend-specific setup, auth, and executable discovery details.
 
 ## Download
 
@@ -104,3 +108,5 @@ watchfire daemon start
 # Check daemon status
 watchfire daemon status
 ```
+
+If you plan to run tasks immediately, also verify that your chosen agent backend is installed and authenticated outside Watchfire first.

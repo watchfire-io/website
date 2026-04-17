@@ -1,0 +1,159 @@
+---
+title: Supported Agents
+description: Watchfire supports Claude Code, OpenAI Codex, opencode, and Gemini CLI. Learn what to install, how authentication works, and how Watchfire finds each backend.
+---
+
+# Supported Agents
+
+Watchfire can orchestrate four coding agent backends:
+
+- **Claude Code** (`claude-code`)
+- **OpenAI Codex** (`codex`)
+- **opencode** (`opencode`)
+- **Gemini CLI** (`gemini`)
+
+You can choose a default backend per project, change the global default in Watchfire settings, and override the backend per task when needed.
+
+## What You Need
+
+Before starting agents in Watchfire, make sure you have:
+
+- Watchfire installed
+- At least one supported agent CLI installed locally
+- That agent authenticated in its own CLI outside Watchfire first
+
+Watchfire reuses the agent's existing local login and config. It does not replace each backend's normal authentication flow.
+
+## Backend Overview
+
+| Backend | Binary | Typical auth/config location | Watchfire session nuance |
+|---------|--------|------------------------------|--------------------------|
+| **Claude Code** | `claude` | `~/.claude/`, `~/.claude.json` | Uses your normal Claude install directly |
+| **OpenAI Codex** | `codex` | `~/.codex/` | Each session gets its own `CODEX_HOME` |
+| **opencode** | `opencode` | `~/.config/opencode/` | Each session gets its own config + data dirs |
+| **Gemini CLI** | `gemini` | `~/.gemini/` | Each session gets its own `GEMINI_SYSTEM_MD` |
+
+## How Watchfire Finds Agent Binaries
+
+For every backend, Watchfire resolves the executable in this order:
+
+1. A custom path configured in Watchfire settings
+2. Your shell `PATH`
+3. A few common install locations for that backend
+
+If Watchfire cannot find the binary, set an explicit path in the Watchfire global settings UI or in `~/.watchfire/settings.yaml`.
+
+## Claude Code
+
+**What to install**
+
+- Install Claude Code so the `claude` binary is available
+
+**What to authenticate**
+
+- Sign in with Claude Code normally before using it through Watchfire
+
+**How Watchfire uses it**
+
+- Watchfire looks for `claude` in settings, then on `PATH`, then in common local install locations
+- Claude Code uses your normal local config and auth files directly
+- Watchfire appends its project/task system prompt at launch time, so there is no separate per-session home directory to manage
+
+**When to configure a custom path**
+
+- If `claude` is installed somewhere unusual
+- If the GUI or daemon cannot see the same `PATH` as your shell
+
+## OpenAI Codex
+
+**What to install**
+
+- Install the OpenAI Codex CLI so the `codex` binary is available
+
+**What to authenticate**
+
+- Complete Codex login once in the CLI before running it through Watchfire
+
+**How Watchfire uses it**
+
+- Watchfire looks for `codex` in settings, then on `PATH`, then in common local install locations
+- Each Watchfire session gets an isolated `CODEX_HOME` under `~/.watchfire/codex-home/<session>/`
+- Watchfire writes its generated `AGENTS.md` into that session home
+- Your existing `~/.codex/auth.json` and `~/.codex/config.toml` are reused, so you keep your normal login and config
+
+**What this means in practice**
+
+- Session-specific prompt files and logs stay isolated from your personal Codex history
+- Updating auth or config in your normal Codex setup still carries over to future Watchfire sessions
+
+## opencode
+
+**What to install**
+
+- Install `opencode` from the upstream project so the `opencode` binary is available
+
+**What to authenticate**
+
+- Sign in to opencode normally before using it with Watchfire
+- Make sure the configuration you want Watchfire to reuse exists under `~/.config/opencode/`
+
+**How Watchfire uses it**
+
+- Watchfire looks for `opencode` in settings, then on `PATH`, then in common local install locations
+- Each Watchfire session gets its own `OPENCODE_CONFIG_DIR` and `OPENCODE_DATA_DIR` under `~/.watchfire/opencode-home/<session>/`
+- Watchfire reuses your existing auth and config by linking entries from `~/.config/opencode/` into the per-session config dir
+- Watchfire writes its own per-session `AGENTS.md` and permission config there
+
+**What this means in practice**
+
+- Your normal opencode login and provider setup are reused
+- Session data, prompts, and transcripts stay isolated from your personal opencode state
+
+## Gemini CLI
+
+**What to install**
+
+- Install Gemini CLI so the `gemini` binary is available
+
+**What to authenticate**
+
+- Authenticate Gemini CLI normally before using it with Watchfire
+- Keep your Gemini CLI config working outside Watchfire first, since Watchfire reuses the shared global setup
+
+**How Watchfire uses it**
+
+- Watchfire looks for `gemini` in settings, then on `PATH`, then in common local install locations
+- Each Watchfire session writes a dedicated prompt file under `~/.watchfire/gemini-home/<session>/system.md`
+- Watchfire points `GEMINI_SYSTEM_MD` at that file for the session
+- Gemini auth and other shared CLI settings continue to live in `~/.gemini/`
+
+**What this means in practice**
+
+- The Watchfire system prompt is isolated per session
+- Your Gemini login, settings, and other global context still come from the shared Gemini CLI setup
+
+## Choosing a Backend in Watchfire
+
+You can pick a backend in several places:
+
+- During project setup
+- In project settings later
+- In global Watchfire settings for the default used by new projects
+- Per task, when you want one task to run on a different backend than the project default
+
+If nothing is configured, Watchfire falls back to `claude-code`.
+
+## Setup Checklist
+
+For any backend, the shortest reliable setup flow is:
+
+1. Install the backend CLI and confirm its binary works in your terminal
+2. Authenticate in that CLI directly
+3. Open Watchfire and select that backend for the project or globally
+4. If Watchfire cannot find it, set the binary path explicitly in Watchfire settings
+
+## Related Docs
+
+- [Installation](/docs/installation)
+- [Quick Start](/docs/quickstart)
+- [Projects and Tasks](/docs/concepts/projects-and-tasks)
