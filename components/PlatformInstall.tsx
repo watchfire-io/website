@@ -97,14 +97,6 @@ function getPlatformGroups(urls: InstallerUrls): PlatformGroup[] {
           label: "CLI — Intel (amd64)",
           href: `${BINARY_BASE}/watchfire-darwin-amd64`,
         },
-        {
-          label: "Daemon — Apple Silicon (arm64)",
-          href: `${BINARY_BASE}/watchfired-darwin-arm64`,
-        },
-        {
-          label: "Daemon — Intel (amd64)",
-          href: `${BINARY_BASE}/watchfired-darwin-amd64`,
-        },
       ],
     },
     {
@@ -130,14 +122,6 @@ function getPlatformGroups(urls: InstallerUrls): PlatformGroup[] {
           label: "CLI — ARM (arm64)",
           href: `${BINARY_BASE}/watchfire-linux-arm64`,
         },
-        {
-          label: "Daemon — x86_64 (amd64)",
-          href: `${BINARY_BASE}/watchfired-linux-amd64`,
-        },
-        {
-          label: "Daemon — ARM (arm64)",
-          href: `${BINARY_BASE}/watchfired-linux-arm64`,
-        },
       ],
     },
     {
@@ -157,14 +141,6 @@ function getPlatformGroups(urls: InstallerUrls): PlatformGroup[] {
         {
           label: "CLI — ARM (arm64)",
           href: `${BINARY_BASE}/watchfire-windows-arm64.exe`,
-        },
-        {
-          label: "Daemon — x86_64 (amd64)",
-          href: `${BINARY_BASE}/watchfired-windows-amd64.exe`,
-        },
-        {
-          label: "Daemon — ARM (arm64)",
-          href: `${BINARY_BASE}/watchfired-windows-arm64.exe`,
         },
       ],
     },

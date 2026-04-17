@@ -36,7 +36,7 @@ const macLines = [
 ];
 
 const linuxLines = [
-  { prompt: false, text: "# Install via shell script (macOS / Linux)" },
+  { prompt: false, text: "# Install via shell script (Linux)" },
   {
     prompt: true,
     text: "curl -fsSL https://raw.githubusercontent.com/watchfire-io/watchfire/main/scripts/install.sh | sh",
