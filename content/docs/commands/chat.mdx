@@ -28,6 +28,12 @@ This is useful for exploring your codebase, asking questions, making quick edits
 
 Sandbox priority: CLI flag → project setting (`project.yaml`) → global default (`settings.yaml`).
 
+## Agent Selection
+
+Chat sessions use the project's default agent, falling back to the global default and finally to `claude-code`. To chat with a different backend, change `project.default_agent` in project settings or the global default in Watchfire settings before launching.
+
+See [Supported Agents](/docs/concepts/supported-agents) for the available backends.
+
 ## Notes
 
 - The agent runs in the project root directory (not a worktree)

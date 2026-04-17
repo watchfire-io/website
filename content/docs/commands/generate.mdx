@@ -1,11 +1,11 @@
 ---
 title: watchfire generate
-description: Generate a project definition or task list using an AI agent.
+description: Generate a project definition or task list using a coding agent.
 ---
 
 # watchfire generate
 
-Generate a project definition using an AI agent.
+Generate a project definition using a coding agent.
 
 **Alias:** `watchfire gen`
 
@@ -17,7 +17,7 @@ watchfire generate
 
 ## Description
 
-`watchfire generate` spawns an agent session that analyzes your codebase and generates a project definition for `project.yaml`. This is useful when starting with an existing codebase and you want the AI to understand and document the project structure, conventions, and architecture.
+`watchfire generate` spawns an agent session that analyzes your codebase and generates a project definition for `project.yaml`. This is useful when starting with an existing codebase and you want the agent to understand and document the project structure, conventions, and architecture.
 
 The generated definition is saved to your `project.yaml` and serves as context for all future agent sessions.
 
@@ -32,6 +32,10 @@ Sandbox priority: CLI flag → project setting (`project.yaml`) → global defau
 
 These flags also apply to `watchfire plan`.
 
+## Agent Selection
+
+Both `watchfire generate` and `watchfire plan` run on the project's default agent, falling back to the global default and finally to `claude-code`. Any of the supported backends (Claude Code, Codex, opencode, Gemini) can perform definition and task generation. See [Supported Agents](/docs/concepts/supported-agents).
+
 ## Related: watchfire plan
 
 To generate tasks from an existing project definition, use:
@@ -40,7 +44,7 @@ To generate tasks from an existing project definition, use:
 watchfire plan
 ```
 
-This spawns an agent that reads your project definition and creates a set of tasks in `.watchfire/tasks/`. It's useful for breaking down a project into actionable work items.
+This spawns an agent session that reads your project definition and creates a set of tasks in `.watchfire/tasks/`. It's useful for breaking down a project into actionable work items.
 
 ## Examples
 

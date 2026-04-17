@@ -53,6 +53,19 @@ Runs all tasks with `status: ready` sequentially. After each task completes, the
 
 Sandbox priority: CLI flag → project setting (`project.yaml`) → global default (`settings.yaml`).
 
+## Agent Selection
+
+`watchfire run` uses whichever backend Watchfire resolves for the session — it does not force a specific agent. Resolution order:
+
+1. `task.agent` (for single-task runs, if set)
+2. `project.default_agent`
+3. Global default agent
+4. `claude-code`
+
+In `run all` mode, each task is launched independently, so tasks pinned to different backends in their own `agent` field will each run on their pinned backend.
+
+See [Supported Agents](/docs/concepts/supported-agents) for the full list of backends and [Projects and Tasks](/docs/concepts/projects-and-tasks#agent-selection) for the resolution rules.
+
 ## Examples
 
 ```bash
