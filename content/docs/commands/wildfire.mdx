@@ -52,6 +52,17 @@ If no tasks remain, the agent analyzes the project definition and completed work
 
 Sandbox priority: CLI flag → project setting (`project.yaml`) → global default (`settings.yaml`).
 
+## Agent Selection
+
+Wildfire launches a new agent session for each task it executes, refines, or generates. Each session uses Watchfire's standard resolution order:
+
+1. `task.agent` (when executing a specific task)
+2. `project.default_agent`
+3. Global default agent
+4. `claude-code`
+
+This means Wildfire can drive a mixed set of backends in one run — for example, Claude Code for tasks that pin `agent: claude-code` and the project default for everything else. See [Supported Agents](/docs/concepts/supported-agents) for details.
+
 ## Stopping
 
 Press **Ctrl+C** to stop wildfire at any time. The current agent session will be terminated gracefully.

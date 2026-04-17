@@ -51,6 +51,7 @@ Sends a SIGTERM to the daemon process, gracefully shutting it down. All active a
 - Multiple CLI/TUI instances can connect to the same daemon simultaneously
 - If the daemon shuts down, all connected CLI/TUI instances will close
 - The daemon manages all projects registered in `~/.watchfire/projects.yaml`
+- The daemon orchestrates every supported agent backend (Claude Code, Codex, opencode, Gemini) — it is not tied to a specific agent. See [Supported Agents](/docs/concepts/supported-agents).
 
 ## Examples
 
