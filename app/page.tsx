@@ -18,7 +18,7 @@ export default async function Home() {
     <>
     <Header />
     <main>
-    <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden px-4 py-16 sm:px-6 sm:py-24">
+    <section className="relative flex min-h-[calc(100svh-4rem)] items-center px-4 py-16 sm:px-6 sm:py-24">
       {/* Background gradient */}
       <div
         className="pointer-events-none absolute inset-0"
@@ -36,7 +36,7 @@ export default async function Home() {
         </div>
 
         {/* Text content */}
-        <div className="min-w-0 flex-1 overflow-hidden text-center md:order-1 md:text-left">
+        <div className="min-w-0 flex-1 text-center md:order-1 md:text-left">
           <div className="mb-4 flex flex-wrap justify-center gap-2 md:justify-start">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-fire-500/30 bg-fire-500/10 px-3 py-1 text-xs font-medium text-fire-500 dark:border-fire-400/30 dark:bg-fire-400/10 dark:text-fire-400 sm:text-sm">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-fire-500 dark:bg-fire-400" />

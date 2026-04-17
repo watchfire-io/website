@@ -89,14 +89,14 @@ function getPlatformGroups(urls: InstallerUrls): PlatformGroup[] {
           href: urls.mac,
           description: "GUI + CLI + Daemon",
         },
-        {
+        /*{
           label: "CLI — Apple Silicon (arm64)",
           href: `${BINARY_BASE}/watchfire-darwin-arm64`,
         },
         {
           label: "CLI — Intel (amd64)",
           href: `${BINARY_BASE}/watchfire-darwin-amd64`,
-        },
+        },*/
       ],
     },
     {
@@ -114,14 +114,14 @@ function getPlatformGroups(urls: InstallerUrls): PlatformGroup[] {
           href: urls.linuxDeb,
           description: "GUI + CLI + Daemon",
         },
-        {
+        /*{
           label: "CLI — x86_64 (amd64)",
           href: `${BINARY_BASE}/watchfire-linux-amd64`,
         },
         {
           label: "CLI — ARM (arm64)",
           href: `${BINARY_BASE}/watchfire-linux-arm64`,
-        },
+        },*/
       ],
     },
     {
@@ -134,14 +134,14 @@ function getPlatformGroups(urls: InstallerUrls): PlatformGroup[] {
           href: urls.windows,
           description: "GUI + CLI + Daemon",
         },
-        {
+        /*{
           label: "CLI — x86_64 (amd64)",
           href: `${BINARY_BASE}/watchfire-windows-amd64.exe`,
         },
         {
           label: "CLI — ARM (arm64)",
           href: `${BINARY_BASE}/watchfire-windows-arm64.exe`,
-        },
+        },*/
       ],
     },
   ];
@@ -228,7 +228,7 @@ export default function PlatformInstall({
           </button>
 
           {dropdownOpen && (
-            <div className="absolute bottom-full left-0 z-50 mb-2 max-h-[70vh] w-72 overflow-y-auto overscroll-contain rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="absolute left-0 z-50 mb-2 max-h-[70vh] w-72 overflow-y-auto overscroll-contain rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
               {groups.map((group) => (
                 <div key={group.platform}>
                   <div className="flex items-center gap-2 border-b border-zinc-100 bg-zinc-50 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-zinc-400">
@@ -265,7 +265,7 @@ export default function PlatformInstall({
                   className="flex items-center gap-2 px-4 py-2.5 text-sm text-zinc-500 transition-colors hover:text-fire-500 dark:text-zinc-400 dark:hover:text-fire-400"
                   onClick={() => setDropdownOpen(false)}
                 >
-                  View all releases on GitHub →
+                  View more on GitHub →
                 </a>
               </div>
             </div>
