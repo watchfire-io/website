@@ -113,25 +113,31 @@ export default function FinalCTA({
   }
 
   return (
-    <section
-      className="relative px-6 py-24"
-      style={{
-        background:
-          "linear-gradient(135deg, rgba(224,112,64,0.10) 0%, rgba(226,144,32,0.10) 100%)",
-      }}
-    >
-      {/* Stronger gradient overlay for dark mode */}
+    <section className="relative overflow-hidden px-6 py-24">
+      {/* Rich gradient background */}
       <div
-        className="pointer-events-none absolute inset-0 hidden dark:block"
+        className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "linear-gradient(135deg, rgba(224,112,64,0.08) 0%, rgba(226,144,32,0.06) 100%)",
+            "linear-gradient(135deg, rgba(224,112,64,0.12) 0%, rgba(226,144,32,0.10) 100%)",
         }}
+        aria-hidden="true"
+      />
+      {/* Ambient blobs */}
+      <div
+        className="glow-blob glow-blob-fire pointer-events-none -left-20 top-1/4 h-[380px] w-[380px]"
+        aria-hidden="true"
+      />
+      <div
+        className="glow-blob glow-blob-ember pointer-events-none -right-10 bottom-0 h-[320px] w-[320px]"
         aria-hidden="true"
       />
 
       <div className="relative mx-auto max-w-3xl text-center">
-        <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-fire-500/40 bg-fire-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-fire-600 backdrop-blur-sm dark:border-fire-400/40 dark:bg-fire-400/10 dark:text-fire-300">
+          Ready to go
+        </span>
+        <h2 className="mt-4 text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-5xl">
           Get started with{" "}
           <span className="bg-gradient-to-r from-fire-400 to-ember-500 bg-clip-text text-transparent">
             Watchfire
@@ -144,10 +150,13 @@ export default function FinalCTA({
         {/* Platform-aware download button */}
         <a
           href={primaryHref}
-          className="mt-10 inline-flex items-center gap-3 rounded-xl bg-fire-500 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-fire-500/25 transition-all hover:bg-fire-400 hover:shadow-xl hover:shadow-fire-500/30"
+          className="shine group mt-10 inline-flex items-center gap-3 rounded-xl bg-gradient-to-br from-fire-500 to-ember-500 px-8 py-4 text-lg font-semibold text-white shadow-[0_10px_40px_rgba(224,112,64,0.35)] transition-all hover:from-fire-400 hover:to-ember-400 hover:shadow-[0_15px_50px_rgba(224,112,64,0.45)]"
         >
           {PLATFORM_ICONS[activePlatform]}
           Download for {activeKey}
+          <svg className="transition-transform group-hover:translate-x-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M13 5l7 7-7 7" />
+          </svg>
         </a>
         <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
           Available for macOS, Linux, and Windows
@@ -176,13 +185,16 @@ export default function FinalCTA({
         </div>
 
         {/* Install command - terminal style */}
-        <div className="relative mx-auto mt-4 max-w-2xl overflow-hidden rounded-xl border border-zinc-200 bg-white text-left dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="relative mx-auto mt-4 max-w-2xl overflow-hidden rounded-xl border border-zinc-200 bg-white/90 text-left shadow-[0_20px_60px_-20px_rgba(0,0,0,0.2)] backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/90 dark:shadow-[0_20px_60px_-20px_rgba(224,112,64,0.25)]">
           {/* Terminal chrome */}
-          <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-            <div className="flex gap-2">
-              <div className="h-3 w-3 rounded-full bg-red-500/60" />
-              <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
-              <div className="h-3 w-3 rounded-full bg-green-500/60" />
+          <div className="flex items-center justify-between border-b border-zinc-200 bg-gradient-to-b from-zinc-50 to-zinc-100 px-4 py-3 dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1.5">
+                <div className="h-3 w-3 rounded-full bg-red-500/70 shadow-[inset_0_0_2px_rgba(0,0,0,0.2)]" />
+                <div className="h-3 w-3 rounded-full bg-yellow-500/70 shadow-[inset_0_0_2px_rgba(0,0,0,0.2)]" />
+                <div className="h-3 w-3 rounded-full bg-green-500/70 shadow-[inset_0_0_2px_rgba(0,0,0,0.2)]" />
+              </div>
+              <span className="ml-2 font-mono text-xs text-zinc-400 dark:text-zinc-600">install</span>
             </div>
             <button
               onClick={copy}

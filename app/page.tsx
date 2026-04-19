@@ -18,13 +18,23 @@ export default async function Home() {
     <>
     <Header />
     <main>
-    <section className="relative flex min-h-[calc(100svh-4rem)] items-center px-4 py-16 sm:px-6 sm:py-24">
-      {/* Background gradient */}
+    <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden px-4 py-16 sm:px-6 sm:py-24">
+      {/* Ambient glow blobs */}
+      <div
+        className="glow-blob glow-blob-fire pointer-events-none -top-24 left-[12%] h-[420px] w-[420px]"
+        aria-hidden="true"
+      />
+      <div
+        className="glow-blob glow-blob-ember pointer-events-none right-[8%] top-1/3 h-[340px] w-[340px]"
+        aria-hidden="true"
+      />
+
+      {/* Soft radial vignette */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 60% 50% at 50% 40%, rgba(224,112,64,0.12) 0%, transparent 70%)",
+            "radial-gradient(ellipse 55% 45% at 50% 35%, rgba(224,112,64,0.10) 0%, transparent 70%)",
         }}
         aria-hidden="true"
       />
@@ -37,36 +47,42 @@ export default async function Home() {
 
         {/* Text content */}
         <div className="min-w-0 flex-1 text-center md:order-1 md:text-left">
-          <div className="mb-4 flex flex-wrap justify-center gap-2 md:justify-start">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-fire-500/30 bg-fire-500/10 px-3 py-1 text-xs font-medium text-fire-500 dark:border-fire-400/30 dark:bg-fire-400/10 dark:text-fire-400 sm:text-sm">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-fire-500 dark:bg-fire-400" />
+          <div className="mb-5 flex flex-wrap justify-center gap-2 md:justify-start">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-fire-500/30 bg-fire-500/10 px-3 py-1 text-xs font-medium text-fire-600 shadow-[0_0_20px_rgba(224,112,64,0.15)] backdrop-blur-sm dark:border-fire-400/40 dark:bg-fire-400/10 dark:text-fire-300 sm:text-sm">
+              <span className="relative inline-flex h-1.5 w-1.5">
+                <span className="absolute inset-0 animate-ping rounded-full bg-fire-500/60 dark:bg-fire-400/60" />
+                <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-fire-500 dark:bg-fire-400" />
+              </span>
               v2.0.0 — Spark
             </span>
-            <span className="inline-flex items-center rounded-full border border-zinc-300 bg-white/60 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300 sm:text-sm">
+            <span className="inline-flex items-center rounded-full border border-zinc-300 bg-white/70 px-3 py-1 text-xs font-medium text-zinc-700 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300 sm:text-sm">
               Multi-agent backends
             </span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl lg:text-6xl">
-            Remote control for{" "}
-            <span className="bg-gradient-to-r from-fire-400 to-ember-500 bg-clip-text text-transparent">
-              AI coding agents.
+          <h1 className="text-[2rem] font-bold leading-[1.05] tracking-tight text-zinc-900 dark:text-white sm:text-5xl lg:text-[4.25rem]">
+            Better context.{" "}
+            <span className="relative inline-block bg-gradient-to-r from-fire-400 via-fire-500 to-ember-500 bg-clip-text text-transparent">
+              Better code.
             </span>
           </h1>
 
-          <p className="mt-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 sm:text-lg md:text-2xl">
-            Orchestrate Claude Code, Codex, opencode, and Gemini CLI across every project.
+          <p className="mt-4 text-base font-medium text-zinc-700 dark:text-zinc-300 sm:text-xl md:text-2xl">
+            Define what you want. Let Claude Code, Codex, opencode, and Gemini CLI build it — safely.
           </p>
 
-          <p className="mx-auto mt-4 max-w-xl text-xs leading-relaxed text-zinc-600 dark:text-zinc-400 sm:mt-6 sm:text-sm md:mx-0 lg:text-lg">
-            Define your project once. Pick a default agent, or let each task choose its own. Watchfire handles tasks, worktrees, sandboxing, and clean transcripts&nbsp;&mdash; so you stay in control while agents ship code.
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 sm:mt-6 sm:text-base md:mx-0 lg:text-lg">
+            Watchfire turns clear specs into scoped tasks, then hands each one to an agent in its own git worktree and sandbox. Better context in, better code out&nbsp;&mdash; with clean transcripts and full control at every step.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3 sm:mt-10 sm:gap-4 md:justify-start">
             <Link
               href="/docs"
-              className="rounded-lg border border-zinc-300 bg-white/60 px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-white sm:px-5 sm:py-3 sm:text-base"
+              className="group inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white/70 px-4 py-2.5 text-sm font-medium text-zinc-700 backdrop-blur-sm transition-all hover:border-fire-500/50 hover:text-zinc-900 hover:shadow-[0_0_20px_rgba(224,112,64,0.15)] dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300 dark:hover:border-fire-400/50 dark:hover:text-white sm:px-5 sm:py-3 sm:text-base"
             >
               Documentation
+              <svg className="transition-transform group-hover:translate-x-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M13 5l7 7-7 7" />
+              </svg>
             </Link>
             <Suspense
               fallback={
@@ -74,7 +90,7 @@ export default async function Home() {
                   href="https://github.com/watchfire-io/watchfire"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2.5 rounded-full border border-zinc-200 bg-white/70 px-5 py-2.5 text-sm font-medium text-zinc-700 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300"
+                  className="inline-flex items-center gap-2.5 rounded-full border border-zinc-200 bg-white/70 px-5 py-2.5 text-sm font-medium text-zinc-700 shadow-sm backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300"
                 >
                   Star on GitHub
                 </a>
@@ -92,37 +108,37 @@ export default async function Home() {
     </section>
 
     {/* Section divider */}
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
 
     <ScrollReveal staggerChildren>
       <HowItWorks />
     </ScrollReveal>
 
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
 
     <ScrollReveal staggerChildren>
       <ComponentsOverview />
     </ScrollReveal>
 
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
 
     <ScrollReveal staggerChildren>
       <AgentBackends />
     </ScrollReveal>
 
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
 
     <ScrollReveal staggerChildren>
       <AgentModes />
     </ScrollReveal>
 
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
 
     <ScrollReveal>
       <KeyFeatures />
     </ScrollReveal>
 
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-800" />
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
 
     <ScrollReveal>
       <FinalCTAServer />

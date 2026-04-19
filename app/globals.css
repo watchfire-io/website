@@ -69,6 +69,42 @@ html {
 /* Prevent horizontal overflow on all pages */
 body {
   overflow-x: clip;
+  position: relative;
+}
+
+/* Dark-theme ambient backdrop — subtle grid + noise for a developer-tool feel */
+.dark body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 50% 20%, rgba(0, 0, 0, 0.8) 0%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 20%, rgba(0, 0, 0, 0.8) 0%, transparent 70%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 50% 20%, rgba(0, 0, 0, 0.7) 0%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 20%, rgba(0, 0, 0, 0.7) 0%, transparent 70%);
+}
+
+/* Ensure main content sits above the backdrop */
+header, main, footer {
+  position: relative;
+  z-index: 1;
 }
 
 /* Ensure code blocks in docs are scrollable, not overflowing */
@@ -158,13 +194,102 @@ pre .line.highlighted {
 
 /* Card hover effects */
 .card-hover {
-  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out;
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(224, 112, 64, 0.08);
-  border-color: rgba(224, 112, 64, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(224, 112, 64, 0.12), 0 0 0 1px rgba(224, 112, 64, 0.08);
+  border-color: rgba(224, 112, 64, 0.35);
+}
+
+/* Ambient glow blob — place absolutely within a relatively-positioned parent */
+.glow-blob {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.35;
+}
+
+.glow-blob-fire {
+  background: radial-gradient(closest-side, rgba(224, 112, 64, 0.55), transparent 70%);
+}
+
+.glow-blob-ember {
+  background: radial-gradient(closest-side, rgba(226, 144, 32, 0.45), transparent 70%);
+}
+
+.dark .glow-blob {
+  opacity: 0.55;
+}
+
+/* Gradient border wrapper */
+.gradient-ring {
+  position: relative;
+  isolation: isolate;
+}
+
+.gradient-ring::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(224, 112, 64, 0.6), rgba(226, 144, 32, 0.2), transparent 60%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Shine sweep — subtle light pass used for hero/CTA chrome */
+.shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  animation: shine-sweep 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes shine-sweep {
+  0%, 45% { left: -60%; }
+  55%, 100% { left: 160%; }
+}
+
+/* Ember spark float */
+@keyframes ember-float {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  15% { opacity: 0.8; }
+  100% { transform: translateY(-120px) translateX(var(--drift, 20px)); opacity: 0; }
+}
+
+/* Focus visible — warm fire ring */
+:focus-visible {
+  outline: 2px solid rgba(224, 112, 64, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Respect prefers-reduced-motion */
@@ -187,5 +312,9 @@ pre .line.highlighted {
 
   .card-hover:hover {
     transform: none;
+  }
+
+  .shine::after {
+    animation: none;
   }
 }

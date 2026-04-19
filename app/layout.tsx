@@ -30,11 +30,11 @@ export const metadata: Metadata = {
     template: "%s | Watchfire",
   },
   description:
-    "Watchfire is a remote control for AI coding agents. Orchestrate Claude Code, OpenAI Codex, opencode, and Gemini CLI with task management, git worktree isolation, and sandboxed execution.",
+    "Better context. Better code. Watchfire turns clear specs into scoped tasks, then lets Claude Code, OpenAI Codex, opencode, or Gemini CLI build them in sandboxed git worktrees.",
   openGraph: {
     title: "Watchfire — Better context. Better code.",
     description:
-      "Orchestrate Claude Code, OpenAI Codex, opencode, and Gemini CLI with task management, git worktree isolation, and sandboxed execution.",
+      "Better context. Better code. Define what you want, and let Claude Code, OpenAI Codex, opencode, or Gemini CLI build it — in sandboxed git worktrees with clean transcripts.",
     type: "website",
     siteName: "Watchfire",
     url: siteUrl,
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Watchfire — Better context. Better code.",
     description:
-      "Orchestrate Claude Code, OpenAI Codex, opencode, and Gemini CLI with task management, git worktree isolation, and sandboxed execution.",
+      "Better context. Better code. Define what you want, and let Claude Code, OpenAI Codex, opencode, or Gemini CLI build it — in sandboxed git worktrees with clean transcripts.",
     images: ["/og-image.png"],
   },
   icons: {

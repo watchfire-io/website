@@ -139,16 +139,21 @@ function StepTimeline({ steps }: { steps: Step[] }) {
   return (
     <>
       {/* Desktop: horizontal timeline */}
-      <div className="relative mt-12 hidden lg:block">
-        {/* Connecting line */}
-        <div className="absolute left-0 right-0 top-8 h-px bg-gradient-to-r from-transparent via-fire-500/40 to-transparent" />
+      <div className="relative mt-14 hidden lg:block">
+        {/* Connecting line — multi-layer for depth */}
+        <div className="absolute left-[10%] right-[10%] top-9 h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-700" />
+        <div className="absolute left-[10%] right-[10%] top-9 h-px bg-gradient-to-r from-transparent via-fire-500/40 to-transparent" />
+        {/* Tiny moving spark */}
+        <div className="absolute left-[10%] right-[10%] top-[32px] h-2 overflow-hidden">
+          <div className="hiw-spark h-2 w-6 rounded-full" style={{ background: "radial-gradient(closest-side, rgba(224,112,64,0.8), transparent 70%)" }} />
+        </div>
 
         <div className="grid grid-cols-5 gap-6">
           {steps.map((step) => (
             <div key={step.number} data-stagger className="relative flex flex-col items-center text-center">
               {/* Autonomous badge */}
               {step.autonomous && (
-                <div className="absolute -top-7 z-20 flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 ring-1 ring-emerald-500/25 dark:text-emerald-400">
+                <div className="absolute -top-8 z-20 flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 backdrop-blur-sm dark:text-emerald-400">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
                   </svg>
@@ -156,16 +161,25 @@ function StepTimeline({ steps }: { steps: Step[] }) {
                 </div>
               )}
               <div
-                className={`relative z-10 flex h-16 w-16 items-center justify-center rounded-full border shadow-lg ${
+                className={`relative z-10 flex h-[72px] w-[72px] items-center justify-center rounded-full border-2 transition-transform hover:scale-105 ${
                   step.autonomous
-                    ? "border-emerald-500/40 bg-emerald-50 text-emerald-600 shadow-emerald-500/15 dark:bg-zinc-900 dark:text-emerald-400"
-                    : "border-fire-500/30 bg-white text-fire-500 shadow-fire-500/10 dark:bg-zinc-900 dark:text-fire-400"
+                    ? "border-emerald-500/40 bg-gradient-to-br from-emerald-50 to-white text-emerald-600 shadow-lg shadow-emerald-500/20 dark:from-emerald-900/20 dark:to-zinc-900 dark:text-emerald-400"
+                    : "border-fire-500/40 bg-gradient-to-br from-white to-fire-50/40 text-fire-500 shadow-lg shadow-fire-500/15 dark:from-zinc-900 dark:to-fire-900/10 dark:text-fire-400"
                 }`}
               >
+                {/* Subtle inner ring */}
+                <div
+                  aria-hidden="true"
+                  className={`absolute inset-1 rounded-full border ${
+                    step.autonomous
+                      ? "border-emerald-500/20"
+                      : "border-fire-500/20"
+                  }`}
+                />
                 {step.icon}
               </div>
               <span
-                className={`mt-1 text-xs font-medium ${
+                className={`mt-2 font-mono text-[10px] font-semibold uppercase tracking-wider ${
                   step.autonomous
                     ? "text-emerald-600 dark:text-emerald-400"
                     : "text-fire-600 dark:text-fire-400"
@@ -173,13 +187,28 @@ function StepTimeline({ steps }: { steps: Step[] }) {
               >
                 Step {step.number}
               </span>
-              <h3 className="mt-3 font-semibold text-zinc-900 dark:text-white">{step.title}</h3>
+              <h3 className="mt-2 font-semibold text-zinc-900 dark:text-white">{step.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
                 {step.description}
               </p>
             </div>
           ))}
         </div>
+
+        <style jsx>{`
+          .hiw-spark {
+            animation: hiw-spark-move 5s linear infinite;
+          }
+          @keyframes hiw-spark-move {
+            0% { transform: translateX(-10%); opacity: 0; }
+            8% { opacity: 1; }
+            92% { opacity: 1; }
+            100% { transform: translateX(calc(100% + 10px)); opacity: 0; }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .hiw-spark { animation: none !important; opacity: 0 !important; }
+          }
+        `}</style>
       </div>
 
       {/* Mobile: vertical timeline */}
@@ -231,38 +260,55 @@ export default function HowItWorks() {
   return (
     <section className="relative px-6 py-24">
       <div className="mx-auto max-w-6xl">
-        <h2 className="text-center text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
-          How It Works
-        </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-zinc-600 dark:text-zinc-400">
-          Two ways to work — choose your level of control
-        </p>
+        <div className="text-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white/60 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-500 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400">
+            How it works
+          </span>
+          <h2 className="mt-4 text-center text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
+            Two ways to{" "}
+            <span className="bg-gradient-to-r from-fire-400 to-ember-500 bg-clip-text text-transparent">
+              ship code
+            </span>
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-zinc-600 dark:text-zinc-400">
+            Full autonomy, or full control — pick whichever fits the job.
+          </p>
+        </div>
 
         {/* Tab switcher */}
-        <div className="mx-auto mt-10 flex max-w-2xl gap-4">
+        <div className="mx-auto mt-10 flex max-w-2xl flex-col gap-3 sm:flex-row sm:gap-4">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setMode(tab.key)}
-              className={`flex-1 rounded-xl border px-5 py-4 text-left transition-all ${
+              className={`card-hover flex-1 rounded-xl border px-5 py-4 text-left backdrop-blur-sm transition-all ${
                 mode === tab.key
-                  ? "border-fire-500/50 bg-fire-500/10 shadow-md shadow-fire-500/10"
-                  : "border-zinc-200 bg-white hover:border-fire-500/30 dark:border-zinc-700/50 dark:bg-zinc-800/50 dark:hover:border-fire-500/30"
+                  ? "border-fire-500/50 bg-gradient-to-br from-fire-500/15 via-fire-500/5 to-transparent shadow-[0_0_30px_rgba(224,112,64,0.15)]"
+                  : "border-zinc-200 bg-white/70 dark:border-zinc-700/50 dark:bg-zinc-900/40"
               }`}
             >
-              <span
-                className={`text-sm font-semibold ${
-                  mode === tab.key
-                    ? "text-fire-600 dark:text-fire-400"
-                    : "text-zinc-900 dark:text-white"
-                }`}
-              >
-                {tab.label}
-              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`inline-block h-2 w-2 rounded-full ${
+                    mode === tab.key
+                      ? "bg-fire-500 shadow-[0_0_8px_rgba(224,112,64,0.8)]"
+                      : "bg-zinc-300 dark:bg-zinc-600"
+                  }`}
+                />
+                <span
+                  className={`text-sm font-semibold ${
+                    mode === tab.key
+                      ? "text-fire-600 dark:text-fire-300"
+                      : "text-zinc-900 dark:text-white"
+                  }`}
+                >
+                  {tab.label}
+                </span>
+              </div>
               <p
-                className={`mt-1 text-xs leading-relaxed ${
+                className={`mt-1.5 text-xs leading-relaxed ${
                   mode === tab.key
-                    ? "text-fire-600/70 dark:text-fire-400/70"
+                    ? "text-fire-700/70 dark:text-fire-200/70"
                     : "text-zinc-500 dark:text-zinc-400"
                 }`}
               >

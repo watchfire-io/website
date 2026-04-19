@@ -4,24 +4,32 @@ const agents = [
     tag: "claude-code",
     vendor: "Anthropic",
     initial: "C",
+    accent: "#d97757",
+    accentRgb: "217, 119, 87",
   },
   {
     name: "Codex",
     tag: "codex",
     vendor: "OpenAI",
     initial: "Cx",
+    accent: "#10a37f",
+    accentRgb: "16, 163, 127",
   },
   {
     name: "opencode",
     tag: "opencode",
     vendor: "Open source",
     initial: "oc",
+    accent: "#8b5cf6",
+    accentRgb: "139, 92, 246",
   },
   {
     name: "Gemini CLI",
     tag: "gemini",
     vendor: "Google",
     initial: "G",
+    accent: "#4285f4",
+    accentRgb: "66, 133, 244",
   },
 ];
 
@@ -50,7 +58,7 @@ const capabilities = [
   {
     title: "Per-task override",
     description:
-      "Pin individual tasks to a specific backend — Claude Code for architecture, Codex for trivial edits, or swap to a new agent without touching project settings.",
+      "Pin individual tasks to a specific backend — Claude Code for architecture, Codex for trivial edits, or swap agents without touching project settings.",
     icon: (
       <svg
         width="22"
@@ -74,7 +82,7 @@ const capabilities = [
   {
     title: "Unified transcripts",
     description:
-      "Every backend renders into the same clean User/Assistant log — so you can review a session the same way, no matter which agent ran it.",
+      "Every backend renders into the same clean User/Assistant log — so you review a session the same way no matter which agent ran it.",
     icon: (
       <svg
         width="22"
@@ -99,7 +107,7 @@ export default function AgentBackends() {
     <section className="relative px-6 py-24">
       <div className="mx-auto max-w-6xl">
         <div className="text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-fire-500/30 bg-fire-500/10 px-3 py-1 text-xs font-medium text-fire-600 dark:border-fire-400/30 dark:bg-fire-400/10 dark:text-fire-400">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-fire-500/40 bg-fire-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-fire-600 shadow-[0_0_20px_rgba(224,112,64,0.15)] dark:border-fire-400/40 dark:bg-fire-400/10 dark:text-fire-300">
             New in v2.0.0
           </span>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
@@ -119,10 +127,38 @@ export default function AgentBackends() {
             <div
               key={agent.tag}
               data-stagger
-              className="card-hover group relative rounded-xl border border-zinc-200 bg-white/60 p-5 transition-colors dark:border-zinc-800 dark:bg-zinc-900/60"
+              className="card-hover group relative overflow-hidden rounded-xl border border-zinc-200 bg-white/70 p-5 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/60"
+              style={{
+                // Expose accent via CSS vars so hover effects can use it
+                ["--accent" as never]: agent.accent,
+                ["--accent-rgb" as never]: agent.accentRgb,
+              }}
             >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-fire-500/30 bg-fire-500/10 font-mono text-sm font-semibold text-fire-600 dark:text-fire-400">
+              {/* Per-agent colored glow on hover */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-100"
+                style={{ background: `rgba(${agent.accentRgb}, 0.35)` }}
+              />
+              {/* Top accent bar */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-x-0 top-0 h-px opacity-60 transition-opacity group-hover:opacity-100"
+                style={{
+                  background: `linear-gradient(90deg, transparent, ${agent.accent}, transparent)`,
+                }}
+              />
+
+              <div className="relative flex items-center gap-3">
+                <div
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border font-mono text-sm font-semibold transition-all duration-300 group-hover:scale-105"
+                  style={{
+                    color: agent.accent,
+                    borderColor: `rgba(${agent.accentRgb}, 0.4)`,
+                    background: `rgba(${agent.accentRgb}, 0.12)`,
+                    boxShadow: `0 0 20px rgba(${agent.accentRgb}, 0.15)`,
+                  }}
+                >
                   {agent.initial}
                 </div>
                 <div className="min-w-0">
@@ -134,9 +170,9 @@ export default function AgentBackends() {
                   </p>
                 </div>
               </div>
-              <div className="mt-4 inline-flex items-center rounded-md bg-zinc-100 px-2 py-1 font-mono text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                <span className="mr-1 text-zinc-400 dark:text-zinc-500">$</span>
-                {agent.tag}
+              <div className="relative mt-4 inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 font-mono text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+                <span className="text-zinc-400 dark:text-zinc-600">$</span>
+                <span>{agent.tag}</span>
               </div>
             </div>
           ))}
@@ -148,9 +184,9 @@ export default function AgentBackends() {
             <div
               key={cap.title}
               data-stagger
-              className="rounded-xl border border-zinc-200 bg-white/60 p-6 dark:border-zinc-800 dark:bg-zinc-900/60"
+              className="group relative overflow-hidden rounded-xl border border-zinc-200 bg-white/70 p-6 backdrop-blur-sm transition-all hover:border-fire-500/40 hover:shadow-[0_0_30px_rgba(224,112,64,0.1)] dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-fire-400/40"
             >
-              <div className="inline-flex rounded-lg bg-fire-500/10 p-2.5 text-fire-600 dark:text-fire-400">
+              <div className="relative inline-flex rounded-lg border border-fire-500/20 bg-gradient-to-br from-fire-500/15 to-fire-500/5 p-2.5 text-fire-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] dark:border-fire-400/20 dark:text-fire-400">
                 {cap.icon}
               </div>
               <h3 className="mt-4 font-semibold text-zinc-900 dark:text-white">
