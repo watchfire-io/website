@@ -53,7 +53,7 @@ export default async function Home() {
                 <span className="absolute inset-0 animate-ping rounded-full bg-fire-500/60 dark:bg-fire-400/60" />
                 <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-fire-500 dark:bg-fire-400" />
               </span>
-              v2.0.0 — Spark
+              v2.0.1 — Spark
             </span>
             <span className="inline-flex items-center rounded-full border border-zinc-300 bg-white/70 px-3 py-1 text-xs font-medium text-zinc-700 backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300 sm:text-sm">
               Multi-agent backends
