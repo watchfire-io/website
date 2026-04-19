@@ -11,8 +11,6 @@ import {
   WindowsIcon,
 } from "@/lib/platform";
 
-const BINARY_BASE =
-  "https://github.com/watchfire-io/watchfire/releases/latest/download";
 const RELEASES_URL =
   "https://github.com/watchfire-io/watchfire/releases/latest";
 
