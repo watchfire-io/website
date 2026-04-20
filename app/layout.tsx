@@ -30,11 +30,11 @@ export const metadata: Metadata = {
     template: "%s | Watchfire",
   },
   description:
-    "Better context. Better code. Watchfire turns clear specs into scoped tasks, then lets Claude Code, OpenAI Codex, opencode, or Gemini CLI build them in sandboxed git worktrees.",
+    "Better context. Better code. Watchfire turns clear specs into scoped tasks, then lets Claude Code, OpenAI Codex, opencode, Gemini CLI, or GitHub Copilot CLI build them in sandboxed git worktrees.",
   openGraph: {
     title: "Watchfire — Better context. Better code.",
     description:
-      "Better context. Better code. Define what you want, and let Claude Code, OpenAI Codex, opencode, or Gemini CLI build it — in sandboxed git worktrees with clean transcripts.",
+      "Better context. Better code. Define what you want, and let Claude Code, OpenAI Codex, opencode, Gemini CLI, or GitHub Copilot CLI build it — in sandboxed git worktrees with clean transcripts.",
     type: "website",
     siteName: "Watchfire",
     url: siteUrl,
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Watchfire — Better context. Better code.",
     description:
-      "Better context. Better code. Define what you want, and let Claude Code, OpenAI Codex, opencode, or Gemini CLI build it — in sandboxed git worktrees with clean transcripts.",
+      "Better context. Better code. Define what you want, and let Claude Code, OpenAI Codex, opencode, Gemini CLI, or GitHub Copilot CLI build it — in sandboxed git worktrees with clean transcripts.",
     images: ["/og-image.png"],
   },
   icons: {

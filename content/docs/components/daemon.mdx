@@ -51,7 +51,7 @@ The daemon uses `fsnotify` to watch for changes:
 
 ## Agent Backends
 
-The daemon dispatches all agent-specific behavior through a pluggable `Backend` interface. Each supported agent — Claude Code, OpenAI Codex, opencode, and Gemini CLI — is a `Backend` implementation registered with a process-wide registry at startup. The daemon looks backends up by name and asks them to:
+The daemon dispatches all agent-specific behavior through a pluggable `Backend` interface. Each supported agent — Claude Code, OpenAI Codex, opencode, Gemini CLI, and GitHub Copilot CLI — is a `Backend` implementation registered with a process-wide registry at startup. The daemon looks backends up by name and asks them to:
 
 - Resolve the agent binary (user-configured path → `PATH` → common install locations)
 - Build the PTY command line (binary, args, env, initial prompt handling)
@@ -71,13 +71,14 @@ Empty string at any level defers to the next. Chat and wildfire-refine/generate 
 
 ### Per-Session Homes
 
-Codex, opencode, and Gemini each run with an isolated per-session home so the Watchfire system prompt and per-session data don't leak into the user's personal config, while auth still flows from the real config directory:
+Codex, opencode, Gemini, and Copilot each run with an isolated per-session home so the Watchfire system prompt and per-session data don't leak into the user's personal config, while auth still flows from the real config directory:
 
 | Backend | Env var(s) | Per-session path |
 |---------|------------|------------------|
 | **Codex** | `CODEX_HOME` | `~/.watchfire/codex-home/<session>/` |
 | **opencode** | `OPENCODE_CONFIG_DIR`, `OPENCODE_DATA_DIR` | `~/.watchfire/opencode-home/<session>/` |
 | **Gemini** | `GEMINI_SYSTEM_MD` | `~/.watchfire/gemini-home/<session>/system.md` |
+| **Copilot** | `COPILOT_HOME`, `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` | `~/.watchfire/copilot-home/<session>/` |
 
 Claude Code has no isolation — the daemon delivers the system prompt via the `--append-system-prompt` CLI flag and uses `~/.claude/` directly.
 
@@ -123,6 +124,7 @@ Transcript discovery is owned by each backend — the daemon calls `backend.Loca
 | **Codex** | `<CODEX_HOME>/sessions/**/rollout-*.jsonl` in the per-session home |
 | **opencode** | Per-message JSON files under `<OPENCODE_DATA_DIR>/storage/message/` collated into a synthesized `transcript.jsonl` |
 | **Gemini** | `~/.gemini/tmp/<project_hash>/chats/session-*.jsonl` (or legacy `logs.json`) |
+| **Copilot** | `<COPILOT_HOME>/session-state/**/events.jsonl` in the per-session home |
 
 ### Log Viewer
 

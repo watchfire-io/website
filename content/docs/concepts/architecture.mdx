@@ -38,10 +38,10 @@ Every agent-specific detail — which binary to launch, how to assemble the comm
 | Aspect | Behavior |
 |--------|----------|
 | **Interface** | `Backend` in `internal/daemon/agent/backend/` — one struct per agent |
-| **Registry** | Process-wide `Register`/`Get`/`List` keyed by name (`claude-code`, `codex`, `opencode`, `gemini`) |
-| **Shipped backends** | Claude Code, OpenAI Codex, opencode, Gemini CLI |
+| **Registry** | Process-wide `Register`/`Get`/`List` keyed by name (`claude-code`, `codex`, `opencode`, `gemini`, `copilot`) |
+| **Shipped backends** | Claude Code, OpenAI Codex, opencode, Gemini CLI, GitHub Copilot CLI |
 | **Command construction** | Backends own `BuildCommand` — binary path, args, env, whether the initial prompt is embedded or pasted after launch |
-| **System prompt delivery** | Watchfire composes one canonical prompt; each backend's `InstallSystemPrompt` delivers it (CLI flag for Claude Code, `AGENTS.md` for Codex/opencode, `system.md` for Gemini) |
+| **System prompt delivery** | Watchfire composes one canonical prompt; each backend's `InstallSystemPrompt` delivers it (CLI flag for Claude Code, `AGENTS.md` for Codex/opencode/Copilot, `system.md` for Gemini) |
 | **Transcript discovery** | Backends own `LocateTranscript` and `FormatTranscript` — the daemon copies and renders whatever the backend returns |
 | **Sandbox extras** | `SandboxExtras()` contributes writable paths, cache patterns, and env vars to strip; the sandbox layer merges these with the base policy |
 
@@ -57,7 +57,7 @@ Empty string at any level defers to the next. Chat, wildfire-refine, and wildfir
 
 ### Per-Session Homes
 
-Three of the four backends get an isolated per-session home so the Watchfire system prompt never contaminates the user's real configuration, while auth and global settings continue to flow from the shared location:
+Four of the five backends get an isolated per-session home so the Watchfire system prompt never contaminates the user's real configuration, while auth and global settings continue to flow from the shared location:
 
 | Backend | Isolation | Location | What's isolated | What's reused |
 |---------|-----------|----------|------------------|---------------|
@@ -65,6 +65,7 @@ Three of the four backends get an isolated per-session home so the Watchfire sys
 | **Codex** | `CODEX_HOME` | `~/.watchfire/codex-home/<session>/` | `AGENTS.md`, session transcripts | Auth + config from real `~/.codex/` |
 | **opencode** | `OPENCODE_CONFIG_DIR` + `OPENCODE_DATA_DIR` | `~/.watchfire/opencode-home/<session>/` | `AGENTS.md`, permission config, per-message JSON | Auth/providers/agents symlinked from `~/.config/opencode/` |
 | **Gemini** | `GEMINI_SYSTEM_MD` | `~/.watchfire/gemini-home/<session>/system.md` | Watchfire system prompt | Auth, settings, hierarchical `GEMINI.md` from `~/.gemini/` |
+| **GitHub Copilot CLI** | `COPILOT_HOME` + `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` | `~/.watchfire/copilot-home/<session>/` | `AGENTS.md`, per-session state | GitHub login, MCP config, and session history symlinked from `~/.copilot/` |
 
 ### Adding a Backend
 
@@ -76,7 +77,7 @@ Watchfire uses a real PTY (pseudo-terminal) to run coding agents, with terminal 
 
 <Mermaid chart={`
 graph TD
-    SB["Sandbox (platform-specific)"] --> AG["Coding Agent (Claude Code / Codex / opencode / Gemini)"]
+    SB["Sandbox (platform-specific)"] --> AG["Coding Agent (Claude Code / Codex / opencode / Gemini / Copilot)"]
     AG --> PTY["PTY (creack/pty)"]
     PTY --> VT["vt10x Terminal Parser"]
     VT --> BUF["Screen Buffer (rows × cols)"]
