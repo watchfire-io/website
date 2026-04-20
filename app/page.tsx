@@ -53,13 +53,13 @@ export default async function Home() {
                 <span className="absolute inset-0 animate-ping rounded-full bg-fire-500/60 dark:bg-fire-400/60" />
                 <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-fire-500 dark:bg-fire-400" />
               </span>
-              v2.0.1 — Spark
+              v3.0.0 — Blaze
             </span>
             <Link
-              href="/docs/changelog#201-spark"
+              href="/docs/changelog#300-blaze"
               className="group inline-flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white/70 px-3 py-1 text-xs font-medium text-zinc-700 backdrop-blur-sm transition-colors hover:border-fire-500/50 hover:text-fire-600 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300 dark:hover:border-fire-400/50 dark:hover:text-fire-300 sm:text-sm"
             >
-              Reliability patch: never lose an agent&apos;s work
+              Now with GitHub Copilot CLI
               <svg
                 className="transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
                 width="12"
@@ -84,7 +84,7 @@ export default async function Home() {
           </h1>
 
           <p className="mt-4 text-base font-medium text-zinc-700 dark:text-zinc-300 sm:text-xl md:text-2xl">
-            Define what you want. Let Claude Code, Codex, opencode, and Gemini CLI build it — safely.
+            Define what you want. Let Claude Code, Codex, opencode, Gemini CLI, and GitHub Copilot CLI build it — safely.
           </p>
 
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 sm:mt-6 sm:text-base md:mx-0 lg:text-lg">

@@ -1,16 +1,17 @@
 ---
 title: Supported Agents
-description: Watchfire supports Claude Code, OpenAI Codex, opencode, and Gemini CLI. Learn what to install, how authentication works, and how Watchfire finds each backend.
+description: Watchfire supports Claude Code, OpenAI Codex, opencode, Gemini CLI, and GitHub Copilot CLI. Learn what to install, how authentication works, and how Watchfire finds each backend.
 ---
 
 # Supported Agents
 
-Watchfire can orchestrate four coding agent backends:
+Watchfire can orchestrate five coding agent backends:
 
 - **Claude Code** (`claude-code`)
 - **OpenAI Codex** (`codex`)
 - **opencode** (`opencode`)
 - **Gemini CLI** (`gemini`)
+- **GitHub Copilot CLI** (`copilot`)
 
 You can choose a default backend per project, change the global default in Watchfire settings, and override the backend per task when needed.
 
@@ -32,6 +33,7 @@ Watchfire reuses the agent's existing local login and config. It does not replac
 | **OpenAI Codex** | `codex` | `~/.codex/` | Each session gets its own `CODEX_HOME` |
 | **opencode** | `opencode` | `~/.config/opencode/` | Each session gets its own config + data dirs |
 | **Gemini CLI** | `gemini` | `~/.gemini/` | Each session gets its own `GEMINI_SYSTEM_MD` |
+| **GitHub Copilot CLI** | `copilot` | `~/.copilot/` | Each session gets its own `COPILOT_HOME` |
 
 ## How Watchfire Finds Agent Binaries
 
@@ -131,6 +133,29 @@ If Watchfire cannot find the binary, set an explicit path in the Watchfire globa
 
 - The Watchfire system prompt is isolated per session
 - Your Gemini login, settings, and other global context still come from the shared Gemini CLI setup
+
+## GitHub Copilot CLI
+
+**What to install**
+
+- Install [GitHub Copilot CLI](https://github.com/github/copilot-cli) so the `copilot` binary is available
+
+**What to authenticate**
+
+- Sign in with `gh` or Copilot CLI normally before running it through Watchfire, so `~/.copilot/config.json` and `~/.copilot/session-store.db` exist and are valid
+
+**How Watchfire uses it**
+
+- Watchfire looks for `copilot` in settings, then on `PATH`, then in common local install locations
+- Each Watchfire session gets its own `COPILOT_HOME` under `~/.watchfire/copilot-home/<session>/`
+- Watchfire writes its generated `AGENTS.md` into that session home and points Copilot at it via `COPILOT_CUSTOM_INSTRUCTIONS_DIRS`
+- Your real `~/.copilot/{config.json,mcp-config.json,session-store.db}` are symlinked in so existing GitHub login, MCP config, and session history are reused
+- Sessions run in yolo mode (`--allow-all`); the Watchfire sandbox is the boundary, not Copilot's prompt gate
+
+**What this means in practice**
+
+- The Watchfire system prompt stays isolated per session
+- Your existing Copilot login, MCP configuration, and session history continue to work unchanged
 
 ## Choosing a Backend in Watchfire
 
