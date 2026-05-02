@@ -18,7 +18,7 @@ export default async function Home() {
   return (
     <>
     <Header />
-    <main>
+    <main className="pt-16">
     <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden px-4 py-16 sm:px-6 sm:py-24">
       {/* Ambient glow blobs */}
       <div
