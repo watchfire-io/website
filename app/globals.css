@@ -102,7 +102,7 @@ body::before {
 }
 
 /* Ensure main content sits above the backdrop */
-header, main, footer {
+main, footer {
   position: relative;
   z-index: 1;
 }
