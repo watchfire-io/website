@@ -1,36 +1,38 @@
 ---
 title: GUI (Watchfire.app)
-description: The Watchfire GUI is an Electron app providing a multi-project interface for managing tasks, monitoring agents, and reviewing work.
+description: A guided tour of Watchfire.app, the Electron multi-project client for managing tasks, monitoring agents, and reviewing work.
 ---
+
+import GuiLayoutSvg from "@/components/GuiLayoutSvg";
 
 # GUI (`Watchfire.app`)
 
-The GUI is a multi-project client built with Electron. Unlike the CLI/TUI (which is project-scoped), the GUI shows all registered projects in one place. It connects to the daemon via gRPC-Web.
+The GUI is a multi-project client built with Electron. Unlike the CLI/TUI (which is project-scoped), the GUI shows every registered project in one place and connects to the daemon over gRPC-Web.
+
+<img
+  src="/screenshots/dashboard.png"
+  alt="Watchfire dashboard showing four project cards with task counts and progress bars"
+  className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
 
 ## Layout
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Sidebar          │  Main Content                │  Right Panel │
-│                   │                              │  (collapsible)│
-│  - Logo/version   │  Dashboard OR Project View   │              │
-│  - Dashboard      │                              │  - Chat      │
-│  - Projects list  │                              │  - Branches  │
-│  - Add Project    │                              │  - Logs      │
-│  - Settings       │                              │              │
-│                   ├──────────────────────────────┤              │
-│                   │  Terminal (footer, Cmd+`)     │              │
-└─────────────────────────────────────────────────────────────────┘
-```
+<GuiLayoutSvg className="my-8 block w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-[#16181d]" />
+
+The window splits into three regions:
+
+- **Sidebar** — the flame mark, project list, "Add Project," and the Settings entry. Always visible.
+- **Main content** — either the Dashboard or the active Project View, with the integrated terminal docked as a footer (toggle with <kbd>Cmd</kbd>+<kbd>`</kbd>).
+- **Right panel** — Chat, Branches, and Logs. Collapsible — pop it out when you want to focus on the main area.
 
 ## Dashboard
 
-The dashboard shows an overview of all registered projects:
+The dashboard is the home view: every registered project rendered as a card with its color dot, current branch, default agent, and a Todo / In Dev / Done task summary with a progress bar. Click any card to drop into the Project View.
 
-- Project cards with name, status dot, and task counts (Draft/Ready/Done)
-- Active task indicator on each card
-- "Add Project" button
-- Click a card to open the Project View
+- Project cards with name, color dot, branch, and active-agent badge
+- Task counts (Todo / In Dev / Done) and a progress bar
+- "Add Project" entry to launch the project wizard
+- Live status — dots and counts update as agents work
 
 ## Add Project Wizard
 
@@ -55,24 +57,109 @@ A three-step wizard for adding new projects:
 
 ## Project View
 
-A split layout with tabs for managing individual projects:
+Selecting a project opens the split layout: a tabbed main area for managing the project, and a collapsible right panel for live agent output and history.
 
-### Left/Center Tabs
+<img
+  src="/screenshots/project-tasks.png"
+  alt="Project view with the Tasks tab open and the Chat panel docked on the right, ready for a new agent session"
+  className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
 
-| Tab | Content |
-|-----|---------|
-| **Tasks** | Grouped by status (Draft, Ready, Done) with search and filters. Each task shows a compact agent badge when its `agent` field overrides the project default. The task modal includes an agent picker (populated from `SettingsService.ListAgents`) with a leading `Project default (<name>)` option that maps to the empty string. The task editor preserves form contents during background polling — edits are not lost when the task list refreshes. |
-| **Definition** | Markdown editor for project definition |
-| **Trash** | Soft-deleted tasks with restore and permanent delete |
-| **Settings** | Git config, automation toggles, project color, and a **coding agent** picker for the project's default backend (powered by `SettingsService.ListAgents`). Changes like project color apply immediately across all views (sidebar, dashboard) without needing a refresh. |
+### Main Tabs
 
-### Right Panel (Collapsible)
+#### Tasks
 
-| Tab | Content |
-|-----|---------|
-| **Chat** | Live agent terminal streamed from daemon. The terminal is cleared before each new subscription, so switching projects or wildfire phase transitions won't accumulate stale output. Tasks created by agents during chat sessions appear in real-time in the Tasks tab without needing a manual refresh. |
-| **Branches** | List of worktrees/branches with status and actions |
-| **Logs** | Past session logs per task. Displays formatted conversation transcripts (User/Assistant messages with tool call summaries) for every supported backend — Claude Code, Codex, opencode, Gemini, and Copilot — falling back to raw PTY scrollback when no transcript is available. |
+Tasks are grouped by status (Draft, Ready, Done) with search, filters, and a "New Task" button. Each row shows a compact agent badge when its `agent` field overrides the project default.
+
+<img
+  src="/screenshots/task-list.png"
+  alt="Task list grouped into In Development and Done sections, with status badges on each row"
+  className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
+
+Opening a task brings up the task editor — title, prompt, acceptance criteria, status, and an agent picker with a leading **Project default** option. The form preserves its contents during background polling, so edits aren't lost when the task list refreshes.
+
+<img
+  src="/screenshots/task-edit.png"
+  alt="Task edit modal with title, prompt, acceptance criteria, status toggle, and agent selector"
+  className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
+
+#### Definition
+
+A markdown editor for the project definition — the persistent context every agent reads before starting work. Use it for architecture, key files, conventions, and constraints.
+
+<img
+  src="/screenshots/project-definition.png"
+  alt="Project Definition tab showing the Watchfire definition rendered as markdown"
+  className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
+
+#### Secrets
+
+Agent-readable instructions for accessing external services — CLI tools that need to be authenticated, environment variables, API keys, and where to find them.
+
+<img
+  src="/screenshots/project-secrets.png"
+  alt="Project Secrets tab showing Markdown setup instructions for CLI tools, env vars, and credentials"
+  className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
+
+#### Trash
+
+Soft-deleted tasks live here until you restore or permanently delete them.
+
+<img
+  src="/screenshots/project-trash.png"
+  alt="Project Trash tab in its empty state"
+  className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
+
+#### Settings
+
+Per-project configuration — name, color (which propagates everywhere instantly), default agent, and the automation toggles for auto-merge, auto-delete branches, and auto-start tasks. The Danger Zone unregisters the project; no files are deleted.
+
+<img
+  src="/screenshots/project-settings.png"
+  alt="Project Settings tab showing name, color picker, agent dropdown, automation toggles, and a Danger Zone"
+  className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
+
+### Right Panel
+
+The right panel docks live agent output and history. Toggle it open or closed at any time.
+
+#### Chat
+
+The Chat tab streams the live agent terminal from the daemon. Watchfire clears the terminal before each new subscription, so switching projects or wildfire phase transitions never accumulate stale output. Tasks the agent creates during chat appear in real-time in the Tasks tab without a manual refresh.
+
+<img
+  src="/screenshots/chat-active.png"
+  alt="Project view with a live Chat session — agent output streaming on the right while the task list updates on the left"
+  className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
+
+The toolbar above the terminal exposes the agent modes — **Generate**, **Plan**, **Run All**, **Wildfire**, and **Stop**.
+
+#### Branches
+
+A live view of every active worktree and branch with status (in development, merged, conflict) and inline actions to merge, delete, or open in your editor.
+
+<img
+  src="/screenshots/branches.png"
+  alt="Branches tab listing watchfire worktrees with merge status badges"
+  className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
+
+#### Logs
+
+Per-task session history. The Logs tab renders formatted conversation transcripts (User/Assistant messages with tool call summaries) for every supported backend — Claude Code, Codex, opencode, Gemini, Copilot — and falls back to raw PTY scrollback when no transcript is available.
+
+<img
+  src="/screenshots/project-logs.png"
+  alt="Logs tab listing past task and chat sessions with timestamps and statuses"
+  className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
 
 ## Integrated Terminal
 
@@ -108,23 +195,17 @@ This is a general-purpose shell — use it for running builds, git commands, or 
 
 ## Global Settings
 
+Open Settings from the bottom of the sidebar to manage app-wide preferences — appearance, the defaults applied to every new project, and the per-backend binary paths the daemon should use to launch agents.
+
+<img
+  src="/screenshots/global-settings.png"
+  alt="Global Settings showing Appearance theme picker, defaults for new projects, and agent binary paths with auto-detection status"
+  className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
+
 | Section | Content |
 |---------|---------|
+| **Appearance** | Theme (System / Light / Dark) |
 | **Defaults** | Automation toggles for new projects, plus the **default coding agent** used when a project hasn't chosen one. Includes an **"Ask per project"** option that forces `watchfire init` to prompt every time. |
-| **Appearance** | Theme (System/Light/Dark) |
 | **Agents** | Per-backend binary paths — `claude`, `codex`, `opencode`, `gemini`, `copilot`. Leave blank to fall back to `PATH` and common install locations. Also shows auto-detection status and install instructions for each backend. |
 | **Updates** | Check frequency, auto-download toggle |
-
-## Installation
-
-The GUI is installed as part of the full install:
-
-```bash
-make install-all
-```
-
-This places `Watchfire.app` in your Applications folder. The GUI connects to the same daemon as the CLI/TUI — they share state and can run simultaneously.
-
-## Connection
-
-The GUI uses gRPC-Web to communicate with the daemon. Connection details are discovered from `~/.watchfire/daemon.yaml`. If the daemon isn't running, the GUI can start it automatically.

@@ -118,7 +118,7 @@ export default function AgentModes() {
                 </>
               )}
 
-              <div className="relative flex items-start justify-between gap-3">
+              <div className="relative">
                 <div
                   className={`inline-flex rounded-lg p-2.5 transition-all ${
                     mode.highlighted
@@ -128,14 +128,6 @@ export default function AgentModes() {
                 >
                   {mode.icon}
                 </div>
-                {mode.highlighted && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-fire-500/40 bg-fire-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-fire-600 dark:text-fire-300">
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M12 2l2.35 6.95H21l-5.32 3.86 2.02 6.19L12 14.88l-5.7 4.12 2.02-6.19L3 8.95h6.65z" />
-                    </svg>
-                    Flagship
-                  </span>
-                )}
               </div>
               <h3 className={`mt-4 text-lg font-semibold ${mode.highlighted ? "text-zinc-900 dark:text-white" : "text-zinc-900 dark:text-white"}`}>
                 {mode.name}

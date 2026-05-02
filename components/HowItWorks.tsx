@@ -140,75 +140,31 @@ function StepTimeline({ steps }: { steps: Step[] }) {
     <>
       {/* Desktop: horizontal timeline */}
       <div className="relative mt-14 hidden lg:block">
-        {/* Connecting line — multi-layer for depth */}
-        <div className="absolute left-[10%] right-[10%] top-9 h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent dark:via-zinc-700" />
-        <div className="absolute left-[10%] right-[10%] top-9 h-px bg-gradient-to-r from-transparent via-fire-500/40 to-transparent" />
-        {/* Tiny moving spark */}
-        <div className="absolute left-[10%] right-[10%] top-[32px] h-2 overflow-hidden">
-          <div className="hiw-spark h-2 w-6 rounded-full" style={{ background: "radial-gradient(closest-side, rgba(224,112,64,0.8), transparent 70%)" }} />
-        </div>
+        {/* Connecting line — sits behind the opaque circles */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-[10%] right-[10%] top-9 h-px bg-fire-500/30 dark:bg-fire-400/25"
+        />
 
-        <div className="grid grid-cols-5 gap-6">
+        <div className="relative grid grid-cols-5 gap-6">
           {steps.map((step) => (
             <div key={step.number} data-stagger className="relative flex flex-col items-center text-center">
-              {/* Autonomous badge */}
-              {step.autonomous && (
-                <div className="absolute -top-8 z-20 flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 backdrop-blur-sm dark:text-emerald-400">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                  </svg>
-                  Autonomous
-                </div>
-              )}
               <div
                 className={`relative z-10 flex h-[72px] w-[72px] items-center justify-center rounded-full border-2 transition-transform hover:scale-105 ${
                   step.autonomous
-                    ? "border-emerald-500/40 bg-gradient-to-br from-emerald-50 to-white text-emerald-600 shadow-lg shadow-emerald-500/20 dark:from-emerald-900/20 dark:to-zinc-900 dark:text-emerald-400"
-                    : "border-fire-500/40 bg-gradient-to-br from-white to-fire-50/40 text-fire-500 shadow-lg shadow-fire-500/15 dark:from-zinc-900 dark:to-fire-900/10 dark:text-fire-400"
+                    ? "border-emerald-500/40 bg-white text-emerald-600 shadow-lg shadow-emerald-500/20 dark:bg-zinc-900 dark:text-emerald-400"
+                    : "border-fire-500/40 bg-white text-fire-500 shadow-lg shadow-fire-500/15 dark:bg-zinc-900 dark:text-fire-400"
                 }`}
               >
-                {/* Subtle inner ring */}
-                <div
-                  aria-hidden="true"
-                  className={`absolute inset-1 rounded-full border ${
-                    step.autonomous
-                      ? "border-emerald-500/20"
-                      : "border-fire-500/20"
-                  }`}
-                />
                 {step.icon}
               </div>
-              <span
-                className={`mt-2 font-mono text-[10px] font-semibold uppercase tracking-wider ${
-                  step.autonomous
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-fire-600 dark:text-fire-400"
-                }`}
-              >
-                Step {step.number}
-              </span>
-              <h3 className="mt-2 font-semibold text-zinc-900 dark:text-white">{step.title}</h3>
+              <h3 className="mt-4 font-semibold text-zinc-900 dark:text-white">{step.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
                 {step.description}
               </p>
             </div>
           ))}
         </div>
-
-        <style jsx>{`
-          .hiw-spark {
-            animation: hiw-spark-move 5s linear infinite;
-          }
-          @keyframes hiw-spark-move {
-            0% { transform: translateX(-10%); opacity: 0; }
-            8% { opacity: 1; }
-            92% { opacity: 1; }
-            100% { transform: translateX(calc(100% + 10px)); opacity: 0; }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            .hiw-spark { animation: none !important; opacity: 0 !important; }
-          }
-        `}</style>
       </div>
 
       {/* Mobile: vertical timeline */}

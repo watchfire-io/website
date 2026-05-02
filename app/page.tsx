@@ -7,6 +7,7 @@ import HowItWorks from "@/components/HowItWorks";
 import AgentModes from "@/components/AgentModes";
 import AgentBackends from "@/components/AgentBackends";
 import ComponentsOverview from "@/components/ComponentsOverview";
+import ProductShowcase from "@/components/ProductShowcase";
 import KeyFeatures from "@/components/KeyFeatures";
 import FinalCTAServer from "@/components/FinalCTAServer";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -125,23 +126,6 @@ export default async function Home() {
     </section>
 
     {/* Section divider */}
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
-
-    <ScrollReveal staggerChildren>
-      <HowItWorks />
-    </ScrollReveal>
-
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
-
-    <ScrollReveal staggerChildren>
-      <ComponentsOverview />
-    </ScrollReveal>
-
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
-
-    <ScrollReveal staggerChildren>
-      <AgentBackends />
-    </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
 
@@ -151,8 +135,38 @@ export default async function Home() {
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
 
+    <ScrollReveal staggerChildren>
+      <AgentBackends />
+    </ScrollReveal>
+    
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
     <ScrollReveal>
       <KeyFeatures />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal>
+      <FinalCTAServer />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal staggerChildren>
+      <HowItWorks />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal staggerChildren>
+      <ProductShowcase />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal staggerChildren>
+      <ComponentsOverview />
     </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />

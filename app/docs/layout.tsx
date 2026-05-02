@@ -2,6 +2,7 @@ import { DocsLayout } from "fumadocs-ui/layouts/docs";
 import { source } from "@/lib/source";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
+import FlameLogo from "@/components/FlameLogo";
 
 export const metadata: Metadata = {
   title: {
@@ -15,7 +16,12 @@ export default function Layout({ children }: { children: ReactNode }) {
     <DocsLayout
       tree={source.pageTree}
       nav={{
-        title: "Watchfire",
+        title: (
+          <span className="inline-flex items-center gap-2">
+            <FlameLogo size={22} />
+            <span className="font-semibold">Watchfire</span>
+          </span>
+        ),
         url: "/",
       }}
       sidebar={{
