@@ -3,6 +3,67 @@ title: Changelog
 description: Release history for Watchfire.
 ---
 
+## [4.0.0] Beacon
+
+Beacon is Watchfire's consolidated dashboard, notifications, insights, and integrations release. It groups four parallel feature tracks under one banner — a glanceable dashboard, proactive OS notifications, retrospective insights, and outbound + inbound integrations.
+
+### Added
+
+- **Dashboard aggregate status bar** — single muted status line `N working · N needs attention · N idle · N done today` between the dashboard header and the project grid; counts derived from existing zustand stores so it updates live with no new gRPC
+- **Dashboard filter chips** — pill chips (`All`, `Working`, `Needs attention`, `Idle`, `Has ready tasks`) with live counts; selection persists in `localStorage[wf-dashboard-filter]`, with predicates shared via `gui/src/renderer/src/lib/dashboard-filters.ts`
+- **Dashboard grid/list layout toggle** — `LayoutGrid` / `Rows3` toggle in the header; list mode renders one ~46 px row per project via `gui/src/renderer/src/views/Dashboard/ProjectRow.tsx`, with the selection persisted in `localStorage[wf-dashboard-layout]`
+- **Elapsed-time badge on running ProjectCards** — ticking `Ns / Nm / Nh Mm` next to the agent badge, sourced from a new `AgentStatus.started_at` proto field stamped in `RunningAgent.StartedAt`; flips to `var(--wf-warning)` past 30 minutes
+- **Last-activity timestamp on dashboard cards** — `Active now / 5m ago / 4h ago / 2mo ago` segment derived from the most recent task `updated_at`, formatted by a hand-rolled relative-time helper in `gui/src/renderer/src/lib/relative-time.ts`
+- **Live PTY last-line preview on dashboard cards** — latest non-blank terminal line in monospace muted text, throttled to 4 Hz; a singleton subscription manager in `gui/src/renderer/src/stores/agent-preview-store.ts` ref-counts the underlying `AgentService.SubscribeScreen` stream
+- **Current-task surfacing on running ProjectCards** — replaces the misleading `Next:` line with `Working: <current task title>` (with `Flame` icon) when the agent is actively running; reuses the existing `AgentStatus.task_title` with no proto change
+- **Shell-count chip on running ProjectCards** — terminal icon + alive-session count from `useTerminalStore`; pulses when any session emitted output in the last 2 s, click expands the bottom panel
+- **Needs-attention treatment for failed tasks** — red-tinted card border + header `AlertTriangle` chip + `N failed` segment in the counts row + red progress segment when any task has `status === 'done' && success === false`
+- **Notification bus** — new `internal/daemon/notify` package with a typed `Bus`, channel fan-out (slow-consumer drop), stable `MakeID` (`sha256(kind|project_id|task_number|emitted_at_unix)[:8]`), and JSONL append to `~/.watchfire/logs/<project_id>/notifications.log` for headless fallback
+- **TASK_FAILED OS notification** — fires from `internal/daemon/server/task_failed.go::emitTaskFailed` on `done && !success`; title `<project> — task #NNNN failed`, body is the task title plus optional failure reason
+- **RUN_COMPLETE OS notification** — fires at the falling edge of every autonomous run (single-task, start-all, wildfire) bounded by a new `RunningAgent.RunStartedAt`; body `N tasks done · M failed` over the run window
+- **Bundled notification sounds** — `assets/sounds/task-{done,failed}.wav` (mono 22050 Hz, ~25 KB each); a pure `shouldPlaySound(kind, prefs)` decision in `gui/src/renderer/src/stores/notifications-sound.ts` keeps the OS toast silent precisely when the renderer plays its own audio
+- **Dynamic system tray menu** — `internal/daemon/tray/tray.go` rebuilds on every project / task / agent / settings change; sections for `Needs attention` / `Working` / `Idle` plus a `Notifications (N today) ▸` submenu reading the JSONL fallback, with click-through routed via the new `DaemonService.SubscribeFocusEvents` stream
+- **Notification preferences UI** — TUI (`internal/tui/globalsettings.go`) and GUI (`gui/src/renderer/src/views/Settings/NotificationsSection.tsx`) expose master / per-event / sounds / volume / quiet-hours / per-project mute, all under `defaults.notifications` in `~/.watchfire/settings.yaml` and gated by `models.ShouldNotify`
+- **Weekly digest notification** — `digestRunner` schedules with a re-armable `time.Timer` from `models.DigestSchedule.NextFire` (DST-stable, with 24-hour catch-up on daemon start); Markdown is always rendered to `~/.watchfire/digests/<YYYY-MM-DD>.md` regardless of toast suppression. New `WEEKLY_DIGEST` notification kind + `FOCUS_TARGET_DIGEST`
+- **Per-task metrics capture** — `<n>.metrics.yaml` siblings carrying duration, exit reason, agent, tokens, and cost; the new `internal/daemon/metrics` package parses Claude Code, Codex, opencode, Gemini, and Copilot (stub), capturing from a non-blocking goroutine on `handleTaskChanged`. New `watchfire metrics backfill` CLI for retroactive capture
+- **Per-project Insights view** — `internal/daemon/insights/project.go` aggregates one project's tasks per window; new GUI Insights tab + TUI overlay (bound to `i`) with KPI strip, stacked-bar tasks-per-day, agent donut, and duration histogram. `localStorage[wf-insights-window]` persists the 7 d / 30 d / 90 d / All selector
+- **Cross-project Insights rollup** — `internal/daemon/insights/global.go` aggregates the whole fleet per window, cached at `~/.watchfire/insights-cache/_global.json`. Dashboard rollup card under the Beacon status bar; TUI fleet overlay bound to `Ctrl+f`
+- **Report export (CSV + Markdown)** — shared `InsightsService.ExportReport` RPC with `oneof` scope (`project_id` / `global` / `single_task`); Markdown templates in `internal/daemon/insights/templates/`, CSV uses `# section: <name>` headers. Single `<ExportPill>` component on the dashboard + ProjectView headers; TUI binds `Ctrl+e`
+- **Inline diff viewer** — new `internal/daemon/diff` package resolves diffs pre-merge (`<merge-base>...HEAD` on `watchfire/<n>`) and post-merge (locates the merge commit via `git log --grep`); structured `FileDiffSet` capped at 10 000 lines, cache at `~/.watchfire/diff-cache/<project_id>/<task_number>.json`. GUI Inspect tab + TUI overlay (bound to `d`)
+- **Outbound delivery framework + webhook adapter** — new `internal/daemon/relay` package with an `Adapter` interface and a `Dispatcher` subscribing to `notify.Bus`; per-adapter retry (`[500ms, 2s, 8s]`) + circuit breaker (3 failures / 5-minute window). Generic `WebhookAdapter` POSTs the canonical payload with `X-Watchfire-Signature: sha256=<hex>` HMAC; secrets via OS keyring (`internal/config/keyring.go`) with file-store fallback
+- **Slack adapter (Block Kit messages)** — `internal/daemon/relay/slack.go` renders three `text/template` Block Kit envelopes (TASK_FAILED / RUN_COMPLETE / WEEKLY_DIGEST) with header / section / context / actions blocks; project-color → `:large_<color>_square:` shortcode map in `slack_color.go`
+- **Discord adapter (rich embeds)** — `internal/daemon/relay/discord.go` renders three embed envelopes with project-color tinting; shared `hexToInt` / `rfc3339` template helpers and a defensive 4000-rune description trim with a single WARN on overflow. New `watchfire integrations` CLI parent with `list` and `test` subcommands
+- **GitHub auto-PR creation** — opt-in per project via `github.auto_pr.enabled: true`. End-of-task lifecycle in `internal/daemon/git/pr.go::OpenPR`: `gh auth status` → parse `<owner>/<repo>` → `git push --force-with-lease` → render PR body via `pr_body.md.tmpl` → `gh api -X POST /repos/:owner/:repo/pulls`. Sentinel errors distinguish silent fallback (one WARN per project lifetime) from per-attempt failures
+- **Integrations settings UI (GUI + TUI)** — new `IntegrationsService` gRPC service with `List` / `Save` / `Delete` / `Test` RPCs; `Save` carries a `oneof` payload, secrets are write-only on the wire. GUI `IntegrationsSection.tsx` exposes per-type detail panels; TUI overlay is reachable via `Ctrl+I`
+- **Inbound HTTP server framework** — `internal/daemon/echo/server.go` binds `ListenAddr` (default `127.0.0.1:8765`), with 5 s graceful shutdown drain, 1 MiB body cap + panic recovery middleware, an unauthenticated `/echo/health`, and `RegisterProvider(method, path, handler)` for plug-in handlers; bind failure logs ERROR but doesn't crash the daemon
+- **Signature verification** — `internal/daemon/echo/verify.go` ships `VerifyGitHub` (HMAC-SHA256 against `sha256=<hex>`), `VerifySlack` (HMAC-SHA256 over `v0:<timestamp>:<body>` with 5-minute drift), and `VerifyDiscord` (Ed25519 over `timestamp || body`, same drift) — all constant-time
+- **Idempotency cache** — `internal/daemon/echo/idempotency.go` is an LRU+TTL cache (1000 entries / 24 h, `container/list`-backed, `sync.Mutex`-protected); `Seen(key)` refreshes TTL on hit
+- **Slash-command router** — `internal/daemon/echo/commands.go::Route(ctx, cmd, subcmd, rest, CommandContext) CommandResponse` powers slash-command transports with three commands (`status` / `retry <task>` / `cancel <task>`); the `CommandResponse{text, blocks, ephemeral, in_channel}` envelope is transport-agnostic
+- **Discord interactions endpoint** — `internal/daemon/echo/handler_discord.go` exposes `POST /echo/discord/interactions` with end-to-end Ed25519 verification + replay window + idempotency; PING → PONG, APPLICATION_COMMAND → dispatch to `commands.Route` and render via `discord_render.go::RenderInteraction`. Slash-command registration via `watchfire integrations register-discord <guild_id>` (idempotent)
+- **Inbound settings UI (GUI + TUI)** — `gui/src/renderer/src/views/Settings/InboundSection.tsx` shows a Listening pill polled at 5 s, editable `ListenAddr` + `PublicURL` with restart button, Copy-as-`<provider>`-URL buttons, four write-only secret inputs, and per-provider last-delivery timestamps; the TUI mirrors this via a new "Inbound" tab inside the Integrations overlay
+
+### Changed
+
+- **Dashboard auto-sorts projects by activity** — replaces raw `position` order with bucketing into needs-attention → working → has-ready-tasks → idle (input-array index as the final tiebreaker for stability), with predicate helpers in `gui/src/renderer/src/lib/dashboard-filters.ts`. A muted `Sorted by activity` label appears whenever the activity order differs from the underlying position order
+
+### Fixed
+
+- **GUI: switching projects silently killed every running shell in the bottom panel** — PTY sessions now live in a global pool keyed by `projectId` and survive navigation; Cmd+\` toggles a non-destructive `panelCollapsed` flag, and `destroyProjectSessions(projectId)` is called only from `removeProject`. `BottomPanel.tsx` always-mounts every `TerminalTab` with a `visible` flag so xterm.js scrollback survives React reconciliation
+- **In-app terminal couldn't find pnpm / volta / fnm-managed binaries (#32)** — new shared helper `gui/src/main/login-shell.ts` runs `$SHELL -l -c env`, parses PATH + dev-tool env vars, with a fallback PATH merge against the standard user-install locations; caches per Electron process. New `defaults.terminal_shell` global setting picks the shell binary (X_OK validated)
+
+### Migration
+
+- All Beacon features are additive — existing projects upgrade with no behaviour change
+- Notifications: master toggle defaults on, `weekly_digest` defaults off, quiet hours default off
+- Outbound integrations: nothing fans out until you configure an integration under Settings → Integrations
+- GitHub auto-PR: opt-in per project. Requires `gh` on PATH and `gh auth status` returning 0; missing prerequisites fall back to silent merge with one WARN per project lifetime
+- Inbound integrations: empty `InboundConfig` = no listener. Concrete handlers return 503 until the per-provider secret is configured
+
+### Known issues
+
+- The dedicated `handler_github.go` for `pull_request.closed` events did not ship with Beacon — auto-PR loop closes manually for now (filed as v5.0 follow-up).
+- The Slack HTTP transport on top of the shared `commands.Route` did not ship with Beacon — `/watchfire status / retry / cancel` works in Discord but not in Slack (filed as v5.0 follow-up).
+
 ## [3.0.0] Blaze
 
 ### Added
