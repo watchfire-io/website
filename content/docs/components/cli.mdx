@@ -114,6 +114,12 @@ A compact **agent badge** (e.g. `[codex]`) appears next to a task title when its
 | `Esc` | Close overlay / cancel |
 | `Ctrl+q` | Quit |
 | `Ctrl+h` | Help overlay |
+| `Ctrl+f` | Fleet (cross-project) Insights overlay |
+| `Ctrl+e` | Export report (CSV or Markdown) |
+
+`Ctrl+f` opens the fleet rollup — KPI strip, stacked-bar tasks-per-day, agent donut, duration histogram, and a `7d` / `30d` / `90d` / `All` window switcher — backed by the same data the GUI Dashboard rollup card renders.
+
+`Ctrl+e` triggers `InsightsService.ExportReport` with the same scope precedence as the GUI: the active project if one is selected, otherwise the dashboard (global). Single-task export is reachable from the task action menu.
 
 ### Task Actions
 
@@ -127,9 +133,12 @@ When the task list is focused:
 | `r` | Move task to Ready |
 | `t` | Move task to Draft |
 | `d` | Open inline diff overlay |
+| `i` | Open project Insights overlay |
 | `x` | Delete (soft) |
 
-The overlay renders the same `FileDiffSet` as the GUI [Inspect tab](/docs/components/gui#inspect).
+The diff overlay renders the same `FileDiffSet` as the GUI [Inspect tab](/docs/components/gui#inspect).
+
+The Insights overlay (`i`) is the TUI mirror of the GUI [Insights tab](/docs/components/gui#insights) — KPI strip, stacked-bar tasks-per-day, agent donut, duration histogram, and a `7d` / `30d` / `90d` / `All` window switcher. See the [Insights concept page](/docs/concepts/insights) for the underlying metrics and how the windows aggregate.
 
 ### Left Panel Tabs
 
