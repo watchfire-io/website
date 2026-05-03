@@ -180,3 +180,24 @@ The Add / Edit Task overlay includes an **agent** field — a cycling selector b
 - Context-sensitive keyboard shortcuts
 - Agent issue banners (auth errors, rate limits)
 - Auto-reconnect on daemon disconnection
+
+### Global Settings (`globalsettings`)
+
+The TUI exposes app-wide preferences through a `globalsettings` overlay — the keyboard mirror of the GUI [Global Settings](/docs/components/gui#global-settings) panel. It reads and writes the same `~/.watchfire/settings.yaml` file, so a value changed in either client takes effect everywhere on the next event.
+
+#### Notification Preferences
+
+{/* TODO: capture tui-globalsettings-notifications screenshot on a Beacon TUI */}
+
+The Notifications section of `globalsettings` configures Beacon. Every control below is gated through `models.ShouldNotify` on the daemon and persisted to `defaults.notifications` in `~/.watchfire/settings.yaml`.
+
+| Control | Default | Notes |
+|---------|---------|-------|
+| **Master toggle** | **On** | Top-level kill switch — turning it off silences every event kind without losing per-event preferences. |
+| **Per-event toggles** | `TASK_FAILED` on, `RUN_COMPLETE` on, `WEEKLY_DIGEST` **off** | One row per event kind. The weekly digest is the only event that defaults off — opt in to start receiving the rendered Markdown report at `~/.watchfire/digests/<YYYY-MM-DD>.md`. |
+| **Sounds** | On | Master sounds toggle. When on, a foregrounded GUI plays `assets/sounds/task-{done,failed}.wav` and the OS toast is sent silent so each event makes one cue. |
+| **Volume slider** | 100% | Linear 0–100 applied to renderer-side audio when the GUI plays the cue. |
+| **Quiet hours** | **Off** | Optional time window (start/end, local time, DST-stable). While enabled and inside the window, notifications are suppressed. |
+| **Per-project mute** | None | Project list to skip regardless of other toggles. Useful for noisy long-running projects. |
+
+The TUI itself does not raise OS toasts — these settings drive the daemon's tray and any connected GUI. Clicking the tray Notifications submenu still routes back through `DaemonService.SubscribeFocusEvents`.
