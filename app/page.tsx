@@ -54,7 +54,7 @@ export default async function Home() {
                 <span className="absolute inset-0 animate-ping rounded-full bg-fire-500/60 dark:bg-fire-400/60" />
                 <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-fire-500 dark:bg-fire-400" />
               </span>
-              v3.0.0 — Blaze
+              v4.0.0 — Beacon
             </span>
             <Link
               href="/docs/changelog#300-blaze"
