@@ -116,10 +116,22 @@ A compact **agent badge** (e.g. `[codex]`) appears next to a task title when its
 | `Ctrl+h` | Help overlay |
 | `Ctrl+f` | Fleet (cross-project) Insights overlay |
 | `Ctrl+e` | Export report (CSV or Markdown) |
+| `Ctrl+i` | Integrations overlay (Outbound / Inbound tabs) |
 
 `Ctrl+f` opens the fleet rollup — KPI strip, stacked-bar tasks-per-day, agent donut, duration histogram, and a `7d` / `30d` / `90d` / `All` window switcher — backed by the same data the GUI Dashboard rollup card renders.
 
 `Ctrl+e` triggers `InsightsService.ExportReport` with the same scope precedence as the GUI: the active project if one is selected, otherwise the dashboard (global). Single-task export is reachable from the task action menu.
+
+### Integrations Overlay (`Ctrl+I`)
+
+`Ctrl+I` opens the Integrations overlay — the TUI mirror of the GUI [Integrations panel](/docs/components/gui#integrations). The overlay is split into two tabs:
+
+| Tab | Content |
+|-----|---------|
+| **Outbound** | One row per configured adapter (webhook, Slack, Discord, GitHub auto-PR) with a status pill (`OK` / `Disabled` / `Breaker open` / `Misconfigured`) and a `t` shortcut to fire a synthetic test event. |
+| **Inbound** | Listening pill (polled every 5 s), editable `ListenAddr` (defaults to `127.0.0.1:8765`) and `PublicURL`, four write-only secret inputs (Discord, GitHub, Slack, generic webhook), and per-provider last-delivery timestamps. |
+
+Both tabs talk to the daemon through `IntegrationsService` gRPC: `List` / `Save` / `Delete` / `Test`, with secret fields write-only on the wire. See the [Integrations concept page](/docs/concepts/integrations) for the underlying model and the [`watchfire integrations`](/docs/commands/integrations) command for the scriptable equivalent.
 
 ### Task Actions
 

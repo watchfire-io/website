@@ -1,0 +1,192 @@
+---
+title: Integrations
+description: Beacon ships a full delivery framework — outbound adapters for webhooks, Slack, Discord, and GitHub auto-PR, plus an inbound HTTP server so external services can drive the daemon back.
+---
+
+# Integrations
+
+Beacon (v4.0.0) introduces a two-way integrations layer. The daemon can **deliver** notifications to external services through pluggable adapters, and **receive** signed requests from those same services through a small HTTP server. Both halves share the same secret store and the same per-provider configuration surface.
+
+The page is split into two halves that mirror the data flow:
+
+- **Outbound** — the daemon dispatches `notify.Bus` events to webhook, Slack, Discord, and GitHub auto-PR adapters.
+- **Inbound** — the daemon binds an HTTP server, verifies request signatures, and routes slash commands through a transport-agnostic command router.
+
+## Outbound
+
+The outbound half lives in `internal/daemon/relay`. A single `Dispatcher` subscribes to `notify.Bus` and fans events out to every registered `Adapter`. Each adapter owns its own template rendering, retry timing, and circuit breaker.
+
+### Architecture
+
+The `Adapter` interface is the only contract every outbound integration implements. The `Dispatcher` owns:
+
+- **Subscription** — one `notify.Bus` consumer per running daemon
+- **Per-adapter retry** — exponential backoff `[500ms, 2s, 8s]`
+- **Circuit breaker** — 3 failures inside a 5-minute rolling window opens the breaker; subsequent events skip the adapter until the window expires
+- **Concurrency** — adapters dispatch in parallel; one slow provider never blocks the others
+
+### Secrets
+
+Adapter credentials are stored in the OS keyring through `internal/config/keyring.go`, with a file-store fallback for hosts without a keyring backend. Secrets are write-only on the gRPC wire — the GUI and TUI can save and replace, but never read existing values back.
+
+### Webhook adapter
+
+`WebhookAdapter` POSTs the canonical `notify.Notification` payload (plus delivery metadata — event id, attempt, timestamp) to a user-supplied URL. Each request carries an `X-Watchfire-Signature: sha256=<hex>` HMAC over the raw body so receivers can reject forged calls.
+
+### Slack adapter
+
+`internal/daemon/relay/slack.go` renders three Block Kit envelopes through `text/template`:
+
+| Envelope | Trigger |
+|----------|---------|
+| `TASK_FAILED` | A task transitions to `done` with `success: false` |
+| `RUN_COMPLETE` | A run-all / wildfire batch finishes |
+| `WEEKLY_DIGEST` | The weekly digest fires |
+
+Each envelope is a fixed sequence of header / section / context / actions blocks. Project color is mapped to a `:large_<color>_square:` shortcode in `slack_color.go` so the project dot survives Slack's theming.
+
+### Discord adapter
+
+`internal/daemon/relay/discord.go` mirrors the same three envelopes as rich embeds, tinted by the project color. Two shared `text/template` helpers — `hexToInt` (for the embed `color` int) and `rfc3339` (for the timestamp footer) — are registered once and reused. A defensive 4000-rune description trim with a single-WARN log on overflow protects against pathological payloads (Discord rejects embeds longer than 4096).
+
+### GitHub auto-PR
+
+GitHub auto-PR is opt-in per project, gated on a single key in `project.yaml`:
+
+```yaml
+github:
+  auto_pr:
+    enabled: true
+```
+
+Prerequisites: `gh` on `PATH` and `gh auth status` returning `0`. With both satisfied, the end-of-task lifecycle in `internal/daemon/git/pr.go::OpenPR` runs:
+
+1. `gh auth status` — gate, so silent fallback is logged once per project lifetime
+2. Parse `<owner>/<repo>` from the project's git remote
+3. `git push --force-with-lease` to publish the `watchfire/<n>` branch
+4. Render the PR body via `pr_body.md.tmpl`
+5. `gh api -X POST /repos/:owner/:repo/pulls` to open the PR
+
+Sentinel errors distinguish silent fallback (one WARN per project lifetime when prerequisites are missing) from per-attempt failures (logged at WARN with retry on next task).
+
+### Reliability primitives at a glance
+
+| Primitive | Where | Behaviour |
+|-----------|-------|-----------|
+| Retry | Per adapter | `[500ms, 2s, 8s]` backoff |
+| Circuit breaker | Per adapter | 3 failures / 5-minute window opens the breaker |
+| Secrets | `internal/config/keyring.go` | OS keyring, file-store fallback |
+
+## Inbound
+
+The inbound half lives in `internal/daemon/echo`. It binds a small HTTP server, verifies request signatures with constant-time HMAC or Ed25519, dedupes replays through an in-process LRU cache, and dispatches slash commands through a transport-agnostic router.
+
+### HTTP server framework
+
+`internal/daemon/echo/server.go` wraps an `http.Server` with the small set of guarantees every provider handler relies on:
+
+- **Bind address** — `ListenAddr` from the inbound config; default `127.0.0.1:8765`
+- **Graceful shutdown** — 5-second drain on stop so in-flight requests finish
+- **Body cap** — 1 MiB per request via a global middleware; oversized bodies return `413`
+- **Panic recovery** — panicking handlers return `500` instead of crashing the daemon
+- **Health endpoint** — `/echo/health` is unauthenticated and returns `200 OK` for liveness probes
+- **Bind failure** — logged at ERROR; the daemon keeps running so a misconfigured port never wedges the rest of the system
+
+Provider handlers register themselves through a single plug-in API:
+
+```go
+RegisterProvider(method, path, handler)
+```
+
+Concrete handlers return `503` until their per-provider secret has been configured. An empty `InboundConfig` (no secrets, no `ListenAddr`) means no listener — the daemon never opens a port until at least one provider is wired.
+
+### Signature verification
+
+`internal/daemon/echo/verify.go` exposes three constant-time verifiers, one per upstream:
+
+| Function | Algorithm | Signed payload |
+|----------|-----------|----------------|
+| `VerifyGitHub` | HMAC-SHA256 against `sha256=<hex>` header | Raw request body |
+| `VerifySlack` | HMAC-SHA256 with 5-minute drift window | `v0:<timestamp>:<body>` |
+| `VerifyDiscord` | Ed25519 with 5-minute drift window | `timestamp \|\| body` |
+
+All three use constant-time comparisons so signature checks don't leak timing. Both Slack and Discord enforce a 5-minute timestamp drift to bound replay windows.
+
+### Idempotency cache
+
+`internal/daemon/echo/idempotency.go` is a small LRU+TTL cache that drops duplicate deliveries:
+
+- **Capacity** — 1000 entries
+- **TTL** — 24 hours
+- **Storage** — `container/list` for LRU ordering, `sync.Mutex` for concurrent access
+- **API** — `Seen(key)` returns whether the key was already in the cache, and refreshes its TTL on every hit so chatty deliveries don't churn
+
+The cache is process-local — a daemon restart drops state, which is acceptable for a 24-hour replay window.
+
+### Command router
+
+Slash commands are dispatched through a single transport-agnostic function:
+
+```go
+Route(ctx, cmd, subcmd, rest, CommandContext) CommandResponse
+```
+
+Three commands are wired today:
+
+| Command | Effect |
+|---------|--------|
+| `status` | Returns the current Beacon status block |
+| `retry <task>` | Re-runs the named task |
+| `cancel <task>` | Cancels the named task |
+
+The response shape is intentionally transport-neutral:
+
+```go
+CommandResponse{
+    text       string
+    blocks     []Block
+    ephemeral  bool
+    in_channel bool
+}
+```
+
+Each transport handler renders the same `CommandResponse` into its native envelope (Discord components, Slack Block Kit, etc.). New commands plug into `commands.Route` once and surface everywhere a transport is wired.
+
+### Discord interactions endpoint
+
+`internal/daemon/echo/handler_discord.go` exposes `POST /echo/discord/interactions` with the full inbound pipeline:
+
+1. **Ed25519 verification** through `VerifyDiscord`
+2. **Replay window** — reject requests outside the 5-minute drift window
+3. **Idempotency** — drop duplicates already in the LRU+TTL cache
+4. **Dispatch** — `PING` returns `PONG`; `APPLICATION_COMMAND` calls `commands.Route`
+5. **Render** — `discord_render.go::RenderInteraction` turns the `CommandResponse` into a Discord interaction response
+
+Slash-command registration is one-shot:
+
+```bash
+watchfire integrations register-discord <guild_id>
+```
+
+The command is idempotent — re-running upserts the command set without producing duplicates.
+
+### Inbound configuration
+
+The inbound surface is driven by a single `InboundConfig` with one global field and one block per provider:
+
+| Field | Purpose |
+|-------|---------|
+| `ListenAddr` | Bind address; default `127.0.0.1:8765` |
+| `PublicURL` | Used to construct the per-provider URLs the GUI offers as Copy buttons |
+| Per-provider secrets | One write-only secret per upstream; empty disables that handler |
+
+An empty `InboundConfig` is the signal to skip the listener entirely — the daemon never binds a port until at least one provider is configured.
+
+## Migration & known issues
+
+- **Empty `InboundConfig`** = no listener. Beacon does not bind a port until you configure at least one inbound provider.
+- **Per-provider 503** — concrete handlers return `503 Service Unavailable` until their secret is set. The `/echo/health` endpoint is always available regardless of provider state.
+- **Known issue (v5.0 follow-up)** — a dedicated `handler_github.go` for `pull_request.closed` events did not ship. The auto-PR loop closes manually for now: when a PR is merged or closed upstream, the operator marks the corresponding task done by hand.
+- **Known issue (v5.0 follow-up)** — a Slack HTTP transport on top of `commands.Route` did not ship. `/watchfire status`, `/watchfire retry`, and `/watchfire cancel` work in Discord today but not in Slack.
+
+For the surfaces that drive integrations from the UI side, see the [Integrations panel in the GUI Settings doc](/docs/components/gui#integrations) and the [Integrations overlay in the CLI / TUI doc](/docs/components/cli#integrations-overlay-ctrli). For CLI commands, see [`watchfire integrations`](/docs/commands/integrations).
