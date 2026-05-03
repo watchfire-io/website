@@ -9,6 +9,7 @@ import AgentBackends from "@/components/AgentBackends";
 import ComponentsOverview from "@/components/ComponentsOverview";
 import ProductShowcase from "@/components/ProductShowcase";
 import KeyFeatures from "@/components/KeyFeatures";
+import RawVsWatchfire from "@/components/RawVsWatchfire";
 import CommonWorkflows from "@/components/CommonWorkflows";
 import FleetOps from "@/components/FleetOps";
 import FAQ from "@/components/FAQ";
@@ -152,6 +153,12 @@ export default async function Home() {
 
     <ScrollReveal>
       <KeyFeatures />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal>
+      <RawVsWatchfire />
     </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
