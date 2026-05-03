@@ -14,6 +14,7 @@ The GUI is a multi-project client built with Electron. Unlike the CLI/TUI (which
   alt="Watchfire dashboard showing four project cards with task counts and progress bars"
   className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
 />
+{/* TODO: regenerate dashboard.png on a Beacon GUI */}
 
 ## Layout
 
@@ -27,15 +28,45 @@ The window splits into three regions:
 
 ## Dashboard
 
-{/* TODO: regenerate dashboard.png on a Beacon GUI */}
-
 The dashboard is the home view: every registered project rendered as a card with its color dot, current branch, default agent, and a Todo / In Dev / Done task summary with a progress bar. Click any card to drop into the Project View.
 
-- Project cards with name, color dot, branch, and active-agent badge
+### Status bar & filters
+
+A single muted line — `N working · N needs attention · N idle · N done today` — sits between the dashboard header and the project grid as a fleet-wide pulse check.
+
+Below it, a row of pill chips narrows the grid to one bucket at a time. Each chip carries a live count, and the selection persists across reloads via `localStorage[wf-dashboard-filter]`.
+
+| Chip | Selects |
+|------|---------|
+| `All` | Every registered project |
+| `Working` | Projects with an agent currently running |
+| `Needs attention` | Projects with a task in `done` + `success: false` |
+| `Idle` | Projects with no running agent and nothing ready |
+| `Has ready tasks` | Projects with at least one `ready` task waiting for an agent |
+
+The Beacon **Insights rollup card** (cross-project KPIs, top projects, and a global `<ExportPill>`) sits under the status bar and shares the `7d` / `30d` / `90d` / `All` window selector with the Project View. See the [Insights concept page](/docs/concepts/insights#cross-project-insights-rollup) for what's aggregated and how the `tasks_missing_cost` caveat surfaces partial data.
+
+### Sort & layout
+
+Cards are auto-bucketed by activity rather than raw `position`: needs-attention → working → has-ready-tasks → idle. When the activity order diverges from the stored position order, a muted **`Sorted by activity`** label surfaces in the header so a manual reorder is still visible.
+
+A `LayoutGrid` / `Rows3` toggle in the header switches between the default card grid and a compact list view (one ~46px row per project). The choice persists across reloads via `localStorage[wf-dashboard-layout]`.
+
+### Project cards
+
+Each card carries:
+
+- Project name, color dot, current branch, and the active-agent badge
+- **Elapsed-time badge** — when the agent is running, a ticking `Ns / Nm / Nh Mm` counter sits next to the agent badge and flips to a warning color once it crosses 30 minutes
+- **Last-activity timestamp** — `Active now / 5m ago / 4h ago / 2mo ago` segment, derived from the most recent task `updated_at`
+- **Live PTY preview** — the latest non-blank terminal line, in monospace muted text, throttled to 4 Hz. A singleton subscription manager ref-counts the underlying `AgentService.SubscribeScreen` stream, so the dashboard opens at most one stream per project regardless of how many cards reference it.
+- **Current-task line** — replaces the previous `Next:` line with `Working: <current task title>` (with a `Flame` icon) whenever the agent is actively running
+- **Shell-count chip** — terminal icon + count of alive shell sessions; pulses when any session emitted output in the last 2 seconds, and clicking it expands the [integrated terminal](#integrated-terminal) bottom panel
 - Task counts (Todo / In Dev / Done) and a progress bar
-- "Add Project" entry to launch the project wizard
-- Live status — dots and counts update as agents work
-- **Cross-project Insights rollup card** — fleet-level KPIs, top projects, and an `<ExportPill>` for global exports, scoped by the same `7d` / `30d` / `90d` / `All` window selector used in the Project View. See the [Insights concept page](/docs/concepts/insights#cross-project-insights-rollup) for what's aggregated and how the `tasks_missing_cost` caveat surfaces partial data.
+
+When a project has any task with `status === 'done' && success === false`, the card flips into a **needs-attention** treatment: a red-tinted border, an `AlertTriangle` chip in the header, an `N failed` segment in the counts row, and a red segment in the progress bar.
+
+"Add Project" sits at the end of the grid as the entry point for the project wizard.
 
 ## Add Project Wizard
 
