@@ -156,6 +156,10 @@ A task in `done` status has been completed (or failed). Check the `success` fiel
 - `success: true` — Task completed successfully
 - `success: false` — Task failed or was blocked. Check `failure_reason` for details.
 
+## Reviewing work
+
+Both clients expose an inline diff view of a task's changes. It works pre-merge (against the `watchfire/<n>` branch) and post-merge (resolving the merge commit). Output is `cap at 10000 lines`. Open the [Inspect tab](/docs/components/gui#inspect) in the GUI, or press `d` in the [CLI/TUI](/docs/components/cli) for the same view.
+
 ## Multi-Project Management
 
 The daemon manages multiple projects simultaneously:
