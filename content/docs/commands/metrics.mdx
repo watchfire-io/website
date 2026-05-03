@@ -1,0 +1,69 @@
+---
+title: watchfire metrics
+description: Manage per-task metrics — backfill historical records so Insights have something to chart.
+---
+
+# watchfire metrics
+
+Manage the per-task metrics records that feed [Insights](/docs/concepts/insights) and the weekly digest. The parent command groups metrics-related subcommands; today the only subcommand is `backfill`.
+
+## Usage
+
+```bash
+watchfire metrics <subcommand>
+```
+
+## Subcommands
+
+### metrics backfill
+
+Walk every registered project and write `<n>.metrics.yaml` for any completed task that doesn't already have one.
+
+```bash
+watchfire metrics backfill
+```
+
+#### What It Does
+
+1. Loads the projects index from `~/.watchfire/projects.yaml`
+2. For each registered project, iterates tasks with `status: done`
+3. Writes a duration-only `<n>.metrics.yaml` next to each task YAML
+4. Skips tasks that already have a metrics file (idempotent)
+
+A line per project is printed during the run, and a summary at the end:
+
+```
+my-project       12 written, 3 skipped
+another-project  4 written, 0 skipped
+
+Backfill complete: 2 projects, 16 metrics written, 3 skipped
+```
+
+#### When To Run It
+
+- After upgrading from a pre-Beacon version (v3.x and earlier), so historical tasks show up in Insights and digests
+- After switching agent backends, so the new backend has a baseline to chart against
+
+The command is idempotent — re-running is safe and only touches tasks that don't yet have metrics. Use `--force` only when you want to overwrite existing records (for example, after correcting a bug in a metrics parser).
+
+#### Caveat — Backfilled Records Are Duration-Only
+
+Backfilled records are **duration-only**: `tokens_in`, `tokens_out`, and `cost_usd` remain nil because the original session logs may already be rotated by the time you run the backfill. Live captures (post-upgrade) populate those fields.
+
+This is the same partial-data signal the cross-project rollup tracks via `tasks_missing_cost` — Insights surfaces a banner when a meaningful slice of records is missing cost so the rollup is never misread as a complete total.
+
+#### Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--force` | `false` | Overwrite existing `<n>.metrics.yaml` files |
+
+## Examples
+
+```bash
+# Backfill metrics for every registered project
+watchfire metrics backfill
+
+# Re-write every metrics file, even ones that already exist
+watchfire metrics backfill --force
+```

@@ -1,0 +1,90 @@
+---
+title: Insights & Metrics
+description: Beacon captures per-task metrics, aggregates them per project and across the fleet, and exports CSV or Markdown reports.
+---
+
+# Insights & Metrics
+
+Beacon (v4.0.0) turns every completed agent session into a structured metrics record, then aggregates those records into per-project and cross-project Insights views. Reports can be exported as CSV or Markdown, and a weekly digest summarises the fleet automatically.
+
+## Per-Task Metrics Capture
+
+Every completed task gets a sibling `<n>.metrics.yaml` file next to its task YAML in `.watchfire/tasks/`. The file is written from a non-blocking goroutine inside `handleTaskChanged`, so capture never delays the task completion path.
+
+The record carries a fixed set of fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `task_number` | int | Task number this metric describes |
+| `project_id` | string | Project the task belongs to |
+| `agent` | string | Backend that ran the session (`claude-code`, `codex`, `opencode`, `gemini`, `copilot`) |
+| `duration_ms` | int | Wall-clock duration of the session |
+| `tokens_in` | int (nullable) | Prompt tokens consumed, nil when unavailable |
+| `tokens_out` | int (nullable) | Completion tokens produced, nil when unavailable |
+| `cost_usd` | float (nullable) | Estimated cost, nil when unavailable |
+| `exit_reason` | enum | One of `completed` / `failed` / `stopped` / `timeout` |
+| `captured_at` | timestamp | When the record was written |
+
+Token and cost fields are pointers in the underlying `TaskMetrics` struct, so a backend that doesn't expose those numbers leaves them nil rather than emitting a zero that would skew rollups.
+
+## Metrics Package
+
+Parsing lives in `internal/daemon/metrics`. Each backend has its own parser file alongside the shared capture goroutine:
+
+| File | Backend | Coverage |
+|------|---------|----------|
+| `claude_code.go` | Claude Code | Duration + tokens + cost |
+| `codex.go` | Codex | Duration + tokens + cost |
+| `opencode.go` | opencode | Duration + tokens + cost |
+| `gemini.go` | Gemini CLI | Duration + tokens + cost |
+| `copilot.go` | GitHub Copilot CLI | **Stub** — duration only; tokens / cost stay nil because Copilot has no transcript schema yet |
+| `null.go` | Fallback | Duration only, used when no backend parser matches |
+| `capture.go` | — | Goroutine that runs on `handleTaskChanged` and writes the file |
+| `parser.go` | — | Shared helpers across parsers |
+
+Copilot is explicitly a stub. Until upstream exposes per-message token usage, Copilot rows in Insights show duration but contribute nothing to token or cost rollups. The `tasks_missing_cost` caveat surfaces this in the global rollup so partial-data projects don't silently flatten the chart.
+
+## Per-Project Insights View
+
+`internal/daemon/insights/project.go` aggregates one project's `<n>.metrics.yaml` files into a window-scoped summary. The GUI surfaces this as a dedicated **Insights** tab on the Project View; the TUI binds the same overlay to <kbd>i</kbd>.
+
+The view contains:
+
+- **KPI strip** — totals for tasks, duration, tokens, and cost over the selected window
+- **Stacked-bar tasks-per-day** — completed tasks per day, stacked by exit reason
+- **Agent donut** — share of tasks per backend
+- **Duration histogram** — distribution of task durations
+- **Time-window selector** — `7d` / `30d` / `90d` / `All`. The selection persists to `localStorage[wf-insights-window]` so it sticks across reloads
+- **`<ExportPill>`** — header action that opens the export dialog scoped to the current project
+
+The Project View Insights tab is documented in the [GUI doc](/docs/components/gui#insights).
+
+## Cross-Project Insights Rollup
+
+`internal/daemon/insights/global.go` aggregates the same metrics across every registered project, scoped to the same `7d` / `30d` / `90d` / `All` windows. Results are cached at `~/.watchfire/insights-cache/_global.json` so the dashboard renders without re-walking every project on each load.
+
+Surfaces:
+
+- **GUI Dashboard rollup card** — sits alongside the Beacon status bar at the top of the Dashboard. See the [GUI Dashboard doc](/docs/components/gui#dashboard) for the visual layout
+- **TUI fleet overlay** — bound to <kbd>Ctrl</kbd>+<kbd>f</kbd>, mirrors the GUI rollup
+- **Top-projects pill list** — names the projects driving fleet activity in the selected window
+- **`tasks_missing_cost` caveat** — banner that appears whenever a non-trivial slice of tasks is missing cost (typically Copilot sessions), so fleet-level cost numbers are never read as totals when they're really "what we could measure"
+
+## Report Export (CSV + Markdown)
+
+Reports flow through a single RPC: `InsightsService.ExportReport`. The request carries a `oneof` `scope` — `project_id`, `global`, or `single_task` — and a `format` (`CSV` or `MARKDOWN`). The response carries `filename`, `content` (UTF-8 bytes), and `mime` (`text/csv` or `text/markdown`).
+
+| Format | Conventions |
+|--------|-------------|
+| **Markdown** | Rendered from templates under `internal/daemon/insights/templates/` (`global.md.tmpl`, `project.md.tmpl`, `single_task.md.tmpl`) |
+| **CSV** | Single file with `# section: <name>` header lines delimiting sub-tables (KPIs, per-day, per-agent, per-task) so multi-table content fits one CSV without losing structure |
+
+A single `<ExportPill>` component is reused on the Dashboard header and the Project View header. The TUI binds export to <kbd>Ctrl</kbd>+<kbd>e</kbd> with the same scope precedence as the GUI: the active Project View if one is selected, otherwise the dashboard (global). Single-task export is reachable from the task action menu and uses the `single_task` scope.
+
+## Weekly Digest
+
+A weekly Markdown digest is rendered to `~/.watchfire/digests/<YYYY-MM-DD>.md` regardless of toast suppression — even when notifications are muted, the file is still produced.
+
+The schedule is driven by `digestRunner`, which arms a re-armable `time.Timer` from `models.DigestSchedule.NextFire`. The runner is DST-stable and includes a 24-hour catch-up window so a daemon restart never silently skips a digest.
+
+For the full notification story (toast routing, mute schedules, channel preferences) see the [daemon notifications section](/docs/components/daemon).

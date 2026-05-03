@@ -27,12 +27,15 @@ The window splits into three regions:
 
 ## Dashboard
 
+{/* TODO: regenerate dashboard.png on a Beacon GUI */}
+
 The dashboard is the home view: every registered project rendered as a card with its color dot, current branch, default agent, and a Todo / In Dev / Done task summary with a progress bar. Click any card to drop into the Project View.
 
 - Project cards with name, color dot, branch, and active-agent badge
 - Task counts (Todo / In Dev / Done) and a progress bar
 - "Add Project" entry to launch the project wizard
 - Live status — dots and counts update as agents work
+- **Cross-project Insights rollup card** — fleet-level KPIs, top projects, and an `<ExportPill>` for global exports, scoped by the same `7d` / `30d` / `90d` / `All` window selector used in the Project View. See the [Insights concept page](/docs/concepts/insights#cross-project-insights-rollup) for what's aggregated and how the `tasks_missing_cost` caveat surfaces partial data.
 
 ## Add Project Wizard
 
@@ -135,6 +138,23 @@ Per-project configuration — name, color (which propagates everywhere instantly
   alt="Project Settings tab showing name, color picker, agent dropdown, automation toggles, and a Danger Zone"
   className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
 />
+
+#### Insights
+
+{/* TODO: capture project-insights.png on a Beacon GUI */}
+
+A per-project view of agent activity, aggregated from the `<n>.metrics.yaml` records under `.watchfire/tasks/`. The tab header carries an `<ExportPill>` that opens the export dialog scoped to the current project (CSV or Markdown via `InsightsService.ExportReport`).
+
+Layout, top to bottom:
+
+- **KPI strip** — totals for tasks completed, duration, tokens, and cost in the selected window
+- **Stacked-bar tasks-per-day** — one bar per day, stacked by exit reason
+- **Agent donut** — share of tasks by backend
+- **Duration histogram** — distribution of task durations
+
+The header includes a window selector with `7d` / `30d` / `90d` / `All` options. The selection persists across reloads via `localStorage[wf-insights-window]`.
+
+See the [Insights concept page](/docs/concepts/insights) for the underlying metrics package, the per-task record schema, and how the rollup composes.
 
 ### Right Panel
 
