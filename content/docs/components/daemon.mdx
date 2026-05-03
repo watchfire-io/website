@@ -144,30 +144,56 @@ The daemon detects phase completion via signal files:
 
 ## System Tray
 
-The daemon runs a system tray icon with a menu on macOS and Linux:
+The tray menu (`internal/daemon/tray/tray.go`) is rebuilt dynamically as project state changes — instead of a flat list of running agents it groups projects into intent-driven sections:
 
-| Menu Item | Content |
-|-----------|---------|
-| **Status header** | "Watchfire Daemon" |
-| **Version** | Displays the current version below the header for easy identification |
-| **Port** | "Running on port: port" |
-| **Running agents** | List with project name |
-| **Open GUI** | Launches Electron GUI |
-| **Quit** | Shuts down daemon |
+| Section | Content |
+|---------|---------|
+| **Status header** | "Watchfire Daemon" + version + "Running on port: port" |
+| **Needs attention** | Projects with at least one failed task or a `TASK_FAILED` event in the recent JSONL window — clicking jumps straight to that project's task list |
+| **Working** | Projects with an active agent — clicking opens the live Chat panel |
+| **Idle** | Registered projects with nothing in flight — clicking opens the project view |
+| **Notifications (N today) ▸** | Submenu listing today's events from the JSONL fallback (`~/.watchfire/logs/<project_id>/notifications.log`), newest first. Each row routes back into the GUI for the originating task. |
+| **Open GUI** | Launches the Electron GUI |
+| **Quit** | Shuts down the daemon |
+
+Click-through routing flows over the new `DaemonService.SubscribeFocusEvents` stream: when a tray entry is clicked the daemon publishes a focus event (project + task + tab), and any connected GUI/TUI subscribed to the stream brings the right view forward. The same mechanism is used by clicking an OS toast.
 
 ## Desktop Notifications
 
-The daemon sends desktop notifications when agents complete tasks or encounter errors, via the `internal/daemon/notify` package.
+The Beacon notification subsystem lives in the `internal/daemon/notify` package and exposes a typed `notify.Bus` that fans events out to every subscribed channel (slow consumers are dropped, never blocked). Every event carries a stable `MakeID` derived as `sha256(kind|project_id|task_number|emitted_at_unix)[:8]`, so the same event can be deduplicated across the OS toast, the tray submenu, the focus router, and any future subscriber.
 
-| Platform | Backend |
-|----------|---------|
+In addition to live in-process delivery, every event is appended as a JSONL line to `~/.watchfire/logs/<project_id>/notifications.log`. This file is the headless fallback: clients that weren't connected when an event fired (or the dynamic tray submenu rebuilding from cold) read it back to reconstruct the recent timeline.
+
+| Platform | OS toast backend |
+|----------|------------------|
 | **macOS** | Native `UNUserNotificationCenter` via CGo (displays Watchfire icon) |
 | **Linux** | `github.com/gen2brain/beeep` |
 | **Other** | No-op (logs to stderr) |
 
-Notifications are triggered by the `tray` package calling `notify.Send(title, message)`. The Watchfire icon is embedded in the `notify` package.
-
 On macOS, notifications are safely handled when running outside the `.app` bundle (e.g., during development or when launched directly). The daemon checks for app bundle availability before sending notifications to avoid crashes. This was fixed in v0.4.0 — previously, a notification outside the `.app` bundle could cause a daemon crash (exit code 2) due to an unhandled `NSInternalInconsistencyException`.
+
+### Event Kinds
+
+| Kind | When it fires | OS toast title / body |
+|------|---------------|------------------------|
+| **`TASK_FAILED`** | Emitted from `internal/daemon/server/task_failed.go::emitTaskFailed` whenever a task transitions to `done && !success`. | Title `<project> — task #NNNN failed`; body is the task title plus the optional `failure_reason`. |
+| **`RUN_COMPLETE`** | Fires on the falling edge of every autonomous run — single-task, `run all`, and wildfire — bounded by `RunningAgent.RunStartedAt` so a run is exactly the work between a start and the moment no agent is running for that project. | Title names the project + run kind; body is `N tasks done · M failed`. |
+| **`WEEKLY_DIGEST`** | Scheduled by `digestRunner` using a re-armable `time.Timer` driven by `models.DigestSchedule.NextFire`. The schedule is DST-stable and includes a 24-hour catch-up window so a digest missed during sleep/shutdown still fires once on next start. The Markdown report is rendered to `~/.watchfire/digests/<YYYY-MM-DD>.md` and a toast points at it. | Defaults **off** — opt in from settings. |
+
+### Bundled Sounds
+
+Beacon ships two short cues under `assets/sounds/`:
+
+| File | Plays for |
+|------|-----------|
+| `task-done.wav` | `RUN_COMPLETE` |
+| `task-failed.wav` | `TASK_FAILED` |
+
+Both are mono 22050 Hz so the renderer can decode them with no extra dependencies. The `shouldPlaySound(kind, prefs)` helper decides whether a given event should play audio at all (master toggle, per-event toggle, sounds enabled, quiet hours, per-project mute). When the GUI renderer is foregrounded it plays the sound itself at the user-set volume — and in that case the OS toast is sent **silent** so users never hear the cue twice.
+
+### Settings & Gating
+
+Notification preferences live under `defaults.notifications` in `~/.watchfire/settings.yaml` (the same file used by the rest of the daemon defaults). Every send path funnels through the `models.ShouldNotify` helper, which combines the master toggle, per-event toggle, quiet-hours window, and per-project mute list before any toast, sound, or JSONL append happens. The schema is the single source of truth — both the GUI Settings panel and the TUI globalsettings tab read and write the same fields.
 
 ## Health Check
 

@@ -239,8 +239,26 @@ Open Settings from the bottom of the sidebar to manage app-wide preferences — 
 | **Appearance** | Theme (System / Light / Dark) |
 | **Defaults** | Automation toggles for new projects, plus the **default coding agent** used when a project hasn't chosen one. Includes an **"Ask per project"** option that forces `watchfire init` to prompt every time. |
 | **Agents** | Per-backend binary paths — `claude`, `codex`, `opencode`, `gemini`, `copilot`. Leave blank to fall back to `PATH` and common install locations. Also shows auto-detection status and install instructions for each backend. |
+| **Notifications** | Beacon notification preferences — master toggle, per-event toggles (`TASK_FAILED`, `RUN_COMPLETE`, `WEEKLY_DIGEST`), sounds + volume, quiet hours, and a per-project mute list. See below. |
 | **Integrations** | Outbound adapters (webhook, Slack, Discord, GitHub auto-PR) plus the **Inbound** subsection covering the HTTP server, per-provider secrets, and per-provider URLs. See below. |
 | **Updates** | Check frequency, auto-download toggle |
+
+### Notification Preferences
+
+{/* TODO: capture global-settings-notifications.png on a Beacon GUI */}
+
+The Notifications panel reads and writes the `defaults.notifications` section of `~/.watchfire/settings.yaml`. Every toggle below is gated through `models.ShouldNotify` on the daemon, so changes take effect on the next event without a restart.
+
+| Control | Default | Notes |
+|---------|---------|-------|
+| **Master toggle** | **On** | Top-level kill switch — turning it off silences every event kind without losing per-event preferences. |
+| **Per-event toggles** | `TASK_FAILED` on, `RUN_COMPLETE` on, `WEEKLY_DIGEST` **off** | One row per event kind. The weekly digest is the only event that defaults off — opt in to start receiving the rendered Markdown report at `~/.watchfire/digests/<YYYY-MM-DD>.md`. |
+| **Sounds** | On | Master sounds toggle. When on, the renderer plays `assets/sounds/task-{done,failed}.wav` while it has focus and the OS toast is sent silent — exactly one cue per event. |
+| **Volume slider** | 100% | Linear 0–100 scale applied to renderer-side audio. Has no effect on OS toast sounds when the renderer is backgrounded (those follow OS volume). |
+| **Quiet hours** | **Off** | Optional time window (start/end, local time, DST-stable). When enabled and inside the window, `models.ShouldNotify` returns false for everything except hard failures. |
+| **Per-project mute** | None | Per-project chip list — projects added here are skipped by `ShouldNotify` regardless of other toggles. Useful for noisy long-running projects. |
+
+Clicking any OS toast or tray Notifications submenu entry routes through `DaemonService.SubscribeFocusEvents` to bring this GUI to the originating project and task.
 
 ### Integrations
 
