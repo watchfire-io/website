@@ -1,0 +1,76 @@
+---
+title: watchfire integrations
+description: Manage Watchfire's outbound delivery adapters and inbound HTTP integrations from the command line.
+---
+
+# watchfire integrations
+
+Manage the [Integrations](/docs/concepts/integrations) layer — outbound adapters (webhook, Slack, Discord, GitHub auto-PR) and the inbound HTTP server that lets external services drive the daemon back. The parent command groups every integrations-related subcommand.
+
+## Usage
+
+```bash
+watchfire integrations <subcommand>
+```
+
+The CLI is the scriptable surface. The same operations are available interactively in the TUI ([Integrations overlay](/docs/components/cli#integrations-overlay-ctrli) on <kbd>Ctrl</kbd>+<kbd>I</kbd>) and in the GUI ([Settings → Integrations](/docs/components/gui#integrations)).
+
+## Subcommands
+
+### integrations list
+
+List configured outbound and inbound integrations.
+
+```bash
+watchfire integrations list
+```
+
+Prints one row per integration with its name, type (outbound adapter or inbound provider), and a status pill — `OK`, `Disabled`, `Breaker open`, or `Misconfigured`.
+
+### integrations test \<name\>
+
+Fire a synthetic event through the named adapter to verify wiring end-to-end (signature, transport, render).
+
+```bash
+watchfire integrations test slack
+watchfire integrations test webhook
+```
+
+Synthetic events are clearly labelled in the rendered output so they're easy to identify in the receiving channel.
+
+### integrations register-discord \<guild_id\>
+
+Register or refresh the Watchfire slash-command set in a Discord guild.
+
+```bash
+watchfire integrations register-discord 123456789012345678
+```
+
+Calls Discord's bulk-overwrite endpoint with the current command schema (`/watchfire status`, `/watchfire retry <task>`, `/watchfire cancel <task>`). The command is **idempotent** — re-running upserts the schema without producing duplicates, so you can safely re-run after upgrading Watchfire to pick up new commands.
+
+This drives the inbound side of the integration. For the outbound Discord adapter (the one that posts task and digest envelopes into a channel) see the [Outbound section](/docs/concepts/integrations#discord-adapter) of the Integrations concept page.
+
+#### Prerequisites
+
+- The Discord application's **public key** has been saved as the inbound Discord secret (write-only) in [GUI Settings → Integrations → Inbound](/docs/components/gui#integrations) or via the equivalent TUI overlay.
+- The Watchfire daemon is reachable at `PublicURL` so Discord can call `POST /echo/discord/interactions`.
+- The Discord application has been added to the target guild with the `applications.commands` scope.
+
+## Notes
+
+- All three subcommands are project-scoped — run them from inside a Watchfire-initialised project.
+- Outbound and inbound configuration live in `~/.watchfire/integrations.yaml`; secrets live in the OS keyring (with a file-store fallback) and never enter the YAML on disk.
+- For the on-the-wire shape, the `IntegrationsService` gRPC has `List` / `Save` / `Delete` / `Test` RPCs; `Save` carries a `oneof` payload and secret fields are write-only.
+
+## Examples
+
+```bash
+# List all configured integrations
+watchfire integrations list
+
+# Send a synthetic notification through the Slack adapter
+watchfire integrations test slack
+
+# Register Watchfire's slash commands in a Discord guild
+watchfire integrations register-discord 123456789012345678
+```

@@ -239,4 +239,32 @@ Open Settings from the bottom of the sidebar to manage app-wide preferences — 
 | **Appearance** | Theme (System / Light / Dark) |
 | **Defaults** | Automation toggles for new projects, plus the **default coding agent** used when a project hasn't chosen one. Includes an **"Ask per project"** option that forces `watchfire init` to prompt every time. |
 | **Agents** | Per-backend binary paths — `claude`, `codex`, `opencode`, `gemini`, `copilot`. Leave blank to fall back to `PATH` and common install locations. Also shows auto-detection status and install instructions for each backend. |
+| **Integrations** | Outbound adapters (webhook, Slack, Discord, GitHub auto-PR) plus the **Inbound** subsection covering the HTTP server, per-provider secrets, and per-provider URLs. See below. |
 | **Updates** | Check frequency, auto-download toggle |
+
+### Integrations
+
+The Integrations panel renders as `gui/src/renderer/src/views/Settings/IntegrationsSection.tsx`, with one detail panel per adapter and a separate **Inbound** subsection driven by `gui/src/renderer/src/views/Settings/InboundSection.tsx`.
+
+#### Outbound
+
+Per-adapter detail panels for the [outbound delivery framework](/docs/concepts/integrations#outbound):
+
+- **Webhook** — URL field, HMAC secret (write-only), test button
+- **Slack** — bot token (write-only), channel selector, test button
+- **Discord** — webhook URL (write-only), test button
+- **GitHub auto-PR** — opt-in toggle, prerequisites checklist (`gh` on `PATH`, `gh auth status`)
+
+Behind the scenes, the GUI talks to the daemon through `IntegrationsService` gRPC: `List` / `Save` / `Delete` / `Test` RPCs, with `Save` carrying a `oneof` payload. Every secret field is write-only on the wire — the GUI can save and replace, but never reads existing values back.
+
+#### Inbound
+
+The Inbound subsection drives the HTTP server documented in [Integrations → Inbound](/docs/concepts/integrations#inbound):
+
+- **Listening pill** — polled every 5 seconds; reflects whether the server is bound and the last error if not
+- **`ListenAddr`** — editable bind address, defaults to `127.0.0.1:8765`. A **Restart** button next to the field re-binds the server when changed.
+- **`PublicURL`** — used to construct the per-provider URLs the **Copy as Discord URL** / **Copy as GitHub URL** / **Copy as Slack URL** / **Copy as Webhook URL** buttons offer
+- **Per-provider secret inputs** — four write-only fields, one per upstream (Discord public key, GitHub HMAC secret, Slack signing secret, generic webhook HMAC secret). Empty disables the corresponding handler so it returns `503`.
+- **Last-delivery timestamps** — one per provider, updated whenever the daemon successfully verifies an inbound request, so it's obvious at a glance which providers are actually wired through
+
+The whole subsection mirrors the new TUI **Inbound** tab inside the [Integrations overlay](/docs/components/cli#integrations-overlay-ctrli).
