@@ -9,6 +9,7 @@ import AgentBackends from "@/components/AgentBackends";
 import ComponentsOverview from "@/components/ComponentsOverview";
 import ProductShowcase from "@/components/ProductShowcase";
 import KeyFeatures from "@/components/KeyFeatures";
+import FAQ from "@/components/FAQ";
 import FinalCTAServer from "@/components/FinalCTAServer";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Header } from "@/components/Header";
@@ -167,6 +168,12 @@ export default async function Home() {
 
     <ScrollReveal staggerChildren>
       <ComponentsOverview />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal>
+      <FAQ />
     </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
