@@ -78,10 +78,7 @@ export default function AgentBackends() {
     <section className="relative px-6 py-24">
       <div className="mx-auto max-w-6xl">
         <div className="text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-fire-500/40 bg-fire-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-fire-600 shadow-[0_0_20px_rgba(224,112,64,0.15)] dark:border-fire-400/40 dark:bg-fire-400/10 dark:text-fire-300">
-            New in v3.0.0
-          </span>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
+          <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
             Any agent.{" "}
             <span className="bg-gradient-to-r from-fire-400 to-ember-500 bg-clip-text text-transparent">
               One orchestrator.
