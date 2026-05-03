@@ -85,6 +85,17 @@ Opening a task brings up the task editor — title, prompt, acceptance criteria,
   className="my-6 rounded-xl border border-zinc-200 dark:border-zinc-800"
 />
 
+#### Inspect
+
+The Inspect tab renders the diff for the selected task as an inline file-by-file viewer.
+
+- **Pre-merge** — diffs are computed as `<merge-base>...HEAD` on the `watchfire/<n>` branch.
+- **Post-merge** — the diff is reconstructed by locating the merge commit via `git log --grep`.
+- **Output** — a structured `FileDiffSet`, `cap at 10000 lines`.
+- **Cache** — results are cached at `~/.watchfire/diff-cache/<project_id>/<task_number>.json`.
+
+Backed by the `internal/daemon/diff` package.
+
 #### Definition
 
 A markdown editor for the project definition — the persistent context every agent reads before starting work. Use it for architecture, key files, conventions, and constraints.
