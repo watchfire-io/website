@@ -22,7 +22,7 @@ export default async function Home() {
   return (
     <>
     <Header />
-    <main className="pt-16">
+    <main id="main-content" className="pt-16">
     <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden px-4 py-16 sm:px-6 sm:py-24">
       {/* Ambient glow blobs */}
       <div
@@ -55,7 +55,7 @@ export default async function Home() {
           <div className="mb-5 flex flex-wrap justify-center gap-2 md:justify-start">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-fire-500/30 bg-fire-500/10 px-3 py-1 text-xs font-medium text-fire-600 shadow-[0_0_20px_rgba(224,112,64,0.15)] backdrop-blur-sm dark:border-fire-400/40 dark:bg-fire-400/10 dark:text-fire-300 sm:text-sm">
               <span className="relative inline-flex h-1.5 w-1.5">
-                <span className="absolute inset-0 animate-ping rounded-full bg-fire-500/60 dark:bg-fire-400/60" />
+                <span className="absolute inset-0 animate-ping rounded-full bg-fire-500/60 motion-reduce:animate-none dark:bg-fire-400/60" />
                 <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-fire-500 dark:bg-fire-400" />
               </span>
               v4.0.0 — Beacon

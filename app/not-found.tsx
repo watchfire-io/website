@@ -3,8 +3,8 @@ import { Flame } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-[80vh] flex-col items-center justify-center px-4 text-center">
-      <Flame className="mb-6 h-16 w-16 text-[#e07040]" strokeWidth={1.5} />
+    <main id="main-content" className="flex min-h-[80vh] flex-col items-center justify-center px-4 text-center">
+      <Flame className="mb-6 h-16 w-16 text-[#e07040]" strokeWidth={1.5} aria-hidden="true" />
       <h1 className="mb-2 text-4xl font-bold tracking-tight">
         Page not found
       </h1>
@@ -25,6 +25,6 @@ export default function NotFound() {
           Documentation
         </Link>
       </div>
-    </div>
+    </main>
   );
 }

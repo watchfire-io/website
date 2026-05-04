@@ -16,7 +16,7 @@ const manualSteps: Step[] = [
     title: "watchfire init",
     description: "Define your project and pick a default agent — Claude Code, Codex, opencode, Gemini CLI, or GitHub Copilot CLI",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M12 5v14M5 12h14" />
       </svg>
     ),
@@ -26,7 +26,7 @@ const manualSteps: Step[] = [
     title: "Create tasks",
     description: "Describe what you want built in YAML task files",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
         <rect x="9" y="3" width="6" height="4" rx="1" />
         <path d="M9 14l2 2 4-4" />
@@ -38,7 +38,7 @@ const manualSteps: Step[] = [
     title: "Start agents",
     description: "Agents work in isolated git worktrees, one branch per task",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <polygon points="5 3 19 12 5 21 5 3" />
       </svg>
     ),
@@ -48,7 +48,7 @@ const manualSteps: Step[] = [
     title: "Monitor",
     description: "Watch live terminal output through the TUI or GUI",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="2" y="3" width="20" height="14" rx="2" />
         <path d="M8 21h8M12 17v4" />
       </svg>
@@ -59,7 +59,7 @@ const manualSteps: Step[] = [
     title: "Review & merge",
     description: "Completed work is automatically merged back to your default branch",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="18" cy="18" r="3" />
         <circle cx="6" cy="6" r="3" />
         <path d="M6 21V9a9 9 0 009 9" />
@@ -74,7 +74,7 @@ const wildfireSteps: Step[] = [
     title: "Define your project",
     description: "Run watchfire init, pick your agent backend, and describe what you want to build — Watchfire generates the project definition and initial tasks",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M12 5v14M5 12h14" />
       </svg>
     ),
@@ -84,7 +84,7 @@ const wildfireSteps: Step[] = [
     title: "watchfire wildfire",
     description: "Launch Wildfire mode — a fully autonomous loop that runs without human intervention",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M12 2c0 4-4 6-4 10a4 4 0 008 0c0-4-4-6-4-10z" />
         <path d="M12 18a2 2 0 01-2-2c0-2 2-3 2-5 0 2 2 3 2 5a2 2 0 01-2 2z" />
       </svg>
@@ -96,7 +96,7 @@ const wildfireSteps: Step[] = [
     description: "Agents pick up ready tasks and work on them in isolated git worktrees, one branch per task",
     autonomous: true,
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <polygon points="5 3 19 12 5 21 5 3" />
       </svg>
     ),
@@ -107,7 +107,7 @@ const wildfireSteps: Step[] = [
     description: "Once tasks are done, the agent refines draft tasks and generates new ones — then loops back to execute",
     autonomous: true,
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M21 12a9 9 0 11-6.22-8.56" />
         <path d="M21 3v6h-6" />
       </svg>
@@ -119,7 +119,7 @@ const wildfireSteps: Step[] = [
     description: "Completed work is automatically merged back — Wildfire keeps going until there's nothing left to do",
     autonomous: true,
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="18" cy="18" r="3" />
         <circle cx="6" cy="6" r="3" />
         <path d="M6 21V9a9 9 0 009 9" />
@@ -189,7 +189,7 @@ function StepTimeline({ steps }: { steps: Step[] }) {
                   <h3 className="font-semibold text-zinc-900 dark:text-white">{step.title}</h3>
                   {step.autonomous && (
                     <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 ring-1 ring-emerald-500/25 dark:text-emerald-400">
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
                       </svg>
                       Auto
@@ -264,8 +264,8 @@ export default function HowItWorks() {
               <p
                 className={`mt-1.5 text-xs leading-relaxed ${
                   mode === tab.key
-                    ? "text-fire-700/70 dark:text-fire-200/70"
-                    : "text-zinc-500 dark:text-zinc-400"
+                    ? "text-fire-700 dark:text-fire-200"
+                    : "text-zinc-600 dark:text-zinc-400"
                 }`}
               >
                 {tab.subtitle}

@@ -285,11 +285,11 @@ pre .line.highlighted {
   100% { transform: translateY(-120px) translateX(var(--drift, 20px)); opacity: 0; }
 }
 
-/* Focus visible — warm fire ring */
+/* Focus visible — warm fire ring (WCAG 2.1 AA visible focus) */
 :focus-visible {
-  outline: 2px solid rgba(224, 112, 64, 0.6);
+  outline: 2px solid rgb(224, 112, 64);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: inherit;
 }
 
 /* Animated terminal cursor */
