@@ -91,6 +91,44 @@ contributors.
   daemon or the agent runner.
 - `make lint` must pass before you open a PR.
 
+## Website performance budget
+
+The marketing and docs site (this site, in the
+[`website` repo](https://github.com/watchfire-io/website)) has a small set
+of performance targets. They are *targets*, not promises — measured at
+build time on a production build, and they will drift slowly as the site
+grows.
+
+| Surface | Target |
+|---------|--------|
+| Landing page (`/`) initial JS | **≤ 210 KB gzipped** (≤ 700 KB raw) |
+| Long doc page (e.g. `/docs/changelog`) initial JS | **≤ 260 KB gzipped** (≤ 830 KB raw) |
+| Largest Contentful Paint on `/` | **< 2.5 s** on simulated Slow 4G |
+| Cumulative Layout Shift on `/`, `/docs`, `/docs/recipes` | **< 0.05** |
+| Public PNG screenshots | None — use WebP via `<img>` with explicit `width` and `height` |
+
+Run `npm run perf` from the website repo to print the per-route initial JS
+payload from a clean production build. The script wraps `next build`,
+boots the production server, and tallies the unique
+`/_next/static/chunks/*.js` files referenced by each route's HTML — so
+adding a new client component, eagerly importing a heavy library, or
+swapping a server component for a client one will surface in the diff.
+
+When working on the site:
+
+- Keep components server-rendered by default. Reach for `"use client"`
+  only when you need state, effects, or browser APIs.
+- Defer heavy client components below the fold with `next/dynamic`
+  (`ssr: false` if no SEO content depends on the component).
+- New images go in `public/` as WebP, referenced via `<img>` (or
+  `next/image`) with explicit `width` and `height` to keep CLS at zero.
+- Wrap any new continuous animation in a
+  `@media (prefers-reduced-motion: reduce)` opt-out.
+- The site has **no runtime dependencies** beyond what's in
+  `package.json` today. If you genuinely need a build-time tool to
+  measure or analyze, add it as a `devDependency` only and call it out
+  in the PR description.
+
 ## Code of Conduct
 
 Watchfire follows the
