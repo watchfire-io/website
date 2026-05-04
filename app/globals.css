@@ -302,6 +302,62 @@ pre .line.highlighted {
   animation: blink 1s steps(2, end) infinite;
 }
 
+/* Keyboard key (<kbd>) styling in docs MDX content */
+.prose kbd,
+article kbd,
+.fd-prose kbd {
+  display: inline-block;
+  padding: 0.05em 0.45em;
+  margin: 0 0.1em;
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, "JetBrains Mono", monospace;
+  font-size: 0.82em;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-fd-foreground);
+  background: var(--color-fd-card);
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.3rem;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+
+.dark .prose kbd,
+.dark article kbd,
+.dark .fd-prose kbd {
+  background: var(--color-fd-card);
+  border-color: var(--color-fd-border);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Print stylesheet — switch the cheat sheet to clean black-on-white */
+@media print {
+  .prose kbd,
+  article kbd,
+  .fd-prose kbd {
+    color: #000;
+    background: #fff;
+    border: 1px solid #000;
+    box-shadow: none;
+  }
+
+  body,
+  body::before,
+  .dark body::before {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  body::before,
+  .dark body::before {
+    display: none;
+  }
+
+  table {
+    page-break-inside: avoid;
+  }
+}
+
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .hero-entrance {
