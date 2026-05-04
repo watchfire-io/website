@@ -138,7 +138,7 @@ export default function BrandPage() {
   return (
     <>
       <Header />
-      <main className={`${syne.variable} pt-16`}>
+      <main id="main-content" className={`${syne.variable} pt-16`}>
         {/* Hero */}
         <section className="relative overflow-hidden px-6 pb-16 pt-20 sm:pt-28">
           <div
@@ -235,6 +235,7 @@ export default function BrandPage() {
                   <div
                     className="aspect-square w-full"
                     style={{ background: s.hex }}
+                    role="img"
                     aria-label={`${s.name} swatch ${s.hex}`}
                   />
                   <div className="space-y-1 px-3 py-3">

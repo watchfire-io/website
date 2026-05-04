@@ -30,6 +30,9 @@ export default async function Page(props: {
       breadcrumb={{ enabled: true }}
       footer={{ enabled: true }}
     >
+      <span id="main-content" tabIndex={-1} className="sr-only">
+        Main content
+      </span>
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>

@@ -172,9 +172,7 @@ export default function GuiLayoutSvg({
         <rect x="576" y="268" width="60" height="3" rx="1.5" fill="#f0a070" />
 
         <rect x="576" y="296" width="6" height="3" rx="1.5" fill="#e07040" />
-        <rect x="588" y="293" width="8" height="9" rx="1" fill="#e07040">
-          <animate attributeName="opacity" values="1;0.25;1" dur="1.1s" repeatCount="indefinite" />
-        </rect>
+        <rect x="588" y="293" width="8" height="9" rx="1" fill="#e07040" className="gui-caret" />
         <line x1="576" y1="316" x2="746" y2="316" stroke="#2d3140" strokeWidth="0.5" />
 
         <text x="576" y="346" fontSize="10" fill="#71717a" letterSpacing="1.4">BRANCHES</text>
@@ -198,6 +196,13 @@ export default function GuiLayoutSvg({
         <text x="105" y="366" fontSize="9" fill="#a1a1aa" textAnchor="middle">Projects · Settings</text>
         <text x="105" y="377" fontSize="9" fill="#a1a1aa" textAnchor="middle">Always visible</text>
       </g>
+      <style>{`
+        .gui-caret { animation: gui-caret-blink 1.1s steps(2) infinite; }
+        @keyframes gui-caret-blink { 50% { opacity: 0.25; } }
+        @media (prefers-reduced-motion: reduce) {
+          .gui-caret { animation: none !important; }
+        }
+      `}</style>
     </svg>
   );
 }

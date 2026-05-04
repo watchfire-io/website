@@ -3,8 +3,6 @@ title: Architecture
 description: Understand Watchfire's architecture — a daemon orchestrates coding agents while thin clients connect over gRPC.
 ---
 
-# Architecture
-
 Watchfire follows a daemon + thin client architecture. A single daemon process (`watchfired`) manages all orchestration, while lightweight clients (CLI/TUI and GUI) connect over gRPC to display state and accept user input.
 
 ## Components

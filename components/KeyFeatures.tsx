@@ -5,7 +5,7 @@ const features = [
     description:
       "Ship work without babysitting sessions. Write tasks in YAML and the daemon handles the rest — picking up ready work, stopping sessions on completion, and chaining to the next task. Every run lands in the same clean transcript, no matter which backend produced it.",
     illustration: (
-      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
+      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full" aria-hidden="true">
         <defs>
           <linearGradient id="kf-task-bg" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#22262f" />
@@ -104,7 +104,7 @@ const features = [
     description:
       "Parallel agents, zero merge conflicts. Every task runs in its own git worktree on a dedicated branch, so agents work side-by-side without touching each other's files. Finished work auto-merges back to your default branch.",
     illustration: (
-      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
+      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full" aria-hidden="true">
         <defs>
           <radialGradient id="kf-wt-glow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#e07040" stopOpacity="0.08" />
@@ -214,7 +214,7 @@ const features = [
     description:
       "Your credentials and dotfiles stay off-limits, even if an agent goes off-script. Every session runs inside a platform-native sandbox — Seatbelt on macOS, Landlock or Bubblewrap on Linux — blocking ~/.ssh, credential stores, and git hooks by default. Restart protection stops runaway loops before they burn budget.",
     illustration: (
-      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
+      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full" aria-hidden="true">
         <defs>
           <linearGradient id="kf-sb-card" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#22262f" />
@@ -365,7 +365,7 @@ const features = [
     description:
       "Drive every repo on your machine from one place. A single daemon runs multiple projects in parallel — each with its own task queue, worktrees, and agent sessions — and the system tray keeps them all one click away.",
     illustration: (
-      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
+      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full" aria-hidden="true">
         <defs>
           <radialGradient id="kf-mp-hub" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#ffb347" stopOpacity="0.8" />
