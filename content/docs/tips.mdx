@@ -1,0 +1,386 @@
+---
+title: Tips & Best Practices
+description: Hard-won advice for writing tasks agents finish, sizing work, picking modes, keeping merges clean, and getting the most out of Beacon — distilled from running Watchfire across real projects.
+---
+
+A field guide for getting Watchfire to do useful work without babysitting it. The
+[`task`](/docs/commands/task), [`definition`](/docs/commands/definition),
+[`generate`](/docs/commands/generate), and [`wildfire`](/docs/commands/wildfire)
+pages cover the surface area; this one covers the playbook.
+
+## 1. Writing tasks agents can complete
+
+A task is a contract. The agent reads `title`, `prompt`, and `acceptance_criteria`
+and works until either the criteria are met or it gives up. Vague contracts get
+vague work.
+
+### Title verbs that work
+
+Lead with a concrete verb that names a deliverable:
+
+- `Add`, `Update`, `Fix`, `Refactor`, `Remove`, `Document`, `Wire up`
+
+Avoid verbs that don't have a finished state:
+
+- `Improve`, `Polish`, `Clean up`, `Look into`, `Investigate`
+
+**Before**
+
+```yaml
+title: "Improve search"
+```
+
+**After**
+
+```yaml
+title: "Add fuzzy matching to the docs search index"
+```
+
+The second version tells the agent what file is in scope and what "done" looks
+like before it has read a single line of the prompt.
+
+### Prompt anatomy
+
+A good prompt has four parts in this order:
+
+1. **Context** — one or two sentences on why the change is happening.
+2. **What to do** — the actual change, in concrete terms (file paths, function
+   names, behaviour).
+3. **Constraints** — what not to touch, what dependencies to avoid, conventions
+   to follow.
+4. **Verification** — how the agent should know it's done (tests, build, manual
+   check).
+
+Skip the preamble. The agent doesn't need a project tour — that's what
+`project.definition` is for.
+
+### Acceptance criteria are not optional
+
+`acceptance_criteria` is the only field the agent uses to decide whether to set
+`success: true`. Make it testable, file-scoped, and specific.
+
+**Before**
+
+```yaml
+acceptance_criteria: |
+  - Search works better
+```
+
+**After**
+
+```yaml
+acceptance_criteria: |
+  - `lib/search.ts` exports a `fuzzyMatch(query, items)` function
+  - Querying "instlal" returns the "Installation" page
+  - `npm run test -- search` passes
+  - `npm run build` and `npm run lint` pass
+```
+
+If you can't write acceptance criteria, the task isn't ready — refine it before
+moving it to `ready`.
+
+## 2. Sizing tasks
+
+### Aim for one PR-worth of change
+
+A good task is roughly **30 to 90 minutes of agent time** and produces a diff
+small enough that you'd be willing to review it in one sitting. If a task would
+need a multi-section PR description to explain, split it.
+
+### When to bundle vs split
+
+| Situation | Recipe |
+|-----------|--------|
+| Three related edits to the same file | One task |
+| Adding a new route + content + nav entry | One task per layer (route, content, SEO) |
+| A rename touching twenty files | One task — bundle, because it has to land atomically |
+| Two independent bug fixes | Two tasks — split, so one failing doesn't block the other |
+
+The Wildfire scheduler benefits from smaller, independent tasks: when a task
+fails, the chain still drains the rest of the queue. A 4-hour mega-task that
+errors in hour 3 wastes the whole window.
+
+### Cross-cutting changes
+
+For changes that touch many files but are conceptually one thing (a rename, a
+config bump, a dependency upgrade), keep them in one task. The diff is large,
+but the cognitive load on the agent is small — it knows the pattern and applies
+it everywhere.
+
+For changes that touch many files because they're conceptually several things
+(new feature + cleanup + test backfill), split. The agent will conflate the
+streams and ship a mess.
+
+## 3. Writing a project definition that generates good tasks
+
+The `definition` field on `project.yaml` is injected into every agent session
+regardless of mode or backend. It is the single most-leveraged piece of text in
+your project.
+
+### What to include
+
+- **Scope** — one paragraph on what the project is and is not.
+- **Tech stack** — frameworks, language, package manager, deployment target.
+- **Conventions** — file layout, naming, where tests live, what counts as
+  "done" (lint passes, build passes, manual check).
+- **What NOT to do** — the off-limits list. "Don't add new dependencies without
+  a reason." "Don't touch `legacy/`." "Don't introduce client components
+  unless required."
+- **Pointers to source-of-truth files** — `README.md`, an architecture doc, a
+  brand guide. Agents will read them on demand.
+
+### What to leave out
+
+- Ephemeral context ("we're sprinting on auth this week"). It will rot.
+- Secrets, hostnames, internal URLs — those belong in
+  [`.watchfire/secrets/instructions.md`](/docs/concepts/secrets).
+- Generic advice ("write clean code"). The agent already knows.
+
+### Iterating on the definition
+
+```bash
+watchfire generate    # let the agent draft a definition
+watchfire define      # edit it by hand
+```
+
+Run [`watchfire generate`](/docs/commands/generate) once on an existing
+codebase, then edit the result with [`watchfire define`](/docs/commands/definition).
+The generated draft is a starting point, not the finished artifact — your hand
+edits are where the project's actual conventions land.
+
+## 4. Choosing an agent mode
+
+Six modes are documented on the [Agent Modes page](/docs/concepts/agent-modes).
+Day to day, you'll pick between four:
+
+| Mode | When to use | When not to |
+|------|-------------|-------------|
+| **Chat** | Exploring, asking questions, throwaway edits | Anything you want merged — Chat doesn't run in a worktree |
+| **Task** | One well-scoped change you've reviewed | Batches — start them all and walk away |
+| **Start All** | A handful of `ready` tasks you've reviewed | An empty queue — you need tasks first |
+| **Wildfire** | A trusted definition, time to step away | An empty or low-quality definition — Wildfire will generate slop |
+
+**Generate Definition** and **Generate Tasks** are bootstrap commands you run
+once or twice when starting a project, not modes you live in.
+
+### Rule of thumb
+
+- Reviewed it? **Task** or **Start All**.
+- Haven't reviewed it but trust the definition? **Wildfire**.
+- Don't trust the definition yet? Refine it first — Wildfire's output is only
+  as good as the context you give it.
+
+## 5. Sandbox and worktree hygiene
+
+Watchfire's auto-merge path is conservative on purpose. It will refuse to
+proceed if the default branch is dirty, and it expects you to leave the
+worktrees alone.
+
+### Keep your default branch clean
+
+Auto-merge runs on the branch you started Watchfire from. If that branch has
+uncommitted changes, the merge will fail and the task's branch is left
+unmerged. Stash or commit your in-flight work before kicking off a batch:
+
+```bash
+git status      # confirm clean
+watchfire wildfire
+```
+
+### Don't edit files in `.watchfire/worktrees/...` directly
+
+Those directories are git worktrees the daemon owns. Editing a file inside one
+while an agent is running races the agent. Editing one after a task is done but
+before the merge interferes with the merge. If you want to fix something the
+agent did, edit it on your default branch after the merge lands, or open the
+task again and let the agent re-run.
+
+### Flipping `auto_merge: false`
+
+`auto_merge` defaults to `true`. Set it to `false` in `project.yaml` when:
+
+- You want a code review step before changes hit your branch.
+- You're working on a project where merges go through a CI pipeline or a PR.
+- You're paired with the [GitHub auto-PR
+  adapter](/docs/concepts/integrations#github-auto-pr) and want the PR
+  workflow to be the merge gate.
+
+With `auto_merge: false`, completed tasks stay on their `watchfire/<n>` branch
+until you merge them yourself. Use the [Inspect
+tab](/docs/components/gui#inspect) or the TUI's <kbd>d</kbd> binding to review
+the diff before merging.
+
+## 6. Working with multiple agent backends
+
+Watchfire ships with adapters for Claude Code, Codex, opencode, Gemini CLI,
+and GitHub Copilot CLI (see [Supported
+Agents](/docs/concepts/supported-agents)). The same task definition can run on
+any of them.
+
+### Pinning a task to a specific agent
+
+Set `agent` on a task to override the project default for that task only:
+
+```yaml
+task_id: a1b2c3d4
+task_number: 7
+title: "Refactor docs search"
+agent: gemini
+status: ready
+```
+
+The resolution order is `task.agent` → `project.default_agent` → global default
+→ `claude-code`. See [Projects and
+Tasks](/docs/concepts/projects-and-tasks#agent-selection).
+
+### Comparing backends on the same task
+
+Insights records a per-task `<n>.metrics.yaml` file with `agent`, `duration_ms`,
+`tokens_in`, `tokens_out`, and `cost_usd` (where the backend exposes it). The
+Project View Insights tab and the [cross-project
+rollup](/docs/concepts/insights#cross-project-insights-rollup) chart these by
+backend, so running the same task twice on different agents gives you a side-by-side
+read.
+
+### Cost and latency at a glance
+
+The agent donut on the Insights tab shows distribution of completed tasks by
+backend; the duration histogram shows wall-clock spread. Cost is summed in the
+KPI strip when the backend reports it — Copilot is a [stub
+parser](/docs/concepts/insights#metrics-package) today and contributes
+duration only, surfaced via the `tasks_missing_cost` banner so you don't read
+the rollup as a complete total.
+
+## 7. Beacon dashboard hygiene
+
+The dashboard is the single pane you'll stare at most. A little discipline up
+front keeps it readable.
+
+### Name projects deliberately
+
+The Dashboard renders one card per registered project, keyed by the `name`
+field in `project.yaml`. Use names that sort sensibly and read at a glance
+("`watchfire-website`", "`internal-api`") rather than throwaway directory
+names ("`tmp`", "`test2`"). The card grid is sorted by activity, but ties fall
+back to name order.
+
+### Use filter chips to triage
+
+The [Dashboard filter chips](/docs/components/gui#status-bar--filters) —
+`All`, `Working`, `Needs attention`, `Idle`, `Has ready tasks` — narrow the
+grid to one bucket at a time. When the fleet grows past 6–8 projects, **start
+your day on `Needs attention`**: any project with a `done` + `success: false`
+task lights up red. Clear those before touching anything else.
+
+### Wire up at least one outbound channel
+
+If you only ever look at the TUI, you'll miss things. Configure one of:
+
+- **Discord** — rich embeds, also supports inbound `/watchfire status`,
+  `/watchfire retry <task>`, `/watchfire cancel <task>` slash commands.
+- **Slack** — Block Kit envelopes for `TASK_FAILED`, `RUN_COMPLETE`, and the
+  weekly digest.
+- **Webhook** — POST to your own URL, signed with `X-Watchfire-Signature`.
+
+Setup walkthrough on the [Integrations page](/docs/concepts/integrations).
+With one channel wired, you can leave Wildfire running, close the laptop lid,
+and trust that a `done: success: false` will reach you.
+
+## 8. Common anti-patterns
+
+The shortlist of things that make Watchfire feel worse than it is:
+
+- **Refactor without acceptance criteria.** "Refactor `auth/` to be cleaner"
+  has no finished state. The agent will rewrite something, declare victory, and
+  you'll be left with a diff you can't evaluate. Spell out what observable
+  behaviour or structure constitutes done.
+- **Pasting a stacktrace as the prompt.** Stacktraces are evidence, not
+  instructions. Summarise the bug in one paragraph, then include the trace as
+  context. The agent shouldn't have to reverse-engineer your intent from a
+  Sentry dump.
+- **Mixing two unrelated changes.** "Add `/pricing` and fix the navbar bug"
+  becomes one PR you can't cleanly revert. Two tasks, two diffs, two merges.
+- **Editing `next_task_number` by hand.** That field tracks the next ID
+  Watchfire will assign. `watchfire task add` increments it for you. Manually
+  bumping or rolling it back can collide with existing task files or skip
+  numbers.
+- **Running Wildfire on an empty definition.** Wildfire's Generate phase reads
+  `project.definition` to invent new tasks. If the definition is empty, the
+  generated tasks are generic and the loop produces noise. Run
+  [`watchfire generate`](/docs/commands/generate) and edit the result before
+  flipping into Wildfire.
+
+## 9. A worked example
+
+Suppose you want to add a `/pricing` page to a marketing site. The naive
+version is one task: "Add a pricing page." That's a vague title, a 2-hour
+agent run, and a diff you'll need to take apart by hand. Better:
+
+### Task 1 — route
+
+```yaml
+title: "Add a /pricing route with a placeholder page"
+prompt: |
+  Create a new route at `app/pricing/page.tsx` that renders a placeholder
+  heading and one paragraph of lorem ipsum. Match the layout and metadata
+  pattern of `app/about/page.tsx`. Do not add new dependencies.
+acceptance_criteria: |
+  - `/pricing` returns 200 with the placeholder heading visible
+  - `app/pricing/page.tsx` follows the same export pattern as `about`
+  - `npm run build` and `npm run lint` pass
+status: ready
+```
+
+### Task 2 — content
+
+```yaml
+title: "Add three pricing tiers and an FAQ to /pricing"
+prompt: |
+  Replace the placeholder in `app/pricing/page.tsx` with three tier cards
+  (Hobby, Pro, Enterprise) and a five-question FAQ section. Use the existing
+  `Card` and `Accordion` components. Copy lives inline in the file — do not
+  create a new content store.
+acceptance_criteria: |
+  - Three tier cards render with name, price, feature list, CTA button
+  - FAQ has exactly five questions, each expandable
+  - Layout is responsive (verified in dev at 375px and 1280px)
+  - `npm run build` and `npm run lint` pass
+status: draft
+```
+
+### Task 3 — SEO
+
+```yaml
+title: "Add Open Graph metadata and JSON-LD product schema to /pricing"
+prompt: |
+  Export `metadata` from `app/pricing/page.tsx` with title, description, and
+  OG image (reuse `public/og-default.png`). Add a `<script type="application/ld+json">`
+  block emitting `Product` schema for each tier.
+acceptance_criteria: |
+  - `metadata.title`, `metadata.description`, and `metadata.openGraph.images`
+    are set
+  - View source on `/pricing` shows valid JSON-LD with three Product entries
+  - `npm run build` passes
+status: draft
+```
+
+Each task is 30–60 minutes of agent time, has a one-line title with a real
+verb, lists testable criteria, and produces a diff you can review in one
+sitting. Set Task 1 to `ready`, run [`watchfire run 1`](/docs/commands/run),
+review the merge, then promote Task 2, and so on. Or load all three as `ready`
+and let [`watchfire run all`](/docs/commands/run) drain the queue while you
+do something else.
+
+## See also
+
+- [`watchfire task`](/docs/commands/task) — the task CRUD surface.
+- [`watchfire define`](/docs/commands/definition) — edit the project
+  definition.
+- [`watchfire generate`](/docs/commands/generate) — bootstrap a definition or
+  a task list.
+- [`watchfire wildfire`](/docs/commands/wildfire) — the autonomous loop.
+- [Agent Modes](/docs/concepts/agent-modes) — the full mode reference.
+- [Insights & Metrics](/docs/concepts/insights) — what the dashboard charts
+  and how it computes them.
+- [Integrations](/docs/concepts/integrations) — outbound channels and inbound
+  slash commands.
