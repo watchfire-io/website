@@ -1,0 +1,250 @@
+---
+title: Glossary
+description: Quick definitions for Watchfire-specific terms — release codenames, agent modes, components, project model, isolation, Beacon vocabulary, and integrations.
+---
+
+# Glossary
+
+Quick definitions for Watchfire-specific terms. For deeper explanations follow the cross-links.
+
+## Index
+
+- [Adapter](#adapter)
+- [Backend](#backend)
+- [Beacon](#beacon)
+- [Blaze](#blaze)
+- [Bubblewrap](#bubblewrap)
+- [Chat mode](#chat-mode)
+- [CLI/TUI](#clitui)
+- [Daemon](#daemon)
+- [Diff viewer](#diff-viewer)
+- [Discord rich embed](#discord-rich-embed)
+- [Echo server](#echo-server)
+- [Ember](#ember)
+- [Filter chips](#filter-chips)
+- [Focus events](#focus-events)
+- [Generate Definition mode](#generate-definition-mode)
+- [Generate Tasks mode](#generate-tasks-mode)
+- [GitHub auto-PR](#github-auto-pr)
+- [GUI](#gui)
+- [Idempotency cache](#idempotency-cache)
+- [Insights](#insights)
+- [Landlock](#landlock)
+- [Layout toggle](#layout-toggle)
+- [Metrics](#metrics)
+- [Notification bus](#notification-bus)
+- [Notification kind](#notification-kind)
+- [Notification preferences](#notification-preferences)
+- [Project](#project)
+- [Project YAML](#project-yaml)
+- [Relay dispatcher](#relay-dispatcher)
+- [Sandbox](#sandbox)
+- [Seatbelt](#seatbelt)
+- [Signature verification](#signature-verification)
+- [Slack Block Kit](#slack-block-kit)
+- [Slash command router](#slash-command-router)
+- [Spark](#spark)
+- [Start All mode](#start-all-mode)
+- [Status bar](#status-bar)
+- [System tray](#system-tray)
+- [Task](#task)
+- [Task mode](#task-mode)
+- [Task YAML](#task-yaml)
+- [.watchfire directory](#watchfire-directory)
+- [Webhook adapter](#webhook-adapter)
+- [Wildfire mode](#wildfire-mode)
+- [Worktree](#worktree)
+
+## Release codenames
+
+### Ember
+
+The 0.x and 1.0 release line that shipped the original Claude Code-only daemon, CLI/TUI, and GUI on macOS, Linux, and Windows. [Changelog →](/docs/changelog)
+
+### Spark
+
+The 2.x release line that introduced the pluggable [agent backend](#backend) interface and shipped Claude Code, OpenAI Codex, opencode, and Gemini CLI as first-class backends. [Changelog →](/docs/changelog)
+
+### Blaze
+
+The 3.x release line that added GitHub Copilot CLI as a fifth first-class backend. [Changelog →](/docs/changelog)
+
+### Beacon
+
+The 4.x release line — the consolidated dashboard, notifications, insights, and integrations release. [Changelog →](/docs/changelog)
+
+## Agent modes
+
+### Chat mode
+
+Free-form interactive session with the coding agent at project root, with no task context. [Agent modes →](/docs/concepts/agent-modes#chat)
+
+### Task mode
+
+Single-task execution where the agent receives a task's prompt and acceptance criteria and works inside an isolated [worktree](#worktree). [Agent modes →](/docs/concepts/agent-modes#task)
+
+### Start All mode
+
+Sequential execution of every `ready` task in turn, each in its own worktree. [Agent modes →](/docs/concepts/agent-modes#start-all)
+
+### Wildfire mode
+
+Fully autonomous three-phase loop — execute ready tasks, refine drafts, generate new tasks, then repeat until no work remains. [Agent modes →](/docs/concepts/agent-modes#wildfire)
+
+### Generate Definition mode
+
+One-shot mode where the agent analyses the codebase and writes the project definition. [Agent modes →](/docs/concepts/agent-modes#generate-definition)
+
+### Generate Tasks mode
+
+One-shot mode where the agent reads the project definition and creates a batch of task files. [Agent modes →](/docs/concepts/agent-modes#generate-tasks)
+
+## Components
+
+### Daemon
+
+The always-on Go process (`watchfired`) that owns orchestration, PTY management, git worktree workflows, the gRPC server, and the system tray. [Daemon doc →](/docs/components/daemon)
+
+### CLI/TUI
+
+The `watchfire` binary — project-scoped CLI commands plus a Bubbletea-based interactive split-view TUI. [CLI/TUI doc →](/docs/components/cli)
+
+### GUI
+
+The Electron desktop client (`Watchfire.app`) that shows every project across the fleet at once. [GUI doc →](/docs/components/gui)
+
+### Echo server
+
+The inbound HTTP server inside the daemon (`internal/daemon/echo`) that receives signed requests from external services like Slack, Discord, and GitHub. [Integrations doc →](/docs/concepts/integrations#inbound)
+
+### Relay dispatcher
+
+The outbound delivery component (`internal/daemon/relay`) that subscribes to the [notification bus](#notification-bus) and fans events out to every registered [adapter](#adapter). [Integrations doc →](/docs/concepts/integrations#outbound)
+
+### System tray
+
+The dynamic menu-bar icon rendered by `internal/daemon/tray` that surfaces per-project status, today's notifications, and quick stop/quit actions. [Daemon doc →](/docs/components/daemon)
+
+## Project model
+
+### Project
+
+A registered Watchfire workspace — one git repository plus its `.watchfire/` directory and entry in `~/.watchfire/projects.yaml`. [Projects and Tasks →](/docs/concepts/projects-and-tasks)
+
+### Task
+
+A unit of work described by a YAML file in `.watchfire/tasks/`, flowing through `draft → ready → done` and optionally pinned to a specific [backend](#backend). [Projects and Tasks →](/docs/concepts/projects-and-tasks#task-schema)
+
+### Project YAML
+
+The `project.yaml` file inside `.watchfire/` that holds project id, default agent, sandbox mode, auto-merge / auto-delete-branch / auto-start flags, and the project definition. [Projects and Tasks →](/docs/concepts/projects-and-tasks#project-configuration)
+
+### Task YAML
+
+A single `<n>.yaml` file inside `.watchfire/tasks/` that carries `task_id`, `task_number`, `title`, `prompt`, `acceptance_criteria`, `status`, `success`, and an optional per-task `agent` override. [Projects and Tasks →](/docs/concepts/projects-and-tasks#task-schema)
+
+### .watchfire directory
+
+The per-project gitignored directory that holds `project.yaml`, `tasks/`, `memory.md`, `secrets/`, and active `worktrees/`. [Projects and Tasks →](/docs/concepts/projects-and-tasks#directory-structure)
+
+## Isolation
+
+### Worktree
+
+A per-task git worktree at `.watchfire/worktrees/<task_number>/` on branch `watchfire/<task_number>`, where the agent makes changes without touching the main working tree. [Worktrees doc →](/docs/concepts/worktrees)
+
+### Sandbox
+
+The platform-specific isolation layer Watchfire wraps every agent process in, configured via `sandbox: auto | seatbelt | landlock | bwrap | none`. [Sandboxing doc →](/docs/concepts/sandboxing)
+
+### Seatbelt
+
+The macOS sandbox backend (`sandbox-exec` / Apple's App Sandbox) that enforces a kernel-level filesystem and credential-directory deny-list generated from the runtime `SandboxPolicy`. [Sandboxing doc →](/docs/concepts/sandboxing#macos--seatbelt)
+
+### Landlock
+
+The preferred Linux sandbox backend, using the kernel's Landlock LSM (5.13+) with no external dependencies. [Sandboxing doc →](/docs/concepts/sandboxing#linux--landlock)
+
+### Bubblewrap
+
+The fallback Linux sandbox backend (`bwrap`) that uses mount namespaces with a read-only root and a writable project directory. [Sandboxing doc →](/docs/concepts/sandboxing#linux--bubblewrap-fallback)
+
+### Backend
+
+A single Go implementation of the `Backend` interface in `internal/daemon/agent/backend/` — one per supported coding agent (`claude-code`, `codex`, `opencode`, `gemini`, `copilot`) — that owns binary resolution, command construction, system-prompt delivery, transcript discovery, and sandbox extras. [Supported agents →](/docs/concepts/supported-agents)
+
+## Beacon vocabulary
+
+### Notification bus
+
+The typed channel-fan-out `Bus` in `internal/daemon/notify` that emits stable-ID notification events to every subscriber, with a JSONL fallback at `~/.watchfire/logs/<project_id>/notifications.log`. [Daemon doc →](/docs/components/daemon)
+
+### Notification kind
+
+The discriminator on every notification event — `TASK_FAILED`, `RUN_COMPLETE`, or `WEEKLY_DIGEST` — that determines toast routing, channel rendering, and gating. [Integrations doc →](/docs/concepts/integrations#outbound)
+
+### Notification preferences
+
+The `defaults.notifications` block in `~/.watchfire/settings.yaml` controlling master toggle, per-event toggles, sounds, volume, quiet hours, and per-project mute. [Daemon doc →](/docs/components/daemon)
+
+### Idempotency cache
+
+The 1000-entry / 24-hour LRU+TTL cache in `internal/daemon/echo/idempotency.go` that drops duplicate inbound deliveries via `Seen(key)`. [Integrations doc →](/docs/concepts/integrations#idempotency-cache)
+
+### Signature verification
+
+The constant-time HMAC-SHA256 (GitHub, Slack) and Ed25519 (Discord) verifiers in `internal/daemon/echo/verify.go` that authenticate inbound requests with a 5-minute drift window. [Integrations doc →](/docs/concepts/integrations#signature-verification)
+
+### Insights
+
+The per-project and cross-project aggregation surface that turns `<n>.metrics.yaml` files into KPIs, agent donuts, duration histograms, and rollup cards. [Insights doc →](/docs/concepts/insights)
+
+### Metrics
+
+The `<n>.metrics.yaml` siblings in `.watchfire/tasks/` capturing duration, exit reason, agent, tokens, and cost for every completed task. [Insights doc →](/docs/concepts/insights#per-task-metrics-capture)
+
+### Diff viewer
+
+The structured `FileDiffSet` produced by `internal/daemon/diff` (capped at 10 000 lines) that resolves pre-merge diffs against `<merge-base>...HEAD` and post-merge diffs against the merge commit, surfaced in the GUI Inspect tab and the TUI overlay bound to <kbd>d</kbd>. [Worktrees doc →](/docs/concepts/worktrees#merge-behavior)
+
+### Focus events
+
+The `DaemonService.SubscribeFocusEvents` stream that routes click-throughs from the system tray and OS notifications to the right project, task, or digest in a connected client.
+
+### Status bar
+
+The muted dashboard line `N working · N needs attention · N idle · N done today` rendered above the project grid in the GUI. [GUI doc →](/docs/components/gui)
+
+### Filter chips
+
+The dashboard pill chips (`All`, `Working`, `Needs attention`, `Idle`, `Has ready tasks`) whose selection persists in `localStorage[wf-dashboard-filter]`. [GUI doc →](/docs/components/gui)
+
+### Layout toggle
+
+The dashboard `LayoutGrid` / `Rows3` toggle that switches the GUI dashboard between project cards and a one-row-per-project list, persisted in `localStorage[wf-dashboard-layout]`. [GUI doc →](/docs/components/gui)
+
+## Integrations
+
+### Adapter
+
+A single implementation of the relay `Adapter` interface — one per outbound destination (webhook, Slack, Discord, GitHub auto-PR) — owning its template rendering, retry timing, and circuit breaker. [Integrations doc →](/docs/concepts/integrations#outbound)
+
+### Webhook adapter
+
+The generic adapter that POSTs the canonical `notify.Notification` payload to a user-supplied URL with an `X-Watchfire-Signature: sha256=<hex>` HMAC over the raw body. [Integrations doc →](/docs/concepts/integrations#webhook-adapter)
+
+### Slack Block Kit
+
+The three header / section / context / actions envelopes (`TASK_FAILED`, `RUN_COMPLETE`, `WEEKLY_DIGEST`) rendered by `internal/daemon/relay/slack.go` for the Slack adapter. [Integrations doc →](/docs/concepts/integrations#slack-adapter)
+
+### Discord rich embed
+
+The three project-color-tinted embed envelopes rendered by `internal/daemon/relay/discord.go` for the Discord adapter, with a defensive 4000-rune description trim. [Integrations doc →](/docs/concepts/integrations#discord-adapter)
+
+### GitHub auto-PR
+
+The opt-in per-project end-of-task lifecycle in `internal/daemon/git/pr.go::OpenPR` that pushes the `watchfire/<n>` branch and opens a pull request via `gh api`. [Integrations doc →](/docs/concepts/integrations#github-auto-pr)
+
+### Slash command router
+
+The transport-agnostic `Route(ctx, cmd, subcmd, rest, CommandContext) CommandResponse` in `internal/daemon/echo/commands.go` that powers `status`, `retry <task>`, and `cancel <task>` across every inbound transport. [Integrations doc →](/docs/concepts/integrations#command-router)
