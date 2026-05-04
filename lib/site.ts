@@ -19,3 +19,7 @@ export const socialLinks = {
   bluesky: "https://bsky.app/profile/watchfire-io.bsky.social",
   x: "https://x.com/watchfire_dev",
 } as const;
+
+export const editRepoUrl = "https://github.com/watchfire-io/watchfire-website";
+
+export const editBranch = "main";
