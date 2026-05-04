@@ -64,6 +64,10 @@ export const metadata: Metadata = {
       "application/rss+xml": `${siteUrl}/feed.xml`,
       "application/atom+xml": `${siteUrl}/atom.xml`,
       "application/feed+json": `${siteUrl}/feed.json`,
+      "text/plain": [
+        { url: `${siteUrl}/llms.txt`, title: "llms.txt" },
+        { url: `${siteUrl}/llms-full.txt`, title: "llms-full.txt" },
+      ],
     },
   },
 };
