@@ -8,6 +8,7 @@ import {
 import { notFound } from "next/navigation";
 import { Callout } from "fumadocs-ui/components/callout";
 import DownloadButton from "@/components/DownloadButton";
+import EditOnGithub from "@/components/EditOnGithub";
 import Mermaid from "@/components/Mermaid";
 import { sectionLabel } from "@/lib/docs-section";
 
@@ -19,6 +20,8 @@ export default async function Page(props: {
   if (!page) notFound();
 
   const MDXContent = page.data.body;
+  const filePath = `content/docs/${page.path}`;
+  const slugPath = (params.slug ?? []).join("/");
 
   return (
     <DocsPage
@@ -32,6 +35,11 @@ export default async function Page(props: {
       <DocsBody>
         <MDXContent components={{ Callout, DownloadButton, Mermaid }} />
       </DocsBody>
+      <EditOnGithub
+        filePath={filePath}
+        title={page.data.title}
+        slug={slugPath}
+      />
     </DocsPage>
   );
 }
