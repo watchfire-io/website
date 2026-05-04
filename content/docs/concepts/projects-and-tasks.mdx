@@ -95,6 +95,7 @@ acceptance_criteria: |
 status: draft
 success: null
 failure_reason: ""
+merge_failure_reason: ""
 position: 1
 agent_sessions: 0
 created_at: "2026-01-15T10:30:00Z"
@@ -113,7 +114,8 @@ updated_at: "2026-01-15T10:30:00Z"
 | `acceptance_criteria` | string | How to verify the task is complete |
 | `status` | enum | `draft`, `ready`, or `done` |
 | `success` | bool/null | `null` (pending), `true`, or `false` |
-| `failure_reason` | string | Explanation if `success: false` |
+| `failure_reason` | string | Agent-reported failure (set by the agent when `success: false`) |
+| `merge_failure_reason` | string | Auto-merge failure populated by the daemon when the silent merge can't land — e.g. dirty default branch, merge conflict, post-merge hook failure (Flare). The task's own work still landed on its `watchfire/<n>` branch; only the merge step failed |
 | `position` | int | Order within the task list |
 
 ### Task Agent Override
@@ -151,7 +153,7 @@ A task in `ready` status is queued for execution. If `auto_start_tasks` is enabl
 ### Done
 
 A task in `done` status has been completed (or failed). Check the `success` field:
-- `success: true` — Task completed successfully
+- `success: true` — Task completed successfully. If the auto-merge later failed (dirty default branch, merge conflict, post-merge hook), `merge_failure_reason` is populated and a `TASK_FAILED` notification fires; the run-all chain stops so the user can resolve the merge by hand. The agent's work itself is preserved on `watchfire/<n>`.
 - `success: false` — Task failed or was blocked. Check `failure_reason` for details.
 
 ## Reviewing work

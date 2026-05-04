@@ -185,11 +185,13 @@ The Add / Edit Task overlay includes an **agent** field — a cycling selector b
 
 The TUI exposes app-wide preferences through a `globalsettings` overlay — the keyboard mirror of the GUI [Global Settings](/docs/components/gui#global-settings) panel. It reads and writes the same `~/.watchfire/settings.yaml` file, so a value changed in either client takes effect everywhere on the next event.
 
+Flare splits the overlay into eight category sub-pages (Appearance, Defaults, Agent Paths, Notifications, Integrations, Inbound, Updates, About). Press `/` from the overlay to open a search overlay that filters categories and surfaces individual matching controls; selecting a result jumps to the category and pulses the matching field briefly.
+
 #### Notification Preferences
 
-{/* TODO: capture tui-globalsettings-notifications screenshot on a Beacon TUI */}
+{/* TODO: capture tui-globalsettings-notifications screenshot */}
 
-The Notifications section of `globalsettings` configures Beacon. Every control below is gated through `models.ShouldNotify` on the daemon and persisted to `defaults.notifications` in `~/.watchfire/settings.yaml`.
+The Notifications section of `globalsettings` configures notification behaviour. Every control below is gated through `models.ShouldNotify` on the daemon and persisted to `defaults.notifications` in `~/.watchfire/settings.yaml`.
 
 | Control | Default | Notes |
 |---------|---------|-------|

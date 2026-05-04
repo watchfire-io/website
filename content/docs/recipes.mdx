@@ -374,13 +374,15 @@ worktree absorbs every dead-end edit.
 - [Git Worktree Isolation](/docs/concepts/worktrees)
 - [Agent Modes — Chat vs Task](/docs/concepts/agent-modes#mode-comparison)
 
-## Run a fleet of small fixes in parallel
+## Run a fleet of small fixes across projects
 
 ### Goal
 
 Drain a backlog of one-line fixes (dep bump, typo, missing log
 line, tighter signature) without context-switching for each
-one.
+one. Within a single project the queue runs one task at a time;
+true parallelism comes from spreading similar fixes across
+several projects.
 
 ### Prerequisites
 

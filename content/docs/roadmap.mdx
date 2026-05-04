@@ -1,11 +1,12 @@
 ---
 title: Roadmap
-description: A snapshot of where Watchfire is heading after Beacon — what's shipped, what's likely next, and what we're still thinking about.
+description: A snapshot of where Watchfire is heading after Flare — what's shipped, what's likely next, and what we're still thinking about.
 ---
 
 This page is a snapshot of intent, not a commitment. Watchfire is open
 source and small, and priorities shift with what users actually run into.
-Everything below is grounded in the [Beacon (v4.0.0)](/docs/changelog)
+Everything below is grounded in the [Flare (v5.0.0)](/docs/changelog)
+release on top of the [Beacon (v4.0.0)](/docs/changelog#400-beacon)
 foundation — the [notification bus](/docs/glossary#notification-bus), the
 [outbound relay framework](/docs/concepts/integrations#outbound), the
 [inbound HTTP server](/docs/concepts/integrations#inbound), the
@@ -20,52 +21,49 @@ won't ship anything that pretends to be a feature when it isn't. If a
 the bottom of the page.
 </Callout>
 
-## Now (shipped — v4.0.0 Beacon)
+## Now (shipped — v5.0.0 Flare)
 
-Beacon is the consolidated dashboard, notifications, insights, and
-integrations release. It pulled four parallel feature tracks under one
-banner. The [full changelog](/docs/changelog) has every
-entry; the short version:
+Flare closes the inbound loop Beacon left half-open and hardens the
+run-all path. Both Beacon "Known issues" — the missing GitHub PR-merge
+handler and the missing Slack HTTP transport — ship in this release,
+the inbound surface picks up OAuth and multi-host parity, and the
+run-all silent-halt bug is fixed. The [full changelog](/docs/changelog)
+has every entry; the short version:
 
-- **Dashboard** — aggregate status bar, filter chips, grid/list toggle,
-  elapsed-time and last-activity badges, live PTY previews, and a
-  needs-attention treatment for failed tasks. See the
-  [GUI Dashboard documentation](/docs/components/gui#dashboard).
-- **Notifications** — typed [notification bus](/docs/glossary#notification-bus),
-  OS toasts for `TASK_FAILED` and `RUN_COMPLETE`, bundled sounds, a
-  dynamic system tray menu, full preference UI in TUI and GUI, and a
-  weekly Markdown digest. See the
-  [daemon notifications section](/docs/components/daemon#desktop-notifications).
-- **Insights** — per-task `<n>.metrics.yaml` capture across every
-  backend, per-project Insights view, cross-project rollup, CSV +
-  Markdown report export, and inline diff viewer. See the
-  [Insights & Metrics page](/docs/concepts/insights).
-- **Integrations** — outbound delivery framework with webhook, Slack,
-  Discord, and GitHub auto-PR adapters; inbound HTTP server with
-  signature verification, idempotency cache, and a transport-agnostic
-  slash-command router (Discord interactions endpoint shipped). See the
+- **Inbound parity** — GitHub `pull_request.closed` handler closes the
+  auto-PR loop automatically; Slack slash-command HTTP transport reaches
+  Discord parity for `/watchfire status / retry / cancel`. See the
   [Integrations page](/docs/concepts/integrations).
+- **OAuth + multi-host inbound** — Slack `xoxb-...` and Discord bot
+  tokens via OAuth replace the paste-a-signing-secret model; per-project
+  `github_host` plus new GitLab and Bitbucket handlers extend inbound
+  beyond github.com.
+- **Slack interactive components** — `Retry` / `Cancel` / `View in
+  Watchfire` buttons on the Slack `TASK_FAILED` template, plus a
+  cancel-reason modal that lands its text in `task.failure_reason`.
+- **Discord guild auto-registration** — the daemon enumerates joined
+  guilds at startup and subscribes to `GUILD_CREATE`, so commands appear
+  in a freshly-added guild within 30 seconds without the CLI step.
+- **Per-IP rate limiting** — token bucket on every `/echo/*` route
+  (default 30/min/IP, configurable via `RateLimitPerMin`) bounds abuse
+  without affecting idempotent re-deliveries.
+- **Run-all silent-halt fix** — auto-merge failures now emit a
+  `TASK_FAILED` notification, populate the new `merge_failure_reason`
+  field on the task, and surface in the GUI/TUI badges. The chain still
+  stops on a dirty `main` — the silence is gone.
+- **Settings UI sub-pages with search** — both GUI and TUI replace the
+  long scrolling page with eight category sub-pages (Appearance,
+  Defaults, Agent Paths, Notifications, Integrations, Inbound, Updates,
+  About) plus a search box that jumps straight to a matching control.
+- **Beacon foundation, still shipping** — the dashboard, notifications,
+  insights, and integrations layers from
+  [v4.0.0 Beacon](/docs/changelog#400-beacon) continue to underpin
+  everything Flare adds.
 
-## Next (v5.0)
+## Next (v6.0)
 
-The two firmly-committed items below are the explicit "filed as v5.0
-follow-up" entries from Beacon's [Known issues](/docs/changelog).
-The rest are plausible next steps that fall naturally out of the Beacon
-architecture — written as direction, not as scoped work.
-
-### Filed follow-ups from Beacon
-
-- **GitHub `pull_request.closed` handler** — the dedicated
-  `handler_github.go` for `pull_request.closed` events did not ship with
-  Beacon. The auto-PR loop currently closes manually; the handler will
-  close it automatically when the PR is merged or closed upstream.
-- **Slack HTTP transport** — the Slack side of the shared
-  [`commands.Route`](/docs/concepts/integrations#inbound) did not ship
-  with Beacon, so `/watchfire status / retry / cancel` works in Discord
-  but not in Slack. Bringing Slack to parity is the second filed
-  follow-up.
-
-### Direction (not commitments)
+Plausible next steps that fall naturally out of the Flare architecture
+— written as direction, not as scoped work.
 
 - **Richer report templates** — the Markdown export already runs through
   templates under `internal/daemon/insights/templates/`. Expanding the
@@ -102,8 +100,9 @@ are not scoped, sized, or scheduled.
   drive runs from any machine, not just the one the daemon was
   installed on. The daemon is already a network service; the hard parts
   are auth, multi-tenancy, and what "sandbox" means off your laptop.
-- **Multi-user Beacon** — shared dashboards, shared insights, shared
-  integration credentials across a small team. Today the daemon is
+- **Multi-user fleet view** — shared dashboards, shared insights,
+  shared integration credentials across a small team. Today the daemon
+  is
   single-user by design; opening that up means redesigning identity and
   the secret store, not just adding a column to a table.
 - **Deeper editor integrations** — beyond the bundled VS Code shells

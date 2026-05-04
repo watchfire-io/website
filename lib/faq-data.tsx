@@ -16,14 +16,15 @@ export const faqItems: FAQItem[] = [
       <>
         Watchfire wraps any of those CLIs in a per-task git worktree and a
         platform sandbox, fed by structured task files and reviewed through clean
-        transcripts. You can run multiple agents in parallel without merge
-        conflicts and inspect every change before it lands on your default
-        branch — the agent stays the same, the workflow around it gets safer and
-        repeatable.
+        transcripts. Each project runs one agent at a time, but every project on
+        your machine runs concurrently — so you can spread work across repos and
+        let it drain in parallel, then inspect every change before it lands on
+        your default branch. The agent stays the same; the workflow around it
+        gets safer and repeatable.
       </>
     ),
     answerText:
-      "Watchfire wraps any of those CLIs in a per-task git worktree and a platform sandbox, fed by structured task files and reviewed through clean transcripts. You can run multiple agents in parallel without merge conflicts and inspect every change before it lands on your default branch — the agent stays the same, the workflow around it gets safer and repeatable.",
+      "Watchfire wraps any of those CLIs in a per-task git worktree and a platform sandbox, fed by structured task files and reviewed through clean transcripts. Each project runs one agent at a time, but every project on your machine runs concurrently — so you can spread work across repos and let it drain in parallel, then inspect every change before it lands on your default branch. The agent stays the same; the workflow around it gets safer and repeatable.",
   },
   {
     question: "How does Watchfire compare to Aider, Cursor, or Devin?",
@@ -31,8 +32,9 @@ export const faqItems: FAQItem[] = [
       <>
         Short version: those are agents (or in Cursor&rsquo;s case, an
         editor with an agent mode); Watchfire is an orchestrator that
-        runs the coding-agent CLIs you already trust in sandboxed,
-        parallel git worktrees.{" "}
+        runs the coding-agent CLIs you already trust inside sandboxed
+        per-task git worktrees, with one agent per project and many
+        projects running concurrently.{" "}
         <Link
           href="/docs/compare"
           className="text-fire-600 hover:underline dark:text-fire-300"
@@ -43,7 +45,7 @@ export const faqItems: FAQItem[] = [
       </>
     ),
     answerText:
-      "Short version: those are agents (or in Cursor's case, an editor with an agent mode); Watchfire is an orchestrator that runs the coding-agent CLIs you already trust in sandboxed, parallel git worktrees. See the full comparison at /docs/compare for tool-by-tool positioning.",
+      "Short version: those are agents (or in Cursor's case, an editor with an agent mode); Watchfire is an orchestrator that runs the coding-agent CLIs you already trust inside sandboxed per-task git worktrees, with one agent per project and many projects running concurrently. See the full comparison at /docs/compare for tool-by-tool positioning.",
   },
   {
     question: "Which agent backends are supported?",
@@ -140,10 +142,12 @@ export const faqItems: FAQItem[] = [
       "Can Watchfire post to Slack or Discord, or open GitHub PRs automatically?",
     answer: (
       <>
-        Yes. The v4.0.0 Beacon integrations layer ships outbound adapters for
-        webhooks, Slack, Discord, and GitHub auto-PR, plus a small inbound HTTP
-        server with HMAC and Ed25519 signature verification so those services
-        can drive the daemon back.{" "}
+        Yes. Watchfire ships outbound adapters for webhooks, Slack, Discord, and
+        GitHub auto-PR, plus an inbound HTTP server with HMAC + Ed25519
+        signature verification, OAuth bot tokens for Slack and Discord, per-IP
+        rate limiting, GitHub Enterprise / GitLab / Bitbucket parity, Slack
+        interactive buttons, and Discord guild auto-registration — so those
+        services can drive the daemon back.{" "}
         <Link
           href="/docs/concepts/integrations"
           className="text-fire-600 hover:underline dark:text-fire-300"
@@ -154,7 +158,7 @@ export const faqItems: FAQItem[] = [
       </>
     ),
     answerText:
-      "Yes. The v4.0.0 Beacon integrations layer ships outbound adapters for webhooks, Slack, Discord, and GitHub auto-PR, plus a small inbound HTTP server with HMAC and Ed25519 signature verification so those services can drive the daemon back. The integrations docs live at /docs/concepts/integrations.",
+      "Yes. Watchfire ships outbound adapters for webhooks, Slack, Discord, and GitHub auto-PR, plus an inbound HTTP server with HMAC + Ed25519 signature verification, OAuth bot tokens for Slack and Discord, per-IP rate limiting, GitHub Enterprise / GitLab / Bitbucket parity, Slack interactive buttons, and Discord guild auto-registration — so those services can drive the daemon back. The integrations docs live at /docs/concepts/integrations.",
   },
   {
     question: "How do I see what an agent actually did?",

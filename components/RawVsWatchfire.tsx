@@ -35,7 +35,7 @@ const rows: Row[] = [
     label: "Parallelism",
     raw: "One repo, one agent, one terminal. Three tasks waiting on the previous to merge.",
     watchfire:
-      "Run multiple agents in parallel without merge conflicts. Each task ships when it's ready.",
+      "One agent per project, but every project on your machine runs concurrently — open several repos and they all make progress at once.",
     iconPaths: (
       <>
         <polygon points="12 2 2 7 12 12 22 7 12 2" />

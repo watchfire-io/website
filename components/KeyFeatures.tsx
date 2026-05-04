@@ -102,7 +102,7 @@ const features = [
     title: "Git Worktree Isolation",
     tag: "Isolation",
     description:
-      "Parallel agents, zero merge conflicts. Every task runs in its own git worktree on a dedicated branch, so agents work side-by-side without touching each other's files. Finished work auto-merges back to your default branch.",
+      "Every task runs in its own git worktree on a dedicated `watchfire/<n>` branch — never the working tree you're in. Tasks run one at a time per project (the agent finishes one before starting the next), but each one is isolated from your branch and from any work in flight. Finished tasks auto-merge back to your default branch.",
     illustration: (
       <svg viewBox="0 0 400 280" fill="none" className="h-full w-full" aria-hidden="true">
         <defs>
@@ -363,7 +363,7 @@ const features = [
     title: "Multi-Project Management",
     tag: "Scale",
     description:
-      "Drive every repo on your machine from one place. A single daemon runs multiple projects in parallel — each with its own task queue, worktrees, and agent sessions — and the system tray keeps them all one click away.",
+      "Drive every repo on your machine from one place. A single daemon runs multiple projects concurrently — each with its own task queue and one active agent at a time — so spreading work across repos is how you get real parallelism. The system tray keeps them all one click away.",
     illustration: (
       <svg viewBox="0 0 400 280" fill="none" className="h-full w-full" aria-hidden="true">
         <defs>

@@ -1,9 +1,9 @@
 ---
 title: Integrations
-description: Beacon ships a full delivery framework — outbound adapters for webhooks, Slack, Discord, and GitHub auto-PR, plus an inbound HTTP server so external services can drive the daemon back.
+description: A two-way integrations layer — outbound adapters for webhooks, Slack, Discord, and GitHub auto-PR, plus an inbound HTTP server with signature verification, OAuth bot tokens, and multi-host parity.
 ---
 
-Beacon (v4.0.0) introduces a two-way integrations layer. The daemon can **deliver** notifications to external services through pluggable adapters, and **receive** signed requests from those same services through a small HTTP server. Both halves share the same secret store and the same per-provider configuration surface.
+Beacon (v4.0.0) introduced the two-way integrations layer; Flare (v5.0.0) closed the inbound loop and added OAuth, multi-host parity, per-IP rate limiting, Slack interactive components, and Discord guild auto-registration. The daemon can **deliver** notifications to external services through pluggable adapters, and **receive** signed requests from those same services through a small HTTP server. Both halves share the same secret store and the same per-provider configuration surface.
 
 The page is split into two halves that mirror the data flow:
 
@@ -23,9 +23,11 @@ The `Adapter` interface is the only contract every outbound integration implemen
 - **Circuit breaker** — 3 failures inside a 5-minute rolling window opens the breaker; subsequent events skip the adapter until the window expires
 - **Concurrency** — adapters dispatch in parallel; one slow provider never blocks the others
 
-### Secrets
+### Secrets and OAuth bot tokens
 
 Adapter credentials are stored in the OS keyring through `internal/config/keyring.go`, with a file-store fallback for hosts without a keyring backend. Secrets are write-only on the gRPC wire — the GUI and TUI can save and replace, but never read existing values back.
+
+For Slack and Discord, Flare adds an OAuth install flow as the preferred path. Slack stores the workspace `xoxb-...` bot token returned from the OAuth callback and uses it for `chat.postMessage`, so slash responses can include rich attachments and DM the originator on private failures. Discord stores the bot token and authenticates inbound requests with `Authorization: Bot <token>`. The Integrations settings UI exposes "Connect Slack" and "Connect Discord" buttons that launch the flow in the user's default browser; on success a `Connected as <bot username>` pill appears next to the integration. The legacy signing-secret + public-key path stays additive for users mid-cutover.
 
 ### Webhook adapter
 
@@ -42,6 +44,8 @@ Adapter credentials are stored in the OS keyring through `internal/config/keyrin
 | `WEEKLY_DIGEST` | The weekly digest fires |
 
 Each envelope is a fixed sequence of header / section / context / actions blocks. Project color is mapped to a `:large_<color>_square:` shortcode in `slack_color.go` so the project dot survives Slack's theming.
+
+The `TASK_FAILED` template carries three action buttons — `Retry`, `Cancel`, and `View in Watchfire` — that round-trip through the inbound `POST /echo/slack/interactivity` endpoint (see [Slack interactivity](#slack-interactivity)). `Retry` reruns the named task, `Cancel` opens a modal that captures a reason into `task.failure_reason`, and `View in Watchfire` deep-links into the GUI.
 
 ### Discord adapter
 
@@ -77,7 +81,7 @@ Sentinel errors distinguish silent fallback (one WARN per project lifetime when 
 
 ## Inbound
 
-The inbound half lives in `internal/daemon/echo`. It binds a small HTTP server, verifies request signatures with constant-time HMAC or Ed25519, dedupes replays through an in-process LRU cache, and dispatches slash commands through a transport-agnostic router.
+The inbound half lives in `internal/daemon/echo`. It binds a small HTTP server, verifies request signatures with constant-time HMAC or Ed25519, dedupes replays through an in-process LRU cache, applies a per-IP rate limit, and dispatches slash commands through a transport-agnostic router. Concrete handlers exist for GitHub (`pull_request.closed` PR-merge), GitLab (`Merge Request Hook`), Bitbucket (`pullrequest:fulfilled`), Slack slash commands and interactivity, and Discord interactions.
 
 ### HTTP server framework
 
@@ -97,6 +101,10 @@ RegisterProvider(method, path, handler)
 ```
 
 Concrete handlers return `503` until their per-provider secret has been configured. An empty `InboundConfig` (no secrets, no `ListenAddr`) means no listener — the daemon never opens a port until at least one provider is wired.
+
+### Per-IP rate limiting
+
+Flare adds a per-IP token bucket via `golang.org/x/time/rate` in front of every `/echo/*` route. The default budget is 30 requests per minute per IP, configurable through `models.InboundConfig.RateLimitPerMin` (`0` disables the limiter entirely). Idempotent re-deliveries that hit the LRU cache do **not** count against the bucket, so retried Slack / Discord deliveries during a network blip aren't penalised. When a request is rate-limited the server returns `429`, and the daemon logs a single WARN per IP per minute to avoid log floods under sustained traffic.
 
 ### Signature verification
 
@@ -133,7 +141,7 @@ Three commands are wired today:
 
 | Command | Effect |
 |---------|--------|
-| `status` | Returns the current Beacon status block |
+| `status` | Returns the current per-project status block |
 | `retry <task>` | Re-runs the named task |
 | `cancel <task>` | Cancels the named task |
 
@@ -160,32 +168,45 @@ Each transport handler renders the same `CommandResponse` into its native envelo
 4. **Dispatch** — `PING` returns `PONG`; `APPLICATION_COMMAND` calls `commands.Route`
 5. **Render** — `discord_render.go::RenderInteraction` turns the `CommandResponse` into a Discord interaction response
 
-Slash-command registration is one-shot:
+Slash-command registration is automatic on Flare: the daemon enumerates every guild the bot is in at startup and POSTs the three slash-command schemas through `internal/cli/integrations_discord.go::registerForGuild`, then subscribes to the `GUILD_CREATE` Gateway event so a freshly-added guild gets commands within ~30 seconds. The Settings UI lists every guild with a ✓ / ✗ registration pill. Discord's commands API is upsert-style, so re-running is safe; the manual CLI fallback `watchfire integrations register-discord <guild_id>` stays available.
 
-```bash
-watchfire integrations register-discord <guild_id>
-```
+### Slack slash-command HTTP transport
 
-The command is idempotent — re-running upserts the command set without producing duplicates.
+`internal/daemon/echo/handler_slack_commands.go` translates the URL-encoded slash-command form body (`command`, `text`, `team_id`, `channel_id`, `user_id`, `trigger_id`) into a call against the shared `commands.Route(...)` router and renders `CommandResponse` as Slack response JSON (`{response_type: "in_channel" | "ephemeral", text, blocks}`). With Flare, `/watchfire status / retry / cancel` works in Slack at parity with Discord. Slack v0 HMAC verification, the 5-minute drift window, and the LRU+TTL idempotency cache all share the inbound pipeline.
+
+### Slack interactivity
+
+`POST /echo/slack/interactivity` handles the `block_actions` and `view_submission` payloads emitted when users click the `Retry`, `Cancel`, or `View in Watchfire` buttons on the outbound `TASK_FAILED` envelope. Verification, drift window, and idempotency match the slash-commands endpoint. Button presses route through `commands.Route` so a `Retry` click is the exact equivalent of `/watchfire retry`. `Cancel` opens a Slack modal that asks "Why are you cancelling?"; the supplied reason lands in `task.failure_reason`.
+
+### GitHub PR-merge handler
+
+`internal/daemon/echo/handler_github.go` registered at `POST /echo/github?project=<id>` parses `X-GitHub-Event` / `X-Hub-Signature-256` / `X-GitHub-Delivery`, resolves the per-project HMAC secret from the keyring, runs `verify.VerifyGitHub`, deduplicates against the idempotency cache, narrows on `event == "pull_request" && action == "closed" && pull_request.merged == true`, then matches the Watchfire task by `pull_request.head.ref == watchfire/<n>` and calls `task.MarkDoneIfNotAlready`. A Pulse `RUN_COMPLETE` notification fires titled `<project> — PR #<number> merged`. With Flare, the [GitHub auto-PR](#github-auto-pr) loop closes itself.
+
+### GitHub Enterprise / GitLab / Bitbucket parity
+
+Per-project `github_host` on `models.InboundConfig` lets the existing GitHub HMAC-SHA256 verifier target arbitrary GitHub Enterprise hostnames (the same field is used by the outbound auto-PR path). New `internal/daemon/echo/handler_gitlab.go` verifies `X-Gitlab-Token` and narrows on `Merge Request Hook` events with `action: merge`. New `internal/daemon/echo/handler_bitbucket.go` verifies `X-Hub-Signature` (HMAC-SHA256) and narrows on `pullrequest:fulfilled` events. The Settings UI surfaces a "Git host" picker on inbound config.
 
 ### Inbound configuration
 
-The inbound surface is driven by a single `InboundConfig` with one global field and one block per provider:
+The inbound surface is driven by a single `InboundConfig` with global fields and one block per provider:
 
 | Field | Purpose |
 |-------|---------|
 | `ListenAddr` | Bind address; default `127.0.0.1:8765` |
 | `PublicURL` | Used to construct the per-provider URLs the GUI offers as Copy buttons |
-| Per-provider secrets | One write-only secret per upstream; empty disables that handler |
+| `RateLimitPerMin` | Per-IP rate limit across `/echo/*`; default `30`, `0` disables |
+| `github_host` | Per-project GitHub host (default `github.com`); also used by outbound auto-PR |
+| Per-provider secrets / OAuth tokens | One write-only credential per upstream; empty disables that handler |
 
 An empty `InboundConfig` is the signal to skip the listener entirely — the daemon never binds a port until at least one provider is configured.
 
-## Migration & known issues
+## Migration
 
-- **Empty `InboundConfig`** = no listener. Beacon does not bind a port until you configure at least one inbound provider.
+- **Empty `InboundConfig`** = no listener. The daemon does not bind a port until you configure at least one inbound provider.
 - **Per-provider 503** — concrete handlers return `503 Service Unavailable` until their secret is set. The `/echo/health` endpoint is always available regardless of provider state.
-- **Known issue (v5.0 follow-up)** — a dedicated `handler_github.go` for `pull_request.closed` events did not ship. The auto-PR loop closes manually for now: when a PR is merged or closed upstream, the operator marks the corresponding task done by hand.
-- **Known issue (v5.0 follow-up)** — a Slack HTTP transport on top of `commands.Route` did not ship. `/watchfire status`, `/watchfire retry`, and `/watchfire cancel` work in Discord today but not in Slack.
+- **OAuth is opt-in** — existing signing-secret + public-key configs continue to work after upgrading to Flare. Use the new "Connect Slack" / "Connect Discord" buttons to migrate.
+- **Rate limiting** — `RateLimitPerMin` defaults to 30. Set to `0` to disable, or raise it for high-volume inbound traffic.
+- **Multi-host inbound** — leave `github_host` empty for github.com; set per-project for GitHub Enterprise. GitLab and Bitbucket handlers are inactive until their per-project secret is configured.
 
 For the surfaces that drive integrations from the UI side, see the [Integrations panel in the GUI Settings doc](/docs/components/gui#integrations) and the [Integrations overlay in the CLI / TUI doc](/docs/components/cli#integrations-overlay-ctrli). For CLI commands, see [`watchfire integrations`](/docs/commands/integrations).
 

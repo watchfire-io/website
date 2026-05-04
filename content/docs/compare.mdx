@@ -16,9 +16,9 @@ OpenAI Codex, opencode, Gemini CLI, and GitHub Copilot CLI today. It
 is not itself an agent. It runs the agent you already trust inside a
 [git worktree](/docs/concepts/worktrees), in a
 [platform-native sandbox](/docs/concepts/sandboxing), against a
-structured task file, and lets you do that
-[in parallel across many tasks](/docs/concepts/agent-modes) and many
-projects from one daemon.
+structured task file. Each project runs one agent at a time;
+[many projects run concurrently](/docs/concepts/agent-modes) under a
+single daemon.
 
 The rest of this page compares Watchfire to adjacent tools across the
 axes that actually differ between them:
@@ -37,7 +37,7 @@ axes that actually differ between them:
 | Agent backend | Pluggable: Claude Code, Codex, opencode, Gemini, Copilot CLI | Pinned to that CLI | Many models via API key | Cursor's models / your key | GitHub-hosted models | Vendor-managed |
 | Sandbox / isolation | Seatbelt (macOS), Landlock/Bubblewrap (Linux); per-task git worktree | Inherits your shell, full FS, full creds | Inherits your shell | Editor-scoped | GitHub-hosted VM | Vendor VM |
 | Git workflow | Branch + worktree per task; review-then-merge | Edits your working tree | Auto-commits in working tree | Edits your working tree | PR-based | PR-based |
-| Parallel tasks | Yes — many at once across projects | One terminal at a time | One session at a time | Limited | One session per task | Yes (vendor-side) |
+| Parallel tasks | One per project, many projects concurrently | One terminal at a time | One session at a time | Limited | One session per task | Yes (vendor-side) |
 | Local vs cloud | Local (your machine) | Local | Local | Local + cloud sync | Cloud | Cloud |
 | Multi-project | First-class | Per terminal | Per repo | Per workspace | Per repo | Per repo |
 | Open source | Yes (Apache-2.0) | Varies (Codex CLI yes; others mixed) | Yes (Apache-2.0) | No | No | No |
@@ -68,8 +68,9 @@ many tasks it is the right tool.
 - The raw CLI inherits your shell's `PATH`, `~/.ssh`, cloud
   credentials, and any `.git/hooks` you have installed. Watchfire
   blocks those by default via Seatbelt or Landlock.
-- The raw CLI is **one terminal at a time**. Watchfire runs many in
-  parallel — different tasks, different projects, one daemon.
+- The raw CLI is **one terminal at a time**. Watchfire runs one
+  agent per project but coordinates many projects concurrently from
+  the same daemon.
 - Scrollback is the only record. Watchfire captures clean per-task
   transcripts and an inline diff viewer.
 
@@ -104,9 +105,9 @@ edits.
 - Aider runs in your working tree and auto-commits. Watchfire
   isolates each task on its own worktree branch and waits for you to
   merge.
-- Aider is one interactive session per terminal. Watchfire is built
-  for **N tasks in parallel**, with optional autonomous loops via
-  [Wildfire mode](/docs/concepts/agent-modes).
+- Aider is one interactive session per terminal. Watchfire runs one
+  agent per project across many projects concurrently, with optional
+  autonomous loops via [Wildfire mode](/docs/concepts/agent-modes).
 - Aider does not sandbox the host filesystem.
 
 ### Use Watchfire if…
@@ -142,7 +143,8 @@ your editor session, with diffs and apply/reject controls.
   prefer.
 - Cursor edits your working tree. Watchfire edits a per-task
   worktree.
-- Cursor runs one agent at a time. Watchfire runs many.
+- Cursor runs one agent at a time. Watchfire runs one agent per
+  project but many projects concurrently.
 
 ### Use Watchfire if…
 
@@ -172,17 +174,17 @@ on github.com.
   whichever agent CLI (and therefore whichever model) you pick,
   including local-only ones if your CLI of choice supports them.
 - Copilot Workspace is **one task per session in a hosted VM**.
-  Watchfire runs many local tasks in parallel from one daemon, with
-  per-task transcripts and an
-  [inline diff viewer](/docs/components/gui).
+  Watchfire runs one agent per project locally with many projects
+  active concurrently from one daemon, with per-task transcripts and
+  an [inline diff viewer](/docs/components/gui).
 - Copilot Workspace is closed-source and subscription-priced.
   Watchfire is open source.
 
 ### Use Watchfire if…
 
 …you need to keep code on your machine, want to choose your agent and
-model freely, or want to run a fleet of local tasks in parallel
-across multiple projects. Use Copilot Workspace if your repo lives on
+model freely, or want to drain task queues across multiple local
+projects concurrently. Use Copilot Workspace if your repo lives on
 GitHub and you want a hosted, plan-first PR loop with no local
 install.
 
@@ -212,9 +214,9 @@ tools and their browser, and you receive a PR or a deployed app.
 - They are closed source. Watchfire is Apache-2.0 — you can read,
   fork, and audit every line of the orchestration layer.
 - They optimise for **maximum autonomy with vendor guardrails**.
-  Watchfire optimises for **isolation, parallelism, and review** of
-  agents you already use, with autonomy you can opt into via
-  [Wildfire mode](/docs/concepts/agent-modes) and turn off.
+  Watchfire optimises for **isolation, cross-project concurrency, and
+  review** of agents you already use, with autonomy you can opt into
+  via [Wildfire mode](/docs/concepts/agent-modes) and turn off.
 
 ### Use Watchfire if…
 
@@ -246,9 +248,9 @@ comfortable with a hosted runtime.
   Bubblewrap on Linux; `~/.ssh`, credential stores, and `.git/hooks`
   are blocked by default.
   [Read more](/docs/concepts/sandboxing).
-- **Multi-task parallelism** — run many tasks at once across many
-  projects, from a single daemon, with optional autonomous loops
-  through Wildfire.
+- **Cross-project concurrency** — one agent per project, but many
+  projects at once from a single daemon, with optional autonomous
+  loops through Wildfire.
   [Read more](/docs/concepts/agent-modes).
 
 ## Have a correction?

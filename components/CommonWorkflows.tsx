@@ -2,10 +2,10 @@ import Link from "next/link";
 
 const workflows = [
   {
-    title: "Ship in parallel",
+    title: "Drain a queue across projects",
     description:
-      "Three feature tasks running side by side, each in its own worktree on its own branch. Agents stay out of each other's files, you don't babysit any of them, and finished work auto-merges back to your default branch.",
-    href: "/docs/recipes#run-a-fleet-of-small-fixes-in-parallel",
+      "Each project runs one agent at a time, but every project on your machine runs concurrently. Queue ready tasks in three repos and watch them drain in parallel — each on its own worktree, each auto-merging back when it's done.",
+    href: "/docs/recipes#run-a-fleet-of-small-fixes-across-projects",
     icon: (
       <svg
         width="24"

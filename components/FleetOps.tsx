@@ -115,7 +115,7 @@ export default function FleetOps() {
       <div className="relative mx-auto max-w-6xl">
         <div className="text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-fire-500/30 bg-fire-500/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-fire-600 backdrop-blur-sm dark:border-fire-400/40 dark:bg-fire-400/10 dark:text-fire-300">
-            v4.0.0 — Beacon
+            Fleet operations
           </span>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
             One window for the whole{" "}

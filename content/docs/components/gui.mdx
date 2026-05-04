@@ -303,6 +303,8 @@ This is a general-purpose shell — use it for running builds, git commands, or 
 
 Open Settings from the bottom of the sidebar to manage app-wide preferences — appearance, the defaults applied to every new project, and the per-backend binary paths the daemon should use to launch agents.
 
+Flare reorganises this surface into a macOS-style two-pane layout: the left sidebar lists eight categories (Appearance, Defaults, Agent Paths, Notifications, Integrations, Inbound, Updates, About), the right pane shows only the selected category. A search box at the top filters categories AND surfaces individual matching controls with category breadcrumbs — clicking a result navigates to the category and pulses the matching field for ~1.5 seconds. `Cmd/Ctrl+F` focuses search, `Esc` clears, `Up`/`Down`/`Enter` navigate. Existing deep-link routes (`#integrations` etc.) still work.
+
 <img
   src="/screenshots/global-settings.webp"
   alt="Global Settings showing Appearance theme picker, defaults for new projects, and agent binary paths with auto-detection status"
@@ -318,7 +320,7 @@ Open Settings from the bottom of the sidebar to manage app-wide preferences — 
 | **Appearance** | Theme (System / Light / Dark) |
 | **Defaults** | Automation toggles for new projects, plus the **default coding agent** used when a project hasn't chosen one. Includes an **"Ask per project"** option that forces `watchfire init` to prompt every time. |
 | **Agents** | Per-backend binary paths — `claude`, `codex`, `opencode`, `gemini`, `copilot`. Leave blank to fall back to `PATH` and common install locations. Also shows auto-detection status and install instructions for each backend. |
-| **Notifications** | Beacon notification preferences — master toggle, per-event toggles (`TASK_FAILED`, `RUN_COMPLETE`, `WEEKLY_DIGEST`), sounds + volume, quiet hours, and a per-project mute list. See below. |
+| **Notifications** | Notification preferences — master toggle, per-event toggles (`TASK_FAILED`, `RUN_COMPLETE`, `WEEKLY_DIGEST`), sounds + volume, quiet hours, and a per-project mute list. See below. |
 | **Integrations** | Outbound adapters (webhook, Slack, Discord, GitHub auto-PR) plus the **Inbound** subsection covering the HTTP server, per-provider secrets, and per-provider URLs. See below. |
 | **Updates** | Check frequency, auto-download toggle |
 
