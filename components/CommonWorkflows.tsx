@@ -5,7 +5,7 @@ const workflows = [
     title: "Ship in parallel",
     description:
       "Three feature tasks running side by side, each in its own worktree on its own branch. Agents stay out of each other's files, you don't babysit any of them, and finished work auto-merges back to your default branch.",
-    href: "/docs/concepts/worktrees",
+    href: "/docs/recipes#run-a-fleet-of-small-fixes-in-parallel",
     icon: (
       <svg
         width="24"
@@ -28,7 +28,7 @@ const workflows = [
     title: "Refactor without losing your place",
     description:
       "Hand a long refactor to a task and keep moving on the next thing in chat. The session runs in the background; the transcript and the diff are waiting when you come back, ready to review.",
-    href: "/docs/concepts/agent-modes",
+    href: "/docs/recipes#refactor-a-module-across-multiple-tasks",
     icon: (
       <svg
         width="24"
@@ -74,7 +74,7 @@ const workflows = [
     title: "Triage a flood of tasks",
     description:
       "Wildfire mode picks up ready work, refines the drafts, and writes new tasks toward your project definition until the goal is met. Walk away with a backlog; come back to a branch full of completed work.",
-    href: "/docs/commands/wildfire",
+    href: "/docs/recipes#set-up-wildfire-for-a-brownfield-project",
     icon: (
       <svg
         width="24"

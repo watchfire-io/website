@@ -1,0 +1,470 @@
+---
+title: Recipes
+description: End-to-end Watchfire walkthroughs — concrete examples of using tasks, modes, and Wildfire to ship real work, with the exact commands and task definitions.
+---
+
+Each recipe below is a complete walkthrough — copy it, adapt the
+paths and prompts, run it. Every command and YAML key is
+verified against the rest of the docs. If something here ever
+disagrees with [`watchfire task`](/docs/commands/task),
+[`watchfire run`](/docs/commands/run), or
+[Projects and Tasks](/docs/concepts/projects-and-tasks), trust
+those pages first.
+
+The recipes assume you have already
+[installed](/docs/installation) Watchfire and run
+[`watchfire init`](/docs/quickstart#1-initialize-a-project) in
+the project. They use [`watchfire task add`](/docs/commands/task#task-add)
+to create tasks interactively — when a recipe shows a YAML block,
+that's what the resulting `.watchfire/tasks/<n>.yaml` file looks
+like, so you can also write the file directly if you prefer.
+
+## Add tests to an untested module
+
+### Goal
+
+Take a single module from zero coverage to a meaningful test
+suite in one task.
+
+### Prerequisites
+
+- Project initialised with `watchfire init`.
+- A test runner already wired up (`go test`, `npm run test`, …).
+- Default agent set — typically `claude-code` or `codex`.
+
+### Steps
+
+1. **Add the task.** Run [`watchfire task add`](/docs/commands/task#task-add)
+   and fill in title, prompt, and acceptance criteria. The
+   resulting file under `.watchfire/tasks/` looks like:
+
+   ```yaml
+   task_id: a1b2c3d4
+   task_number: 1
+   title: "Add tests for lib/parser.ts"
+   prompt: |
+     `lib/parser.ts` has no tests. Add a Jest suite at
+     `lib/parser.test.ts` that covers every exported function
+     and the documented edge cases (empty input, malformed
+     JSON, nested arrays). Use the existing test patterns from
+     `lib/format.test.ts` as a template — same imports, same
+     describe/it structure. Do not refactor the parser itself.
+   acceptance_criteria: |
+     - `lib/parser.test.ts` exists and runs under `npm run test`
+     - Every exported function has at least one happy-path test
+     - Malformed input cases assert on thrown errors
+     - `npm run test -- parser` passes
+     - `npm run lint` passes
+   status: ready
+   ```
+
+   Setting `status: ready` is what triggers the agent — with
+   `auto_start_tasks: true` (the default), the daemon picks it
+   up immediately.
+
+2. **Watch it run.** Launch the TUI with `watchfire` (no args)
+   and switch to the **Chat** tab on the right to stream the
+   live agent output. Or, in the GUI, open the project and
+   the Chat panel docks the same stream.
+
+3. **Review the diff.** When the agent flips the task to
+   `done`, open the [Inspect tab](/docs/components/gui#inspect)
+   in the GUI or press `d` on the task in the TUI to see the
+   file-by-file diff before the auto-merge lands.
+
+### What you'll see
+
+The agent reads `lib/format.test.ts`, mirrors its structure,
+runs the test suite a few times to verify, and updates the
+task file with `status: done` and `success: true`. Watchfire
+auto-merges the `watchfire/0001` branch back into your
+checked-out branch and deletes the worktree.
+
+### When to use this
+
+Any time you want to backfill tests on a single, well-bounded
+file — focused acceptance criteria are what keep the agent
+from drifting into a broader refactor.
+
+### See also
+
+- [Projects and Tasks](/docs/concepts/projects-and-tasks#task-schema)
+- [Tips & Best Practices — Acceptance criteria are not optional](/docs/tips#1-writing-tasks-agents-can-complete)
+- [`watchfire run`](/docs/commands/run)
+
+## Refactor a module across multiple tasks
+
+### Goal
+
+Extract a service from a monolith by splitting the work into
+narrow, sequenced tasks instead of one mega-PR.
+
+### Prerequisites
+
+- Project initialised.
+- A clear architectural target you can describe in two or three
+  sentences.
+
+### Steps
+
+1. **Encode the target in `project.definition`.** Edit it with
+   [`watchfire define`](/docs/commands/definition) so every
+   task session reads the same context:
+
+   ```yaml
+   definition: |
+     We are extracting the storage layer out of `internal/api`
+     into a new package `internal/storage`. Storage owns all
+     SQL access; API owns all HTTP handlers. Handlers must call
+     storage through an interface — no `database/sql` imports
+     remain in `internal/api/...` once the refactor is done.
+   ```
+
+2. **Split the work into focused tasks.** Each one touches a
+   different file group so they don't collide. Three or four
+   tasks is usually the right granularity:
+
+   ```yaml
+   task_number: 1
+   title: "Extract storage layer into internal/storage"
+   prompt: |
+     Move every file under `internal/api/db/` into a new package
+     `internal/storage/`. Update package declarations and
+     internal imports. Do NOT touch the HTTP handlers yet — they
+     will keep importing `internal/api/db` until task 3 lands.
+   acceptance_criteria: |
+     - `internal/storage/` package exists with the moved files
+     - `go build ./...` passes
+     - No new tests are added or removed
+   status: ready
+   ```
+
+   ```yaml
+   task_number: 2
+   title: "Define storage.Repository interface"
+   prompt: |
+     In `internal/storage/repository.go`, declare a
+     `Repository` interface that surfaces every method the
+     handlers currently use. Provide a concrete `pgRepo`
+     implementation that satisfies it.
+   acceptance_criteria: |
+     - `Repository` interface declared with all required methods
+     - `pgRepo` implements it; compile-time assertion present
+     - `go vet ./...` and `go test ./internal/storage/...` pass
+   status: ready
+   ```
+
+   ```yaml
+   task_number: 3
+   title: "Switch internal/api handlers to storage.Repository"
+   prompt: |
+     Replace direct `internal/api/db` calls in the HTTP handlers
+     with calls through the `storage.Repository` interface.
+     Inject the implementation via the existing handler
+     constructor.
+   acceptance_criteria: |
+     - No `database/sql` or `internal/api/db` imports remain in
+       `internal/api/handlers/`
+     - All existing handler tests pass with the real `pgRepo`
+     - `go build ./...` passes
+   status: draft
+   ```
+
+   ```yaml
+   task_number: 4
+   title: "Delete internal/api/db package"
+   prompt: |
+     Remove the now-unused `internal/api/db` package and any
+     leftover references.
+   acceptance_criteria: |
+     - `internal/api/db` directory removed
+     - `go build ./...` and `go test ./...` pass
+   status: draft
+   ```
+
+3. **Sequence them.** Tasks 1 and 2 can land in either order
+   (different files). Task 3 must come after both. Task 4 must
+   come last. The simplest serialisation is to start with only
+   tasks 1 and 2 in `ready`, then promote 3 once they merge,
+   then 4. Run with [`watchfire run all`](/docs/commands/run#all-ready-tasks)
+   when the queue is what you want.
+
+### What you'll see
+
+Each task gets its own `watchfire/<n>` branch and worktree.
+When auto-merge runs, the daemon refuses to chain after a merge
+conflict — that's the cue to fix the conflict by hand before
+promoting the next task.
+
+### When to use this
+
+Any refactor that spans more than one concern. Splitting keeps
+each diff reviewable and means a failed task only invalidates
+its own branch.
+
+### See also
+
+- [Git Worktree Isolation — Merge Behavior](/docs/concepts/worktrees#merge-behavior)
+- [Tips & Best Practices — Sizing tasks](/docs/tips#2-sizing-tasks)
+- [`watchfire define`](/docs/commands/definition)
+
+## Set up Wildfire for a brownfield project
+
+### Goal
+
+Point Wildfire at an existing project that needs cleanup, with
+a definition tight enough that the autonomous loop produces
+useful work instead of slop.
+
+### Prerequisites
+
+- Project initialised.
+- You can describe what "good" looks like for the cleanup in a
+  few sentences.
+
+### Steps
+
+1. **Bootstrap a definition.** Run
+   [`watchfire generate`](/docs/commands/generate) to draft one
+   from the codebase, then edit it with
+   [`watchfire define`](/docs/commands/definition). The edited
+   version is what matters — the generated draft is just a
+   starting point. Aim for something this concrete:
+
+   ```yaml
+   definition: |
+     This is a 4-year-old Express API that grew without much
+     review. Goal of this cleanup pass: get it to a state where
+     a new contributor can land a PR in their first afternoon.
+
+     Concrete targets:
+     - Every route handler has a unit test
+     - `README.md` documents how to run the server, the test
+       suite, and the linter
+     - `eslint` runs clean (no warnings ignored)
+     - No `any` types in `src/routes/`
+
+     Constraints:
+     - Do NOT add new runtime dependencies
+     - Do NOT change the public API surface (route paths,
+       request/response shapes)
+     - Tests live next to source as `*.test.ts`
+   ```
+
+2. **Launch Wildfire.**
+
+   ```bash
+   watchfire wildfire
+   ```
+
+   Wildfire alternates between three phases — Execute (run
+   ready tasks), Refine (improve drafts), and Generate (invent
+   new tasks toward the definition). The first iteration on a
+   brownfield project is usually Generate.
+
+3. **What the first three generated tasks might look like.**
+   Output varies, but a good definition produces titles like:
+
+   - `Add tests for src/routes/users.ts`
+   - `Document local dev setup in README.md`
+   - `Replace any types in src/routes/auth.ts with concrete types`
+
+   Each lands as a `draft` task; the Refine phase tightens the
+   prompt and acceptance criteria, then promotes them to
+   `ready`.
+
+4. **Stop when satisfied.** Press <kbd>Ctrl</kbd>+<kbd>C</kbd>
+   to end the loop. There is no separate stop command — the
+   daemon terminates the current agent session gracefully and
+   leaves any completed tasks merged.
+
+### What you'll see
+
+The TUI/GUI Chat panel streams each phase in turn. Tasks
+appear in the list in real time as Generate creates them and
+move from Draft → Ready → Done as Refine and Execute do their
+work.
+
+### When to use this
+
+When you have a vague but bounded goal ("make this contributor-
+friendly") and a few hours where you can leave the laptop alone.
+Don't run Wildfire on an empty definition — see the
+[anti-patterns list](/docs/tips#8-common-anti-patterns).
+
+### See also
+
+- [`watchfire wildfire`](/docs/commands/wildfire)
+- [Agent Modes — Wildfire](/docs/concepts/agent-modes#wildfire)
+- [Tips — Iterating on the definition](/docs/tips#3-writing-a-project-definition-that-generates-good-tasks)
+
+## Investigate a bug without disturbing your branch
+
+### Goal
+
+Spelunk a production bug while you have unstaged work on a
+feature branch, without that work being touched.
+
+### Prerequisites
+
+- Project initialised.
+- Some idea of where to look (a stack trace, a failing
+  endpoint, a regression window).
+
+### Steps
+
+1. **Skip chat mode for this one.** [`watchfire run`](/docs/commands/run)
+   with no arguments runs in the project root, not a worktree,
+   so it could touch your in-flight changes. For investigation
+   that needs isolation, use a task instead — tasks always run
+   in `.watchfire/worktrees/<n>/` on a fresh
+   `watchfire/<n>` branch off the current HEAD.
+
+2. **Add an investigation task.** The acceptance criteria are
+   "produce a written diagnosis," not "ship a fix":
+
+   ```yaml
+   task_id: f00dface
+   task_number: 7
+   title: "Diagnose 500s on POST /api/orders since deploy abc123"
+   prompt: |
+     Since commit abc123 we are seeing intermittent 500s on
+     POST /api/orders. The Sentry trace points at
+     `services/orders.ts:142`. Reproduce locally if you can,
+     identify the root cause, and write your findings to
+     `INVESTIGATION.md` in the repo root: what's broken, why,
+     and the smallest plausible fix.
+
+     Do NOT apply the fix in this task — diagnosis only.
+   acceptance_criteria: |
+     - `INVESTIGATION.md` exists with sections "Symptom",
+       "Root cause", "Proposed fix", "Open questions"
+     - Any reproduction commands you ran are listed
+     - The file compiles to valid Markdown
+   status: ready
+   ```
+
+3. **Run it.** With `auto_start_tasks: true` the agent starts
+   on its own; otherwise launch it explicitly with
+   `watchfire run 7`. Your feature branch is untouched — every
+   edit happens inside the worktree.
+
+4. **Promote to a fix task.** When the diagnosis is in,
+   review `INVESTIGATION.md` from the merged branch (or with
+   `d` in the TUI before merge), then add a follow-up task
+   that pastes the proposed fix into the prompt and lists the
+   smallest possible acceptance criteria for the change.
+
+### What you'll see
+
+The Chat tab streams the agent's exploration. The Inspect tab
+shows the new `INVESTIGATION.md` file as a single-file diff
+against your current HEAD.
+
+### When to use this
+
+Whenever the cost of a stray edit on your working tree is
+higher than the cost of waiting a minute for a task to spin up.
+Especially useful when the bug needs trial-and-error — the
+worktree absorbs every dead-end edit.
+
+### See also
+
+- [`watchfire run`](/docs/commands/run)
+- [Git Worktree Isolation](/docs/concepts/worktrees)
+- [Agent Modes — Chat vs Task](/docs/concepts/agent-modes#mode-comparison)
+
+## Run a fleet of small fixes in parallel
+
+### Goal
+
+Drain a backlog of one-line fixes (dep bump, typo, missing log
+line, tighter signature) without context-switching for each
+one.
+
+### Prerequisites
+
+- Project initialised with `auto_merge: true` (the default).
+- A working tree clean enough that auto-merges land.
+- A handful of small fixes already triaged.
+
+### Steps
+
+1. **Add the tasks.** One small task per fix — keep titles
+   short and acceptance criteria mechanical:
+
+   ```yaml
+   task_number: 11
+   title: "Bump pino to 9.x"
+   prompt: |
+     Update `pino` and `pino-pretty` to the latest 9.x release
+     in `package.json`. Reinstall, run the test suite, fix any
+     deprecation warnings introduced by the upgrade.
+   acceptance_criteria: |
+     - `pino` and `pino-pretty` versions are 9.x in package.json
+       and package-lock.json
+     - `npm run test` passes
+     - `npm run lint` passes with no new warnings
+   status: ready
+   ```
+
+   Repeat with the rest — each in its own
+   `.watchfire/tasks/<n>.yaml` (typo fix, log line, signature
+   tightening, etc.). Five to ten works well.
+
+2. **Drain the queue.**
+
+   ```bash
+   watchfire run all
+   ```
+
+   Watchfire works through the `ready` queue one task at a time
+   per project (see [Multi-Project
+   Management](/docs/concepts/projects-and-tasks#multi-project-management)),
+   merging each completed branch before starting the next. The
+   chain stops on a merge conflict so a bad task can't poison
+   the rest.
+
+3. **Spread across projects for true parallelism.** If you
+   have the same kind of fixes queued in several projects,
+   open the [Beacon dashboard](/docs/components/gui#dashboard) —
+   one card per project, each running its own task at the same
+   time. The screenshot at the top of the GUI page shows this
+   layout in action.
+
+4. **Disable auto-merge if you want a review gate.** For fixes
+   that should ship through PRs instead, flip
+   `auto_merge: false` in `project.yaml` and pair with the
+   [GitHub auto-PR adapter](/docs/concepts/integrations#github-auto-pr).
+   The completed tasks stay on their `watchfire/<n>` branches
+   for you to review.
+
+### What you'll see
+
+In the TUI, tasks move through Draft → Ready → Done as the
+chain advances; the Chat tab shows the live agent for the
+currently-running task. In the GUI, the dashboard's elapsed-
+time badge ticks for each project that has an agent active.
+
+### When to use this
+
+When you have an hour you want to convert into closed tickets
+and the fixes are mechanical enough that you trust the agent
+not to overreach.
+
+### See also
+
+- [CLI / TUI Reference](/docs/components/cli)
+- [GUI (Watchfire.app)](/docs/components/gui)
+- [Tips — Sandbox and worktree hygiene](/docs/tips#5-sandbox-and-worktree-hygiene)
+
+## Suggest a recipe
+
+Got a Watchfire workflow that deserves a worked example here?
+Open a PR against
+[`content/docs/recipes.mdx`](https://github.com/watchfire-io/watchfire-website/blob/main/content/docs/recipes.mdx)
+or use the **Edit on GitHub** link in the right sidebar of this
+page — it drops you straight into the MDX source on the right
+branch. Keep new recipes in the same shape: Goal,
+Prerequisites, Steps, What you'll see, When to use this, See
+also.
