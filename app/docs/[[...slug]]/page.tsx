@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { Callout } from "fumadocs-ui/components/callout";
 import DownloadButton from "@/components/DownloadButton";
 import Mermaid from "@/components/Mermaid";
+import { sectionLabel } from "@/lib/docs-section";
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -45,8 +46,37 @@ export async function generateMetadata(props: {
   const params = await props.params;
   const page = source.getPage(params.slug);
   if (!page) notFound();
+
+  const slug = params.slug ?? [];
+  const ogParams = new URLSearchParams({
+    title: page.data.title,
+    description: page.data.description ?? "",
+    section: sectionLabel(slug),
+  });
+  if (slug.length > 0) ogParams.set("slug", slug.join("/"));
+  const ogImageUrl = `/api/og?${ogParams.toString()}`;
+
   return {
     title: page.data.title,
     description: page.data.description,
+    openGraph: {
+      title: page.data.title,
+      description: page.data.description,
+      type: "article",
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${page.data.title} — Watchfire documentation`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: page.data.title,
+      description: page.data.description,
+      images: [ogImageUrl],
+    },
   };
 }
