@@ -1,0 +1,225 @@
+---
+title: Keyboard Shortcuts
+description: Printable cheat sheet of every TUI keybinding and the keyboard shortcuts available in the Watchfire GUI.
+---
+
+A single-page reference for every keyboard shortcut in the Watchfire CLI/TUI and GUI. The page is designed to print cleanly on US Letter portrait — open the browser print dialog and save as PDF for offline reference.
+
+The detailed prose lives in the [CLI/TUI](/docs/components/cli) and [GUI](/docs/components/gui) component pages. This page is the lookup table.
+
+## Global TUI
+
+These bindings are active anywhere in the TUI, regardless of which panel is focused.
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>Ctrl</kbd>+<kbd>q</kbd> | Quit |
+| <kbd>Ctrl</kbd>+<kbd>h</kbd> | Toggle help overlay |
+| <kbd>Ctrl</kbd>+<kbd>g</kbd> | Open global settings overlay |
+| <kbd>Ctrl</kbd>+<kbd>f</kbd> | Open fleet (cross-project) insights overlay |
+| <kbd>Ctrl</kbd>+<kbd>e</kbd> | Export report (CSV or Markdown) |
+| <kbd>Ctrl</kbd>+<kbd>i</kbd> | Open integrations overlay |
+| <kbd>Tab</kbd> | Switch focus between left and right panel |
+| <kbd>Shift</kbd>+drag | Select text (copy) |
+
+## TUI — task list navigation
+
+Movement and search inside the Tasks tab when the left panel has focus.
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>j</kbd> / <kbd>↓</kbd> | Move selection down |
+| <kbd>k</kbd> / <kbd>↑</kbd> | Move selection up |
+| <kbd>/</kbd> | Start incremental search across tasks |
+| <kbd>Enter</kbd> | Confirm search (while searching) |
+| <kbd>Esc</kbd> | Cancel search |
+
+## TUI — task actions
+
+Available when the task list is focused. <kbd>d</kbd> is context-sensitive — on a `done` task it opens the inline diff viewer; on any other task it sets the task to done.
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>a</kbd> | Add a new task |
+| <kbd>e</kbd> / <kbd>Enter</kbd> | Edit the selected task |
+| <kbd>s</kbd> | Start agent on the selected task |
+| <kbd>S</kbd> | Stop the running agent |
+| <kbd>w</kbd> | Start wildfire mode |
+| <kbd>!</kbd> | Start all ready tasks sequentially |
+| <kbd>r</kbd> | Set selected task to Ready |
+| <kbd>t</kbd> | Set selected task to Draft |
+| <kbd>d</kbd> | Mark Done · or open the diff overlay if already Done |
+| <kbd>i</kbd> | Open per-project insights overlay |
+| <kbd>x</kbd> | Soft-delete the selected task |
+
+## TUI — task form
+
+The Add / Edit Task overlay. The agent field is a cycling selector — <kbd>Space</kbd>, <kbd>Enter</kbd>, or <kbd>→</kbd> cycles forward; <kbd>←</kbd> cycles back.
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>Tab</kbd> | Move to next field |
+| <kbd>Ctrl</kbd>+<kbd>s</kbd> | Save and close |
+| <kbd>Esc</kbd> | Cancel and close |
+| <kbd>Space</kbd> / <kbd>Enter</kbd> | Toggle status · or cycle agent forward |
+| <kbd>→</kbd> | Cycle agent forward |
+| <kbd>←</kbd> | Cycle agent back |
+
+## TUI — left panel tabs
+
+Switching between Tasks, Definition, and Settings. Works whenever the left panel is focused.
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>1</kbd> | Tasks |
+| <kbd>2</kbd> | Definition |
+| <kbd>3</kbd> | Settings |
+
+### Definition tab
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>e</kbd> / <kbd>Enter</kbd> | Edit definition in `$EDITOR` |
+| <kbd>j</kbd> / <kbd>↓</kbd> | Scroll down |
+| <kbd>k</kbd> / <kbd>↑</kbd> | Scroll up |
+
+### Settings tab
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>j</kbd> / <kbd>↓</kbd> | Move down |
+| <kbd>k</kbd> / <kbd>↑</kbd> | Move up |
+| <kbd>Space</kbd> | Toggle a boolean field |
+| <kbd>Enter</kbd> | Edit a text field |
+
+## TUI — right panel tabs
+
+The right panel hosts Chat (live agent terminal) and Logs (per-task session history). The right panel does not currently expose keyboard tab switching — click a tab in the header to switch. Once a tab is focused, the keys below apply.
+
+### Chat / terminal
+
+| Shortcut | Action |
+|----------|--------|
+| (type) | Input streams directly to the agent |
+| <kbd>PgUp</kbd> / <kbd>PgDn</kbd> | Scroll terminal scrollback |
+| <kbd>R</kbd> | Resume agent after an issue banner |
+
+### Logs
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>j</kbd> / <kbd>↓</kbd> | Move down in log list |
+| <kbd>k</kbd> / <kbd>↑</kbd> | Move up in log list |
+| <kbd>Enter</kbd> | Open the selected log |
+| <kbd>Esc</kbd> | Back to log list |
+| <kbd>PgUp</kbd> / <kbd>PgDn</kbd> | Scroll log content |
+| <kbd>d</kbd> | Delete the selected log |
+
+## TUI — integrations overlay
+
+Opened with <kbd>Ctrl</kbd>+<kbd>i</kbd>. <kbd>Tab</kbd> toggles between the **Outbound** and **Inbound** tabs.
+
+### Outbound list mode
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>j</kbd> / <kbd>↓</kbd> | Move down |
+| <kbd>k</kbd> / <kbd>↑</kbd> | Move up |
+| <kbd>a</kbd> | Add a new adapter |
+| <kbd>e</kbd> | Edit the selected adapter |
+| <kbd>d</kbd> | Delete the selected adapter |
+| <kbd>t</kbd> | Send a synthetic test event |
+| <kbd>Tab</kbd> | Switch to the Inbound tab |
+| <kbd>Esc</kbd> / <kbd>q</kbd> | Close the overlay |
+
+### Add-adapter form
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>h</kbd> / <kbd>←</kbd> | Cycle adapter kind back |
+| <kbd>l</kbd> / <kbd>→</kbd> | Cycle adapter kind forward |
+| <kbd>Tab</kbd> / <kbd>Enter</kbd> | Advance to next field / submit |
+| <kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> | Toggle event flags (events step) |
+| <kbd>Esc</kbd> | Cancel |
+
+### Inbound tab
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>j</kbd> / <kbd>↓</kbd> | Move cursor down |
+| <kbd>k</kbd> / <kbd>↑</kbd> | Move cursor up |
+| <kbd>Enter</kbd> | Edit the selected field or toggle |
+| <kbd>Tab</kbd> | Switch back to the Outbound tab |
+| <kbd>Esc</kbd> / <kbd>q</kbd> | Close the overlay |
+
+### Delete confirmation
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>y</kbd> | Confirm delete |
+| <kbd>n</kbd> / <kbd>Esc</kbd> | Cancel |
+
+## TUI — global settings
+
+Opened with <kbd>Ctrl</kbd>+<kbd>g</kbd>. The overlay has a categories pane on the left and a fields pane on the right; <kbd>Tab</kbd> swaps between them.
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>j</kbd> / <kbd>↓</kbd> | Move down |
+| <kbd>k</kbd> / <kbd>↑</kbd> | Move up |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Swap between categories and fields |
+| <kbd>/</kbd> | Open search |
+| <kbd>Space</kbd> | Toggle a notification or boolean field |
+| <kbd>Enter</kbd> | Drill into category / edit field / cycle default |
+| <kbd>Esc</kbd> | Close overlay (or close search if open) |
+
+### Search overlay (within global settings)
+
+| Shortcut | Action |
+|----------|--------|
+| (type) | Update search query |
+| <kbd>↑</kbd> / <kbd>↓</kbd> | Move result cursor |
+| <kbd>Enter</kbd> | Activate the selected result |
+| <kbd>Esc</kbd> | Close search |
+
+## GUI — dashboard
+
+The dashboard exposes a small set of global shortcuts. Filter chips and the layout toggle are mouse-driven controls, but their selection persists across reloads via `localStorage[wf-dashboard-filter]` and `localStorage[wf-dashboard-layout]`.
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>Cmd</kbd>+<kbd>,</kbd> / <kbd>Ctrl</kbd>+<kbd>,</kbd> | Open Settings |
+
+## GUI — task workspace
+
+Project View shortcuts. The integrated terminal toggle is global to the project view; the Inspect tab adds vim-style file navigation while it has focus.
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>Cmd</kbd>+<kbd>`</kbd> / <kbd>Ctrl</kbd>+<kbd>`</kbd> | Toggle the integrated terminal panel |
+| <kbd>Esc</kbd> | Close any modal or slide-out panel |
+
+### Inspect tab
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>j</kbd> | Move to next file in the diff |
+| <kbd>k</kbd> | Move to previous file in the diff |
+| <kbd>/</kbd> | Open the file filter |
+| <kbd>r</kbd> | Refresh the diff |
+| <kbd>Esc</kbd> | Close the file filter (when focused) |
+
+### Settings search
+
+The Global Settings view has its own keyboard search.
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>Cmd</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>F</kbd> | Focus the settings search input |
+| <kbd>↑</kbd> / <kbd>↓</kbd> | Move through search results |
+| <kbd>Enter</kbd> | Jump to the selected result |
+| <kbd>Esc</kbd> | Clear the query · then blur the input |
+
+## Beacon notification focus events
+
+Beacon focus events are not keyboard-triggered. Click any OS toast or system tray Notifications submenu entry — the click routes through `DaemonService.SubscribeFocusEvents` to bring the connected GUI to the originating project, task, or digest. See the [GUI doc](/docs/components/gui#notification-preferences) for the underlying flow.
