@@ -33,7 +33,7 @@ The daemon is the single source of truth. Clients are stateless views that subsc
 
 ## Pluggable Agent Backends
 
-Every agent-specific detail — which binary to launch, how to assemble the command line, how to deliver the system prompt, where its transcripts live, and what the sandbox must allow for it — is encapsulated in a `Backend` implementation. Backends register themselves with a process-wide registry at startup, and the daemon looks them up by name when spawning a session.
+Every agent-specific detail — which binary to launch, how to assemble the command line, how to deliver the system prompt, where its transcripts live, and what the [sandbox](/docs/glossary#sandbox) must allow for it — is encapsulated in a [`Backend`](/docs/glossary#backend) implementation. Backends register themselves with a process-wide registry at startup, and the daemon looks them up by name when spawning a session.
 
 | Aspect | Behavior |
 |--------|----------|
