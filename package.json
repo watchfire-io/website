@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "perf": "node scripts/perf.mjs"
   },
   "dependencies": {
     "@types/mdx": "^2.0.13",
