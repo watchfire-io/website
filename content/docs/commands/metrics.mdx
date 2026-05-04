@@ -58,10 +58,33 @@ This is the same partial-data signal the cross-project rollup tracks via `tasks_
 
 ## Examples
 
-```bash
-# Backfill metrics for every registered project
-watchfire metrics backfill
+### Backfill after upgrading
 
-# Re-write every metrics file, even ones that already exist
+```bash
+watchfire metrics backfill
+```
+
+Sample output:
+
+```text
+my-project       12 written, 3 skipped
+another-project   4 written, 0 skipped
+
+Backfill complete: 2 projects, 16 metrics written, 3 skipped
+```
+
+Run once after upgrading from a pre-Beacon version so historical tasks show up in [Insights](/docs/concepts/insights) and the weekly digest. The "skipped" count is tasks that already had a metrics file — backfill is idempotent.
+
+### Re-write every metrics file
+
+```bash
 watchfire metrics backfill --force
 ```
+
+`--force` overwrites existing `<n>.metrics.yaml` files. Reach for it only after a metrics-parser bug fix, when the existing records are known-bad.
+
+## Common pitfalls
+
+- **Backfilled records are duration-only** — `tokens_in`, `tokens_out`, and `cost_usd` stay nil because the original session logs may be rotated by the time you backfill. *Fix:* nothing to do — Insights surfaces a banner when too many records lack cost; live captures going forward populate the missing fields.
+- **No projects in the index** — backfill prints nothing because `~/.watchfire/projects.yaml` is empty. *Fix:* run [`watchfire init`](/docs/commands/init) inside each project so it registers with the daemon, then re-run backfill.
+- **`--force` discards good data** — re-writing a metrics file that had live token/cost data replaces it with a duration-only record. *Fix:* only use `--force` when you actually want the existing records overwritten — for routine backfills, leave it off.

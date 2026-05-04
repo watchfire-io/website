@@ -62,13 +62,42 @@ This drives the inbound side of the integration. For the outbound Discord adapte
 
 ## Examples
 
+### Audit what's currently wired
+
 ```bash
-# List all configured integrations
 watchfire integrations list
+```
 
-# Send a synthetic notification through the Slack adapter
+Sample output:
+
+```text
+NAME      TYPE       STATUS
+slack     outbound   OK
+webhook   outbound   Disabled
+github    inbound    OK
+discord   inbound    Misconfigured
+```
+
+A `Misconfigured` pill is the cue to open [GUI Settings → Integrations](/docs/components/gui#integrations) and re-paste the secret — the CLI can't surface secret values.
+
+### Verify a Slack adapter end-to-end
+
+```bash
 watchfire integrations test slack
+```
 
-# Register Watchfire's slash commands in a Discord guild
+`test` fires a clearly-labelled synthetic event through the named adapter, exercising signature, transport, and renderer. Run this after editing the adapter URL or rotating a signing secret.
+
+### Refresh Discord slash commands
+
+```bash
 watchfire integrations register-discord 123456789012345678
 ```
+
+Idempotent — the command upserts the schema, so re-run it after every Watchfire upgrade to pick up new slash commands without producing duplicates.
+
+## Common pitfalls
+
+- **`integrations test` fails with `Breaker open`** — the adapter has tripped its circuit breaker after repeated upstream failures. *Fix:* address the upstream issue (auth, URL), then wait for the breaker to half-open, or restart the daemon with [`watchfire daemon stop` / `start`](/docs/commands/daemon).
+- **Discord interactions return 401** — `register-discord` succeeded but Discord still rejects requests. *Fix:* re-paste the Discord public key into [GUI Settings → Integrations](/docs/components/gui#integrations); secrets are write-only and can be replaced but not read back. See [Webhook signature verification fails](/docs/troubleshooting#webhook-signature-verification-fails).
+- **Subcommand run outside a project** — `integrations` is project-scoped and exits if the cwd isn't a Watchfire project. *Fix:* `cd` into a project initialised with [`watchfire init`](/docs/commands/init).

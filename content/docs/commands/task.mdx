@@ -100,22 +100,79 @@ See [Projects and Tasks](/docs/concepts/projects-and-tasks#agent-selection) for 
 
 ## Examples
 
+### Add a focused task from the CLI
+
 ```bash
-# Add a new task
 watchfire task add
-
-# List all active tasks
-watchfire task list
-
-# Edit task #2 (including its agent override)
-watchfire task 2
-
-# Delete task #5
-watchfire task delete 5
-
-# Show deleted tasks
-watchfire task list --deleted
-
-# Restore task #5
-watchfire task restore 5
 ```
+
+The interactive prompt produces a YAML file in `.watchfire/tasks/`:
+
+```yaml
+task_number: 4
+title: "Fix off-by-one in pagination cursor"
+prompt: |
+  Cursor in `lib/paginate.ts` returns one fewer row than
+  `limit` on the first page. Fix and add a regression test.
+acceptance_criteria: |
+  - First page returns exactly `limit` rows
+  - Existing tests pass
+status: ready
+```
+
+Setting `status: ready` triggers the agent immediately when `auto_start_tasks: true` (the default). Keep prompts focused — narrow scope is what stops the agent from drifting.
+
+### List ready tasks
+
+```bash
+watchfire task list
+```
+
+Sample output:
+
+```text
+DRAFT
+  5  Document deploy runbook
+
+READY
+  4  Fix off-by-one in pagination cursor
+  6  Bump pino to 9.x
+
+DONE
+  1  Add tests for lib/parser.ts          (success)
+  2  Refactor docs search                 (success)
+  3  Diagnose 500s on POST /api/orders    (success)
+```
+
+Tasks are grouped by status and sorted by `position` then `task_number`. Add `--deleted` to include soft-deleted tasks.
+
+### Pin a task to a different backend
+
+```bash
+watchfire task add
+```
+
+When prompted for the agent, set `gemini` (or any of `claude-code`, `codex`, `opencode`, `copilot`). The resulting YAML carries the override:
+
+```yaml
+task_number: 7
+title: "Refactor docs search"
+agent: gemini
+status: ready
+```
+
+`task.agent` wins over `project.default_agent` and the global default. See [Projects and Tasks → Agent Selection](/docs/concepts/projects-and-tasks#agent-selection).
+
+### Stop a runaway agent
+
+```bash
+watchfire task delete 7
+```
+
+Soft-deleting a `ready` task removes it from the queue. To stop an actively running agent, use the TUI/GUI session controls (Ctrl+C in the foreground session, or the stop button in the [Chat panel](/docs/components/gui#chat)) — `task delete` only affects the task definition, not the session.
+
+## Common pitfalls
+
+- **Empty task list** — `watchfire task list` prints nothing because the project has no `ready` tasks (deleted ones are hidden by default). *Fix:* run `watchfire task list --deleted` to see soft-deleted tasks, or add new ones with `watchfire task add` / [`watchfire generate`](/docs/commands/generate).
+- **Editing a `done` task does not re-run it** — `watchfire task <number>` lets you change fields, but flipping `status` from `done` back to `ready` does not always re-trigger the agent. *Fix:* if you want a fresh run, add a new task instead of resurrecting a completed one.
+- **`agent:` value rejected** — only the five supported backends are valid. *Fix:* use `claude-code`, `codex`, `opencode`, `gemini`, or `copilot` — see [Supported Agents](/docs/concepts/supported-agents).

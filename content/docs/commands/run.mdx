@@ -66,13 +66,40 @@ See [Supported Agents](/docs/concepts/supported-agents) for the full list of bac
 
 ## Examples
 
+### Run a single ready task
+
 ```bash
-# Interactive chat session
-watchfire run
-
-# Run task #3
 watchfire run 3
+```
 
-# Run all ready tasks in sequence
+The agent spawns in `.watchfire/worktrees/3/` on a fresh `watchfire/3` branch off your current HEAD. With `auto_merge: true` (the default in [`project.yaml`](/docs/concepts/projects-and-tasks#project-settings)), Watchfire merges and cleans up the worktree as soon as the task flips to `done`.
+
+### Drain the ready queue
+
+```bash
 watchfire run all
 ```
+
+Runs every `ready` task one at a time, merging each completed branch before starting the next. The chain stops on a merge conflict so a failing task can't poison the rest.
+
+### Open a chat session in the project root
+
+```bash
+watchfire run
+```
+
+Equivalent to [`watchfire chat`](/docs/commands/chat) — no arguments means a free-form chat session, not a task. The agent runs in the project root, not a worktree.
+
+### Bypass the sandbox for a single task
+
+```bash
+watchfire run 7 --no-sandbox
+```
+
+Useful when the task legitimately needs to touch a path the sandbox blocks. The flag applies only to this session — it does not change the project's `sandbox` setting.
+
+## Common pitfalls
+
+- **Argument is not a task number** — `watchfire run all` is a special argument; passing a non-numeric string that isn't `all` opens chat mode silently. *Fix:* check `watchfire task list` for the correct task number first.
+- **Task runs against an unexpected backend** — the agent that starts isn't the one you used last week. *Fix:* the resolution order is `task.agent` → `project.default_agent` → global default → `claude-code`; pin `agent:` on the task or change the project default with [`watchfire configure`](/docs/commands/settings).
+- **Chat mode edits leak into your branch** — `watchfire run` (no args) writes to the project root, not a worktree. *Fix:* use a task instead when isolation matters — see [Investigate a bug without disturbing your branch](/docs/recipes#investigate-a-bug-without-disturbing-your-branch).

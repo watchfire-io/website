@@ -46,14 +46,16 @@ If you leave agent selection unset at the project level, Watchfire resolves the 
 3. Global default agent
 4. `claude-code`
 
-## Example
+## Examples
+
+### Initialise inside an existing repo
 
 ```bash
 cd my-project
 watchfire init
 ```
 
-Example generated config:
+Run from the repo root. `init` detects the existing git repo, creates `.watchfire/`, appends an entry to `.gitignore`, and walks you through the interactive prompts. Example generated config:
 
 ```yaml
 project_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
@@ -69,7 +71,7 @@ next_task_number: 1
 
 After running, your project directory will contain:
 
-```
+```text
 my-project/
 ├── .watchfire/
 │   ├── project.yaml
@@ -77,3 +79,29 @@ my-project/
 ├── .gitignore          # Updated with .watchfire/
 └── ...your files
 ```
+
+### Initialise with a non-default agent
+
+```bash
+mkdir new-tool && cd new-tool
+git init
+watchfire init
+```
+
+When prompted for **Agent/backend**, pick `codex`, `opencode`, `gemini`, or `copilot` — the choice is written to `default_agent` in `project.yaml` and inherited by every session in the project. You can change it later with [`watchfire configure`](/docs/commands/settings).
+
+### Bootstrap definition and tasks immediately after
+
+```bash
+watchfire init
+watchfire generate
+watchfire plan
+```
+
+A common starter sequence: initialise, draft a definition from the codebase, then generate the first task list. Refine the definition with [`watchfire define`](/docs/commands/definition) between `generate` and `plan` for sharper output.
+
+## Common pitfalls
+
+- **Run from a parent directory** — `watchfire init` initialises whatever directory it's run from, not the project you meant. *Fix:* `cd` into the project root first; the prompt confirms the project name before writing files.
+- **`.gitignore` not committed** — the `.watchfire/` line is appended but the change is left unstaged. *Fix:* `init` creates a commit for the `.gitignore` change automatically, but if the repo had no commits yet the commit may be skipped — verify with `git log -1 --stat`.
+- **Re-running on an existing project** — `watchfire init` refuses to overwrite an existing `.watchfire/project.yaml`. *Fix:* edit settings with [`watchfire configure`](/docs/commands/settings) instead, or remove `.watchfire/` first if you really want a fresh start.

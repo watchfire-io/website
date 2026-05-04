@@ -65,12 +65,34 @@ This means Wildfire can drive a mixed set of backends in one run — for example
 
 Press **Ctrl+C** to stop wildfire at any time. The current agent session will be terminated gracefully.
 
-## Example
+## Examples
+
+### Start Wildfire on the current project
 
 ```bash
-# Start wildfire
 watchfire wildfire
-
-# Using the alias
-watchfire fire
 ```
+
+Wildfire alternates Execute → Refine → Generate until none of the three phases produce work. On a brownfield project the first iteration is usually Generate; on a populated `ready` queue it's Execute.
+
+### Stop Wildfire cleanly
+
+```text
+^C
+```
+
+There is no separate stop command. Press <kbd>Ctrl</kbd>+<kbd>C</kbd> in the session that launched Wildfire — the current agent terminates gracefully and the loop exits. Any tasks already merged stay merged.
+
+### Run Wildfire without the sandbox
+
+```bash
+watchfire fire --no-sandbox
+```
+
+Use the `fire` alias for terseness. `--no-sandbox` applies to every session Wildfire spawns during the run, so reach for it sparingly — most tasks are happier inside the sandbox.
+
+## Common pitfalls
+
+- **Loop never exits** — Wildfire keeps drafting or regenerating the same kind of work. *Fix:* tighten `project.definition` first — see [Wildfire mode runs forever](/docs/troubleshooting#wildfire-mode-runs-forever).
+- **Three failures drop into chat mode** — Wildfire's [restart protection](/docs/concepts/architecture#restart-protection) bails after 3 consecutive failures on the same task. *Fix:* fix the failing task (or set `status: done` with `success: false`) before relaunching Wildfire.
+- **No tasks to refine, definition is empty** — Wildfire transitions to chat mode immediately. *Fix:* run [`watchfire generate`](/docs/commands/generate) and [`watchfire define`](/docs/commands/definition) first so the loop has something to anchor on.

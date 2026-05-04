@@ -32,10 +32,24 @@ watchfire update
 
 ## Examples
 
-```bash
-# Update to the latest version
-watchfire update
+### Update to the latest release
 
-# Check current version before updating
+```bash
+watchfire update
+```
+
+Stops the daemon if it's running, atomically swaps both the `watchfire` CLI and `watchfired` daemon binaries, then restarts the daemon. The GUI updates separately via its built-in `electron-updater`.
+
+### Verify the version after updating
+
+```bash
 watchfire version
 ```
+
+Run before and after `watchfire update` to confirm the new release was actually applied. If the version is unchanged, fall through to [`watchfire update` failure](/docs/troubleshooting#watchfire-update-failure).
+
+## Common pitfalls
+
+- **Permission denied on binary swap** — the update fails on a path the current process can't overwrite (typically `/usr/local/bin/`). *Fix:* re-run with the right permissions, or fall back to a source install — see [Installation → Build from Source](/docs/installation#build-from-source).
+- **Daemon does not restart cleanly** — the CLI is updated but `watchfire daemon status` reports the daemon is down. *Fix:* run `watchfire daemon start` manually, or `rm ~/.watchfire/daemon.yaml` if a stale connection-info file is in the way.
+- **GUI still shows the old version** — `watchfire update` only updates the CLI/daemon. *Fix:* the `Watchfire.app` bundle has its own auto-updater; install the latest `.dmg`/`.AppImage` from [GitHub Releases](https://github.com/watchfire-io/watchfire/releases) if it hasn't picked up the update yet.

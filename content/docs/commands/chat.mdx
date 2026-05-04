@@ -41,10 +41,32 @@ See [Supported Agents](/docs/concepts/supported-agents) for the available backen
 
 ## Examples
 
-```bash
-# Start a chat session
-watchfire chat
+### Spelunk a bug without touching your branch
 
-# Equivalent using the run command
+```bash
+watchfire chat
+```
+
+Chat runs in the project root, so reads are free but any edits land on your current branch. For investigation that must not touch in-flight work, use a [task](/docs/commands/task) instead — it runs in an isolated worktree.
+
+### Skip the sandbox for a one-off exploration
+
+```bash
+watchfire chat --no-sandbox
+```
+
+Useful when you need to read paths the sandbox blocks (credentials dirs, `.env`) for diagnosis. Prefer leaving the sandbox on for normal sessions.
+
+### Equivalent using the run command
+
+```bash
 watchfire run
 ```
+
+`watchfire run` with no arguments is identical to `watchfire chat` — both open a chat session against the project's resolved agent.
+
+## Common pitfalls
+
+- **Edits land on your working branch** — chat does not use a worktree, so any file changes the agent makes are written to the currently checked-out branch. *Fix:* close the chat without saving, or run the work as a task — see [`watchfire task`](/docs/commands/task#task-add).
+- **Wrong backend started** — chat picks up the project default agent, not whichever CLI you last used. *Fix:* set `default_agent` in `.watchfire/project.yaml` via [`watchfire configure`](/docs/commands/settings), or pin a different default at the global level.
+- **Backend not authenticated** — the chat session opens but the agent prints `Please run /login` or `401`. *Fix:* re-authenticate the backend in its own CLI — see [Agent backend not authenticated](/docs/troubleshooting#agent-backend-not-authenticated).

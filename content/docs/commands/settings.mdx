@@ -63,10 +63,38 @@ This means project and global settings only apply when a task does not pin its o
 
 ## Examples
 
-```bash
-# Configure project settings
-watchfire configure
+### Walk through every project setting
 
-# Using the alias
+```bash
+watchfire configure
+```
+
+Opens the interactive prompt for each row in the configurable-settings table — sandbox mode, auto-merge, auto-delete-branch, auto-start-tasks, default agent, project color. Press Enter to keep the existing value.
+
+### Toggle auto-merge for the current project
+
+```bash
 watchfire config
 ```
+
+When prompted for **Auto-merge**, set it to `false` if you want completed tasks to stay on their `watchfire/<n>` branches for review (typically paired with the [GitHub auto-PR adapter](/docs/concepts/integrations#github-auto-pr)). All other settings keep their existing values.
+
+### What `project.yaml` looks like after configuring
+
+```yaml
+project_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+name: my-project
+default_agent: codex
+sandbox: auto
+auto_merge: false
+auto_delete_branch: true
+auto_start_tasks: true
+```
+
+The CLI rewrites these fields in place. Other project keys (like `definition` and `next_task_number`) are preserved.
+
+## Common pitfalls
+
+- **Looking for global settings here** — `watchfire configure` only edits the per-project file. *Fix:* global default agent and custom binary paths live in `~/.watchfire/settings.yaml` and are managed from the GUI Settings panel.
+- **Running session not affected** — flipping `auto_merge` mid-task does not retroactively merge the running task. *Fix:* settings only take effect for new agent sessions; finish or cancel the active session first.
+- **Default agent picker shows unexpected backends** — only `claude-code`, `codex`, `opencode`, `gemini`, and `copilot` are valid. *Fix:* if your shell has a custom binary, set the path in [GUI Settings → Agents](/docs/components/gui#global-settings) instead of inventing a new agent name.
