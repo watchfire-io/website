@@ -1,0 +1,138 @@
+---
+title: Roadmap
+description: A snapshot of where Watchfire is heading after Beacon — what's shipped, what's likely next, and what we're still thinking about.
+---
+
+# Roadmap
+
+This page is a snapshot of intent, not a commitment. Watchfire is open
+source and small, and priorities shift with what users actually run into.
+Everything below is grounded in the [Beacon (v4.0.0)](/docs/changelog)
+foundation — the [notification bus](/docs/glossary#notification-bus), the
+[outbound relay framework](/docs/concepts/integrations#outbound), the
+[inbound HTTP server](/docs/concepts/integrations#inbound), the
+[insights pipeline](/docs/concepts/insights), and the dynamic system
+tray. If something here matters to you, jump to
+[How to influence the roadmap](#how-to-influence-the-roadmap).
+
+<Callout title="Roadmap, not commitment">
+Items are listed by intent, not by date. We don't promise quarters and
+won't ship anything that pretends to be a feature when it isn't. If a
+"Next" item is blocking you, the fastest path is an issue or a PR — see
+the bottom of the page.
+</Callout>
+
+## Now (shipped — v4.0.0 Beacon)
+
+Beacon is the consolidated dashboard, notifications, insights, and
+integrations release. It pulled four parallel feature tracks under one
+banner. The [full changelog](/docs/changelog) has every
+entry; the short version:
+
+- **Dashboard** — aggregate status bar, filter chips, grid/list toggle,
+  elapsed-time and last-activity badges, live PTY previews, and a
+  needs-attention treatment for failed tasks. See the
+  [GUI Dashboard documentation](/docs/components/gui#dashboard).
+- **Notifications** — typed [notification bus](/docs/glossary#notification-bus),
+  OS toasts for `TASK_FAILED` and `RUN_COMPLETE`, bundled sounds, a
+  dynamic system tray menu, full preference UI in TUI and GUI, and a
+  weekly Markdown digest. See the
+  [daemon notifications section](/docs/components/daemon#desktop-notifications).
+- **Insights** — per-task `<n>.metrics.yaml` capture across every
+  backend, per-project Insights view, cross-project rollup, CSV +
+  Markdown report export, and inline diff viewer. See the
+  [Insights & Metrics page](/docs/concepts/insights).
+- **Integrations** — outbound delivery framework with webhook, Slack,
+  Discord, and GitHub auto-PR adapters; inbound HTTP server with
+  signature verification, idempotency cache, and a transport-agnostic
+  slash-command router (Discord interactions endpoint shipped). See the
+  [Integrations page](/docs/concepts/integrations).
+
+## Next (v5.0)
+
+The two firmly-committed items below are the explicit "filed as v5.0
+follow-up" entries from Beacon's [Known issues](/docs/changelog).
+The rest are plausible next steps that fall naturally out of the Beacon
+architecture — written as direction, not as scoped work.
+
+### Filed follow-ups from Beacon
+
+- **GitHub `pull_request.closed` handler** — the dedicated
+  `handler_github.go` for `pull_request.closed` events did not ship with
+  Beacon. The auto-PR loop currently closes manually; the handler will
+  close it automatically when the PR is merged or closed upstream.
+- **Slack HTTP transport** — the Slack side of the shared
+  [`commands.Route`](/docs/concepts/integrations#inbound) did not ship
+  with Beacon, so `/watchfire status / retry / cancel` works in Discord
+  but not in Slack. Bringing Slack to parity is the second filed
+  follow-up.
+
+### Direction (not commitments)
+
+- **Richer report templates** — the Markdown export already runs through
+  templates under `internal/daemon/insights/templates/`. Expanding the
+  template set (per-agent breakdowns, cost-per-task heatmaps, custom
+  date ranges) is incremental work on the existing pipeline.
+- **Additional outbound adapters** — the
+  [outbound `Adapter` interface](/docs/concepts/integrations#outbound)
+  is intentionally generic. New adapters (e.g. Microsoft Teams, Linear,
+  generic SMTP) plug into the same `Dispatcher`, retry timing, and
+  circuit breaker without touching the bus.
+- **More inbound provider handlers** — the
+  [inbound HTTP server](/docs/concepts/integrations#inbound) is built
+  around `RegisterProvider(method, path, handler)`. New verifiers and
+  dispatch handlers (more GitHub event types, Slack event subscriptions
+  beyond slash commands, generic webhook ingest) are additive.
+- **Expanded backend matrix** — the
+  [pluggable agent backend interface](/docs/concepts/supported-agents)
+  already covers Claude Code, OpenAI Codex, opencode, Gemini CLI, and
+  GitHub Copilot CLI. Filling in the Copilot metrics stub (so token and
+  cost rollups stop being partial) and adding new backends as they
+  appear are natural follow-ups.
+- **Tray and dashboard polish** — the dynamic tray menu and the
+  Dashboard rollup card both rebuild on every state change. There is
+  room to surface more (per-project digests, integration health, recent
+  notification history) without new gRPC.
+
+## Later (exploratory)
+
+These are honest "we're thinking about it" items — open questions, not
+queued work. They exist on this list because users keep asking; they
+are not scoped, sized, or scheduled.
+
+- **Cloud / hosted daemon mode** — a hosted `watchfired` so teams can
+  drive runs from any machine, not just the one the daemon was
+  installed on. The daemon is already a network service; the hard parts
+  are auth, multi-tenancy, and what "sandbox" means off your laptop.
+- **Multi-user Beacon** — shared dashboards, shared insights, shared
+  integration credentials across a small team. Today the daemon is
+  single-user by design; opening that up means redesigning identity and
+  the secret store, not just adding a column to a table.
+- **Deeper editor integrations** — beyond the bundled VS Code shells
+  inside the GUI, there is interest in tighter integration with editors
+  (cursor positioning, in-editor task creation, diff overlays). Whether
+  this lives in Watchfire or in editor extensions that talk to the
+  daemon over gRPC is still an open call.
+
+## How to influence the roadmap
+
+Roadmaps move when users push them. The fastest paths:
+
+- **Feature requests** —
+  [open an issue](https://github.com/watchfire-io/watchfire/issues) on
+  the Watchfire repo. The
+  [bug report and feature templates](https://github.com/watchfire-io/watchfire/issues/new/choose)
+  cover the common shapes; for anything that doesn't fit, an empty
+  issue with a clear title is fine.
+- **Open-ended discussion** — start a thread in
+  [GitHub Discussions](https://github.com/watchfire-io/watchfire/discussions)
+  if the idea isn't yet shaped enough to be an issue. Discussions are
+  also where the "Later" items above tend to get refined.
+- **Release history** — the [changelog](/docs/changelog) is the
+  authoritative record of what has actually shipped. If you're trying
+  to figure out whether a roadmap item has graduated to the changelog,
+  that's the page to check.
+- **Contribute directly** — see the
+  [contributing guide](/docs/contributing) for how to land a PR. The
+  `good first issue` and `help wanted` labels are the easiest entry
+  points.
