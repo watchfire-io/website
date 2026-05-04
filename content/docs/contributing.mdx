@@ -1,0 +1,126 @@
+---
+title: Contributing
+description: How to contribute to Watchfire — code, docs, bug reports, ideas, and community help.
+---
+
+# Contributing
+
+Watchfire is open source under Apache-2.0, and contributions of every size
+are appreciated — a typo fix, a sharper sentence in the docs, a reproducible
+bug report, or a fully-baked feature PR. If you've used Watchfire enough to
+notice something off, you already have everything you need to contribute.
+
+## Ways to contribute
+
+You don't have to write Go to help out. Pick whichever of these fits the
+energy you have today:
+
+- **Report a bug** — open an issue from the
+  [bug report template](https://github.com/watchfire-io/watchfire/issues/new/choose).
+  Steps to reproduce + what you expected to happen are enough.
+- **Suggest a feature** — start a thread in
+  [GitHub Discussions](https://github.com/watchfire-io/watchfire/discussions)
+  so the idea can be shaped before it becomes an issue.
+- **Improve the docs** — every page on this site has an "Edit this page on
+  GitHub" link in the right sidebar that drops you straight into the MDX
+  source on GitHub. The docs live in the
+  [website repo](https://github.com/watchfire-io/website) under
+  `content/docs/`.
+- **Write code** — the
+  [`good first issue`](https://github.com/watchfire-io/watchfire/labels/good%20first%20issue)
+  label marks issues that are scoped small enough to land without deep
+  daemon knowledge. The
+  [`help wanted`](https://github.com/watchfire-io/watchfire/labels/help%20wanted)
+  label is the next step up.
+- **Help others** — answering a question in
+  [Discussions](https://github.com/watchfire-io/watchfire/discussions) or
+  triaging a stale [issue](https://github.com/watchfire-io/watchfire/issues)
+  is just as load-bearing as code.
+
+## Code contribution workflow
+
+Quick version of the flow — for the canonical version see
+[`CONTRIBUTING.md`](https://github.com/watchfire-io/watchfire/blob/main/CONTRIBUTING.md)
+in the repo:
+
+1. **Fork** [`watchfire-io/watchfire`](https://github.com/watchfire-io/watchfire)
+   and clone your fork locally.
+2. **Branch** off `main`: `git checkout -b my-feature`.
+3. **Change** the code, run `make test` and `make lint`, commit with a
+   meaningful message.
+4. **Push** the branch to your fork.
+5. **Open a PR** against `main`. Fill out the PR template, link the issue
+   if there is one, and request review.
+
+<Callout title="Read the source">
+This page is a starting point, not a substitute. The
+[`CONTRIBUTING.md`](https://github.com/watchfire-io/watchfire/blob/main/CONTRIBUTING.md)
+in the repo is the canonical reference and is kept in sync with the build
+— if anything here disagrees with that file, that file wins.
+</Callout>
+
+## Development setup
+
+Watchfire is written in Go. To build it from source you need:
+
+- **Go 1.23+**
+- **Make**
+- **Protocol Buffers compiler** (`protoc`)
+
+The three Make targets that cover day-to-day work:
+
+```bash
+make build   # Build daemon + CLI into ./build/
+make test    # Run the test suite
+make lint    # Run golangci-lint
+```
+
+For the rest — installing dev tools, running the daemon under `air`,
+generating protobuf code, packaging — see the
+[`CONTRIBUTING.md`](https://github.com/watchfire-io/watchfire/blob/main/CONTRIBUTING.md)
+and the [`Makefile`](https://github.com/watchfire-io/watchfire/blob/main/Makefile)
+in the repo. The [Installation](/docs/installation#build-from-source) page
+also has a short build-from-source block aimed at users rather than
+contributors.
+
+## Code guidelines
+
+- Run `gofmt` (or `goimports`) before committing.
+- Keep functions focused and small; favour readability over cleverness.
+- Write meaningful commit messages — explain the *why*, not just the
+  *what*.
+- Add tests for new functionality, especially anything touching the
+  daemon or the agent runner.
+- `make lint` must pass before you open a PR.
+
+## Code of Conduct
+
+Watchfire follows the
+[Contributor Covenant v2.1](https://github.com/watchfire-io/watchfire/blob/main/CODE_OF_CONDUCT.md).
+The pledge in one sentence:
+
+> We as members, contributors, and leaders pledge to make participation in
+> our community a positive experience for everyone, regardless of
+> background or identity.
+
+Conduct concerns can be reported privately to
+[info@watchfire.io](mailto:info@watchfire.io).
+
+## Community
+
+Watchfire's project conversations happen on GitHub:
+
+- **[GitHub Issues](https://github.com/watchfire-io/watchfire/issues)** —
+  bug reports and tracked work.
+- **[GitHub Discussions](https://github.com/watchfire-io/watchfire/discussions)** —
+  open-ended questions, design conversations, and Q&A.
+
+There is no Discord, Slack, or mailing list yet. If those become useful
+they'll be linked from this page.
+
+## Where to find me
+
+Watchfire is primarily authored by [Nuno Coração](https://github.com/nunocoracao).
+Every PR opened against the repo gets a response — even a small one — so
+don't worry about whether your change is "big enough." If something is
+blocking you, ping the PR or open a discussion and it will get picked up.
