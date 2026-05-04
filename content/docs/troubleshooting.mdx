@@ -1,0 +1,443 @@
+---
+title: Troubleshooting
+description: Common Watchfire failure modes and copy-paste fixes — daemon won't start, GUI can't reach watchfired, stuck tasks, dirty merges, sandbox denials, and where to ask for help.
+---
+
+A scannable answer to "something broke — what now?" Each section names a
+symptom, the most likely cause, and a fix you can paste into a terminal.
+For the bigger-picture model behind any of these, follow the cross-links
+into [Architecture](/docs/concepts/architecture),
+[Sandboxing](/docs/concepts/sandboxing),
+[Security](/docs/security), and the matching
+[command reference](/docs/commands/init).
+
+If your problem isn't here, jump to
+[Where to ask for help](#where-to-ask-for-help).
+
+## Daemon won't start
+
+The CLI says `daemon failed to start within timeout`, or `watchfired`
+exits the moment you launch it.
+
+### Cause
+
+The daemon is started silently in the background by the CLI and the
+GUI, so a startup failure (binary missing, port collision on the inbound
+HTTP server, stale state file with a live PID) is invisible until you
+run it yourself in the foreground.
+
+### Fix
+
+Run the daemon directly so its stderr lands in your terminal:
+
+```bash
+watchfired --foreground
+```
+
+If startup output complains that the [inbound HTTP server](/docs/concepts/integrations#inbound)
+can't bind, another process is already on `127.0.0.1:8765` — set a
+different `ListenAddr` in `InboundConfig`, or stop the conflicting
+process.
+
+If startup is wedged on a stale `~/.watchfire/daemon.yaml` (the file
+that records the running daemon's host, port, and PID — see
+[Architecture → Network](/docs/concepts/architecture#network)),
+remove it and start clean:
+
+```bash
+rm ~/.watchfire/daemon.yaml
+watchfire daemon start
+```
+
+Watchfire normally clears this file itself on launch when the recorded
+PID is gone, so only delete it manually if the daemon refuses to come
+back up.
+
+## CLI/TUI can't connect to daemon
+
+`watchfire status` (or any project-scoped command) fails with
+`connection refused` or hangs without producing output.
+
+### Cause
+
+The daemon process exited but the connection-info file is still around,
+or the PID in `~/.watchfire/daemon.yaml` points at a different process
+on a recycled PID.
+
+### Fix
+
+Confirm the daemon's view of itself first:
+
+```bash
+watchfire daemon status
+```
+
+If it reports the daemon is not running, start it explicitly:
+
+```bash
+watchfire daemon start
+```
+
+If it reports a port and PID but the CLI still can't connect, the
+recorded PID is stale. Stop and restart cleanly:
+
+```bash
+watchfire daemon stop
+watchfire daemon start
+```
+
+See [`watchfire daemon`](/docs/commands/daemon) for what each subcommand
+does.
+
+## GUI shows "no daemon"
+
+`Watchfire.app` opens, but the project list is empty and the header
+shows the daemon as unreachable.
+
+### Cause
+
+The GUI launches `watchfired` itself, walking `PATH` first and then
+falling back to bundled and common install paths. If none resolve to a
+working binary, the GUI surfaces the connection error without launching
+anything.
+
+### Fix
+
+Confirm the binary is actually on `PATH` from a normal terminal:
+
+```bash
+which watchfired
+watchfired --version
+```
+
+If `which` finds nothing, install or reinstall Watchfire — see
+[Installation](/docs/installation). The GUI also checks
+`/opt/homebrew/bin/watchfired` and `/usr/local/bin/watchfired` as
+last-resort fallbacks, so a Homebrew install is enough on macOS.
+
+If the binary exists but the GUI still won't start it, launch the
+daemon yourself before opening the app:
+
+```bash
+watchfire daemon start
+```
+
+The GUI will pick up the running daemon on its next reconnect attempt.
+The [Daemon component page](/docs/components/daemon#network) covers how
+clients discover the running daemon.
+
+## Tasks stuck after a crash
+
+A task's `agent_sessions` counter is non-zero and `started_at` is set,
+but no agent is running and `status` is still `ready` (or a stuck
+`draft` you didn't write).
+
+### Cause
+
+If the daemon crashes mid-task, the daemon process terminates without
+marking the task `done`. Watchfire's [task statuses](/docs/concepts/projects-and-tasks#task-lifecycle)
+are only `draft`, `ready`, or `done` — there is no `running` status to
+clean up, but a task that started can sit half-finished if no one
+restarts it.
+
+### Fix
+
+Open the task YAML at
+`<project>/.watchfire/tasks/<task_number>.yaml` (the path is detailed
+in [Projects and Tasks → Directory Structure](/docs/concepts/projects-and-tasks#directory-structure))
+and verify `status: ready`. Then re-run it:
+
+```bash
+watchfire run <task_number>
+```
+
+If the task should be skipped instead, set `status: done` and
+`success: false` with a `failure_reason`. If you want the agent to
+review and re-shape it first, set `status: draft` and let the
+[Refine phase](/docs/commands/wildfire) pick it up on the next
+wildfire cycle.
+
+## Worktree won't merge
+
+A task completes with `success: true` but the changes never land on
+your default branch. The task YAML has a populated
+`merge_failure_reason`, and a `watchfire/<task_number>` branch is still
+hanging around with the work on it.
+
+### Cause
+
+Auto-merge runs after the agent marks the task done. It bails when the
+default branch has uncommitted changes, when the merge would conflict,
+or when the worktree was deleted out from under the daemon. The work
+is fine — the merge step is what failed.
+
+### Fix
+
+First, take stock from the project root:
+
+```bash
+git status
+git branch --list 'watchfire/*'
+```
+
+If the default branch is dirty, commit or stash, then merge the task
+branch by hand:
+
+```bash
+git merge watchfire/<task_number>
+```
+
+If the merge conflicts, resolve them in the **default branch checkout**
+— not inside `.watchfire/worktrees/<task_number>/`. Touching files
+inside the worktree directly fights the daemon's bookkeeping (it owns
+that directory and prunes it on cleanup — see
+[Git Worktree Isolation](/docs/concepts/worktrees)). Once merged, the
+daemon's next cleanup pass will remove the orphaned worktree.
+
+If you'd rather review every merge by hand instead of fighting the
+auto-merge path, set `auto_merge: false` in `.watchfire/project.yaml`
+([reference](/docs/concepts/projects-and-tasks#project-settings)). The
+agent still finishes its work in `watchfire/<task_number>`; you merge
+when you're ready.
+
+## Agent backend not authenticated
+
+The agent terminal shows `Please run /login`, `OAuth token has
+expired`, or a `401 authentication_error`. Watchfire flags the session
+as needing attention.
+
+### Cause
+
+Watchfire reuses each backend's own login. It does not store API keys
+of its own and does not paper over expired sessions — when the
+backend's auth fails, the session fails. Watchfire detects this from
+the agent's terminal output and surfaces it to the TUI and GUI.
+
+### Fix
+
+Re-authenticate the affected backend in its own CLI, outside
+Watchfire:
+
+| Backend | Re-auth flow |
+|---------|--------------|
+| **Claude Code** | Run `claude` and use the in-app `/login` command, or follow the Claude Code login flow |
+| **OpenAI Codex** | Run `codex` and complete the Codex login prompt |
+| **opencode** | Sign in via opencode's normal flow so `~/.config/opencode/` is current |
+| **Gemini CLI** | Re-auth Gemini CLI directly so `~/.gemini/` reflects a valid session |
+| **GitHub Copilot CLI** | Sign in with `gh` or Copilot CLI so `~/.copilot/config.json` is valid |
+
+Once the backend works in its own terminal, restart the failed
+Watchfire session — the new auth flows in automatically because
+Watchfire references your real config. The full per-backend setup
+matrix is on [Supported Agents](/docs/concepts/supported-agents).
+
+## Sandbox denial — "Operation not permitted"
+
+The agent prints `Operation not permitted` (macOS) or generic
+permission errors when it tries to write outside the worktree, write
+to `.env`, or touch `.git/hooks`.
+
+### Cause
+
+The agent process runs inside a platform sandbox. macOS Seatbelt blocks
+`.env`, `.git/hooks`, credential dirs (`~/.ssh`, `~/.aws`, `~/.gnupg`,
+`~/.netrc`, `~/.npmrc`), and personal dirs (`~/Desktop`, `~/Documents`,
+`~/Downloads`, `~/Music`, `~/Movies`, `~/Pictures`). Linux Landlock
+and Bubblewrap block the same credential dirs. The full matrix is on
+the [Sandboxing page](/docs/concepts/sandboxing).
+
+### Fix
+
+First, decide whether the denial is **correct**. The sandbox catches
+real exfiltration attempts and AI hallucinations equally well —
+denying a write to `~/.ssh` is a feature, not a bug. The
+[Security threat model](/docs/security#sandbox-guarantees) lays out
+what the sandbox is supposed to block.
+
+If the denial is wrong (the agent legitimately needs to touch a path
+outside the worktree), the fastest unblock is to run the session
+without the sandbox:
+
+```bash
+watchfire run <task_number> --no-sandbox
+```
+
+`--no-sandbox` is also wired into [`watchfire wildfire`](/docs/commands/wildfire),
+[`watchfire generate`](/docs/commands/generate), and
+[`watchfire chat`](/docs/commands/chat). The
+[Sandboxing → Configuration section](/docs/concepts/sandboxing#configuration)
+lists every flag and project-level setting.
+
+The cleaner long-term fix is usually to rewrite the task prompt so the
+agent does its work inside the worktree — see
+[Tips & Best Practices](/docs/tips) for prompt patterns that keep
+agents in scope.
+
+## Wildfire mode runs forever
+
+You start `watchfire wildfire` and it never stops, even though the
+project feels done.
+
+### Cause
+
+[Wildfire](/docs/commands/wildfire) only exits when **all three phases
+yield nothing**: no `ready` tasks to execute, no `draft` tasks to
+refine, and the generate phase produced no new tasks. Anything that
+keeps drafting (an over-eager generate phase, a refine pass that
+churns the same task) keeps the loop alive. Wildfire and start-all
+also have [restart protection](/docs/concepts/architecture#restart-protection):
+3 consecutive failures on the same task drop the loop into chat mode
+instead of looping forever on a broken task.
+
+### Fix
+
+Stop wildfire with **Ctrl+C** in the session that launched it. The
+current agent terminates gracefully and the loop exits.
+
+If wildfire keeps regenerating the same kind of work, tighten the
+project definition before re-running:
+
+```bash
+watchfire define
+```
+
+[`watchfire define`](/docs/commands/definition) opens the definition
+in `$EDITOR`. A specific definition produces a specific task list —
+see [Tips & Best Practices](/docs/tips) for what works.
+
+## Generate phase produces empty or low-quality tasks
+
+[`watchfire generate`](/docs/commands/generate) finishes but no useful
+tasks land in `.watchfire/tasks/`, or the generated tasks are vague.
+
+### Cause
+
+Generate uses the project definition as its primary input. An empty or
+generic definition produces empty or generic tasks.
+
+### Fix
+
+Run `watchfire generate` first to bootstrap a definition from the
+codebase, then refine it before generating tasks:
+
+```bash
+watchfire generate     # populate project.yaml definition from the codebase
+watchfire define       # tighten it in $EDITOR
+watchfire plan         # generate a fresh task list
+```
+
+`watchfire generate` and `watchfire plan` are both documented on the
+[generate command page](/docs/commands/generate). The
+[definition command page](/docs/commands/definition) covers what
+belongs in a good definition.
+
+## Beacon notifications not firing
+
+You enabled OS toasts in settings, but `TASK_FAILED` and
+`RUN_COMPLETE` events never reach you.
+
+### Cause
+
+Every notification path funnels through `models.ShouldNotify`, which
+combines the master toggle, per-event toggle, quiet-hours window, and
+the per-project mute list before any toast, sound, or relay fires.
+Any one of those gates being off silences the event. The
+[GUI Notifications panel](/docs/components/gui#notifications) and the
+TUI globalsettings tab read and write the same fields in
+`~/.watchfire/settings.yaml`.
+
+### Fix
+
+Open global settings (the GUI Settings panel, or <kbd>Ctrl</kbd>+<kbd>g</kbd>
+in the TUI) and confirm:
+
+- **Master notifications** is on
+- The specific event kind (`TASK_FAILED`, `RUN_COMPLETE`,
+  `WEEKLY_DIGEST`) is on
+- **Quiet hours** doesn't currently overlap the time you're testing
+- The project isn't on the **per-project mute** list
+
+For the deeper Beacon model — bus, JSONL fallback log, sound gating —
+see the [daemon notifications section](/docs/components/daemon#desktop-notifications).
+
+## Webhook signature verification fails
+
+An [inbound integration](/docs/concepts/integrations#inbound) (Slack,
+Discord, GitHub) returns `401`. The Slack or Discord upstream reports
+the request as rejected; your slash command never runs.
+
+### Cause
+
+Slack and Discord both enforce a 5-minute timestamp drift window on
+the signed payload, and every verifier uses constant-time comparison
+against the configured secret. Three things break this in practice:
+the wrong secret was pasted into the GUI, the host clock has drifted
+more than 5 minutes from the upstream's clock, or the upstream's
+signing secret was rotated and Watchfire still has the old one.
+
+### Fix
+
+Re-paste the signing secret from the upstream's app dashboard into the
+[GUI Integrations panel](/docs/components/gui#integrations) — secrets
+are write-only on the wire, so you can replace them but not read the
+current value back. Then re-send the test event from the upstream.
+
+Confirm the host clock is current — Slack and Discord both reject
+requests outside the 5-minute drift window:
+
+```bash
+date -u
+```
+
+If the clock is off, fix it through your OS time settings; the
+sandbox doesn't gate clock APIs.
+
+## `watchfire update` failure
+
+[`watchfire update`](/docs/commands/update) fails to download, fails
+to swap binaries, or leaves you on the old version.
+
+### Cause
+
+`watchfire update` queries the GitHub Releases API and atomically
+replaces both the CLI and the daemon. It fails on no network, on a
+GitHub rate limit, or on a binary path the current process can't
+overwrite (uncommon — typically a permission issue on
+`/usr/local/bin/`).
+
+### Fix
+
+Confirm GitHub Releases is reachable:
+
+```bash
+curl -fsSL https://api.github.com/repos/watchfire-io/watchfire/releases/latest > /dev/null
+```
+
+If that works but the update still fails, fall back to a source
+install:
+
+```bash
+git clone https://github.com/watchfire-io/watchfire.git
+cd watchfire
+make install
+```
+
+[Installation → Build from Source](/docs/installation#build-from-source)
+covers prerequisites. The GUI updates separately via its built-in
+`electron-updater` and is unaffected.
+
+## Where to ask for help
+
+Once you've ruled out the cases above:
+
+- **Reproducible bug** —
+  [open an issue](https://github.com/watchfire-io/watchfire/issues/new/choose)
+  using the bug report template. Include the output of
+  `watchfire daemon status` and `watchfire status`, your OS and kernel
+  version, the relevant log file from `~/.watchfire/logs/<project_id>/`
+  (the JSONL transcript is the readable one), and the exact steps to
+  reproduce.
+- **Question or open-ended discussion** — start a thread in
+  [GitHub Discussions](https://github.com/watchfire-io/watchfire/discussions).
+- **Security vulnerability** — do **not** file a public issue. Follow
+  the disclosure flow on [Security → Reporting a vulnerability](/docs/security#reporting-a-vulnerability).
