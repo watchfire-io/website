@@ -1,0 +1,261 @@
+---
+title: How Watchfire compares
+description: Honest comparison of Watchfire to adjacent AI coding tools — Aider, Cursor agents, Claude Code on its own, GitHub Copilot Workspace, and Devin/Codegen-style autonomous agents.
+---
+
+If you are evaluating Watchfire, you are almost certainly weighing it
+against another way to put a coding agent to work. This page is the
+short, honest version: what Watchfire is for, what the alternatives
+are good at, and which workflow each one fits. Where Watchfire would
+be the wrong choice, we say so.
+
+## Where Watchfire fits
+
+Watchfire is an **orchestrator for coding-agent CLIs** — Claude Code,
+OpenAI Codex, opencode, Gemini CLI, and GitHub Copilot CLI today. It
+is not itself an agent. It runs the agent you already trust inside a
+[git worktree](/docs/concepts/worktrees), in a
+[platform-native sandbox](/docs/concepts/sandboxing), against a
+structured task file, and lets you do that
+[in parallel across many tasks](/docs/concepts/agent-modes) and many
+projects from one daemon.
+
+The rest of this page compares Watchfire to adjacent tools across the
+axes that actually differ between them:
+
+- **Agent backend** — which model/agent runs the work.
+- **Isolation model** — what protects your repo and credentials.
+- **Parallelism** — can multiple tasks run at once.
+- **Autonomy** — does it ask before it acts, or run a loop.
+- **Hosting** — local machine vs. cloud.
+- **Licensing** — open source vs. proprietary; pricing model.
+
+## At-a-glance
+
+| Axis | Watchfire | Raw agent CLI | Aider | Cursor agents | Copilot Workspace | Cloud autonomous (Devin / Codegen / Replit Agent) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Agent backend | Pluggable: Claude Code, Codex, opencode, Gemini, Copilot CLI | Pinned to that CLI | Many models via API key | Cursor's models / your key | GitHub-hosted models | Vendor-managed |
+| Sandbox / isolation | Seatbelt (macOS), Landlock/Bubblewrap (Linux); per-task git worktree | Inherits your shell, full FS, full creds | Inherits your shell | Editor-scoped | GitHub-hosted VM | Vendor VM |
+| Git workflow | Branch + worktree per task; review-then-merge | Edits your working tree | Auto-commits in working tree | Edits your working tree | PR-based | PR-based |
+| Parallel tasks | Yes — many at once across projects | One terminal at a time | One session at a time | Limited | One session per task | Yes (vendor-side) |
+| Local vs cloud | Local (your machine) | Local | Local | Local + cloud sync | Cloud | Cloud |
+| Multi-project | First-class | Per terminal | Per repo | Per workspace | Per repo | Per repo |
+| Open source | Yes (Apache-2.0) | Varies (Codex CLI yes; others mixed) | Yes (Apache-2.0) | No | No | No |
+| Pricing model | Free (you pay your model API) | Free (you pay your model API) | Free (you pay your model API) | Subscription | Subscription | Per-task / subscription |
+
+Cells are intentionally terse; the per-tool sections below add nuance.
+
+## Running a coding-agent CLI on its own
+
+This is the baseline: open a terminal, run `claude`, `codex`,
+`opencode`, `gemini`, or `gh copilot` directly in your repo and start
+typing prompts. It is what most developers reach for first, and for
+many tasks it is the right tool.
+
+### Where it shines
+
+- **Lowest possible friction** for a single, scoped change in a repo
+  you have already opened.
+- **Direct access** to whatever the CLI's latest features are —
+  nothing is wrapped or filtered.
+- **Free** beyond your model API costs.
+
+### Where Watchfire is different
+
+- The raw CLI edits your **working tree directly**. Watchfire runs
+  the same CLI inside a per-task `watchfire/<n>` branch on its own
+  worktree, so a failed run never touches `main`.
+- The raw CLI inherits your shell's `PATH`, `~/.ssh`, cloud
+  credentials, and any `.git/hooks` you have installed. Watchfire
+  blocks those by default via Seatbelt or Landlock.
+- The raw CLI is **one terminal at a time**. Watchfire runs many in
+  parallel — different tasks, different projects, one daemon.
+- Scrollback is the only record. Watchfire captures clean per-task
+  transcripts and an inline diff viewer.
+
+### Use Watchfire if…
+
+…you want to run more than one agent at once, want platform-level
+isolation between the agent and your credentials, or want a written
+task contract you can review before merging. If you only ever run
+one prompt at a time on a throwaway repo, the raw CLI is fine.
+
+## Aider
+
+Aider is an open-source pair-programming CLI that talks to many
+models via API key. It is one of the original "agent in your
+terminal" tools and remains a strong choice for interactive
+edits.
+
+### Where it shines
+
+- **Tight model flexibility** — bring your own API key for many
+  providers; switch models per session.
+- **Conversational editing loop** with built-in `/diff`, `/undo`,
+  and auto-commit. Excellent for short, exploratory work.
+- **Open source** under Apache-2.0; mature community.
+
+### Where Watchfire is different
+
+- Aider is itself an agent — it speaks model-API directly. Watchfire
+  is one layer up: it drives whichever **agent CLI** you prefer
+  (including ones that wrap multiple models themselves), and is
+  agnostic about which model is on the other end.
+- Aider runs in your working tree and auto-commits. Watchfire
+  isolates each task on its own worktree branch and waits for you to
+  merge.
+- Aider is one interactive session per terminal. Watchfire is built
+  for **N tasks in parallel**, with optional autonomous loops via
+  [Wildfire mode](/docs/concepts/agent-modes).
+- Aider does not sandbox the host filesystem.
+
+### Use Watchfire if…
+
+…you want to keep using a richer agent CLI (Claude Code, Codex,
+opencode) rather than a thin model wrapper, or you want isolation
+and parallelism on top of whatever agent you pick. Use Aider if you
+want a single tight conversational loop and direct model control.
+
+## Cursor agents
+
+Cursor's agent mode runs inside the Cursor editor: you select a
+scope, describe the change, and the agent edits files directly in
+your editor session, with diffs and apply/reject controls.
+
+### Where it shines
+
+- **In-editor experience** is unmatched for short, targeted edits
+  where you want to see and accept changes inline immediately.
+- **Codebase-aware** retrieval and chat woven into the same surface
+  you already use to write code.
+- **Low overhead** for one-off edits — no separate process, no
+  separate review surface.
+
+### Where Watchfire is different
+
+- Cursor agents shine for **in-editor edits**. Watchfire is built
+  for **long-running, terminal-driven, parallel work** — tasks that
+  may take minutes, run while you do something else, and benefit
+  from review-after-the-fact rather than accept-as-you-go.
+- Cursor is a closed-source subscription editor. Watchfire is
+  Apache-2.0 and runs with whatever editor (or no editor) you
+  prefer.
+- Cursor edits your working tree. Watchfire edits a per-task
+  worktree.
+- Cursor runs one agent at a time. Watchfire runs many.
+
+### Use Watchfire if…
+
+…your work is task-shaped (a written prompt, success criteria, you
+want to review the result later) rather than edit-shaped (you are in
+the file right now and want it changed). Use Cursor if your unit of
+work is a single edit you are watching happen.
+
+## GitHub Copilot Workspace
+
+Copilot Workspace is GitHub's task-driven coding agent. You describe
+what you want, it produces a plan and a PR, and you review and merge
+on github.com.
+
+### Where it shines
+
+- **Tight GitHub integration** — issues in, PR out, no local setup.
+- **Hosted execution** — nothing to install or run on your machine.
+- **Plan-first UX** with a step before the code lands.
+
+### Where Watchfire is different
+
+- Copilot Workspace is **cloud-hosted and GitHub-coupled**. Watchfire
+  runs **entirely on your machine**; private repos never leave it
+  and you do not pay for hosted compute.
+- Copilot Workspace runs GitHub-provided models. Watchfire runs
+  whichever agent CLI (and therefore whichever model) you pick,
+  including local-only ones if your CLI of choice supports them.
+- Copilot Workspace is **one task per session in a hosted VM**.
+  Watchfire runs many local tasks in parallel from one daemon, with
+  per-task transcripts and an
+  [inline diff viewer](/docs/components/gui).
+- Copilot Workspace is closed-source and subscription-priced.
+  Watchfire is open source.
+
+### Use Watchfire if…
+
+…you need to keep code on your machine, want to choose your agent and
+model freely, or want to run a fleet of local tasks in parallel
+across multiple projects. Use Copilot Workspace if your repo lives on
+GitHub and you want a hosted, plan-first PR loop with no local
+install.
+
+## Cloud-hosted autonomous agents (Devin, Codegen, Replit Agent, …)
+
+This category covers vendor-hosted, end-to-end autonomous coders.
+You describe a task, the vendor runs an agent in their VM with their
+tools and their browser, and you receive a PR or a deployed app.
+
+### Where they shine
+
+- **Highest level of autonomy** — they can run for long stretches,
+  use a browser, install dependencies, and ship a PR end-to-end.
+- **Fully managed** — no local runtime, no agent CLI to install, no
+  sandbox to maintain.
+- **Tooling included** — vendor provides the VM, the browser, the
+  shell, and the model bundled together.
+
+### Where Watchfire is different
+
+- Cloud autonomous agents run **on the vendor's infrastructure**.
+  Your code, prompts, and artefacts live there. Watchfire runs on
+  your laptop or workstation; nothing leaves it unless you ship it.
+- These products are typically **per-task or per-seat priced** with
+  vendor-managed models. Watchfire has no service fee — you pay only
+  the model API costs of whichever CLI you use.
+- They are closed source. Watchfire is Apache-2.0 — you can read,
+  fork, and audit every line of the orchestration layer.
+- They optimise for **maximum autonomy with vendor guardrails**.
+  Watchfire optimises for **isolation, parallelism, and review** of
+  agents you already use, with autonomy you can opt into via
+  [Wildfire mode](/docs/concepts/agent-modes) and turn off.
+
+### Use Watchfire if…
+
+…you want to keep code, prompts, and credentials on your machine, or
+you want to keep using the agent CLI you already trust rather than a
+vendor-bundled one. Use a cloud autonomous agent if you want
+end-to-end "give it a ticket, get a PR" with no local setup and are
+comfortable with a hosted runtime.
+
+## What Watchfire is not
+
+- **Not a coding agent itself.** It runs your chosen agent CLI; the
+  intelligence is in the CLI, not in Watchfire.
+- **Not a hosted service.** The daemon, worktrees, and sandboxes all
+  run on your machine.
+- **Not an IDE extension.** Watchfire is terminal-first (CLI/TUI)
+  with an optional Electron GUI; it does not replace your editor.
+- **Not a replacement for code review.** Worktree isolation and
+  diff transcripts make review faster and safer; they do not skip
+  it.
+
+## Why Watchfire
+
+- **Worktree isolation** — every task runs on its own
+  `watchfire/<n>` branch in a dedicated worktree, so failed or
+  half-done runs never touch `main`.
+  [Read more](/docs/concepts/worktrees).
+- **Sandboxed execution** — Seatbelt on macOS, Landlock or
+  Bubblewrap on Linux; `~/.ssh`, credential stores, and `.git/hooks`
+  are blocked by default.
+  [Read more](/docs/concepts/sandboxing).
+- **Multi-task parallelism** — run many tasks at once across many
+  projects, from a single daemon, with optional autonomous loops
+  through Wildfire.
+  [Read more](/docs/concepts/agent-modes).
+
+## Have a correction?
+
+This page is hand-written and competitor tooling moves fast. If you
+spot something inaccurate or out of date — especially about a tool
+other than Watchfire — please open a PR. Use the
+**Edit this page on GitHub** link at the bottom of this page; it
+points straight at `content/docs/compare.mdx`. Honest, fair updates
+are welcome.

@@ -221,12 +221,32 @@ export default function RawVsWatchfire() {
         </div>
 
         {/* Closing micro-CTA */}
-        <div className="mt-12 text-center">
+        <div className="mt-12 flex flex-col items-center justify-center gap-3 text-center sm:flex-row sm:gap-8">
           <Link
             href="/docs/quickstart"
             className="group inline-flex items-center gap-2 text-sm font-medium text-fire-600 hover:text-fire-700 dark:text-fire-300 dark:hover:text-fire-200 sm:text-base"
           >
             Same agents, safer workflow. Try the quickstart
+            <svg
+              className="transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 12h14M13 5l7 7-7 7" />
+            </svg>
+          </Link>
+          <Link
+            href="/docs/compare"
+            className="group inline-flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-fire-600 dark:text-zinc-400 dark:hover:text-fire-300 sm:text-base"
+          >
+            See full comparison
             <svg
               className="transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
               width="14"
