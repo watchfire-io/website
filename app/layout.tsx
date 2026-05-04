@@ -59,6 +59,13 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/favicon.svg" }],
   },
+  alternates: {
+    types: {
+      "application/rss+xml": `${siteUrl}/feed.xml`,
+      "application/atom+xml": `${siteUrl}/atom.xml`,
+      "application/feed+json": `${siteUrl}/feed.json`,
+    },
+  },
 };
 
 const organizationLd = {
