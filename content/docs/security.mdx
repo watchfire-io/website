@@ -1,0 +1,113 @@
+---
+title: Security
+description: Watchfire's threat model — sandbox guarantees, signature verification, secret storage, network exposure, and how to report a vulnerability.
+---
+
+# Security
+
+Watchfire runs arbitrary AI processes against your source tree. This page lays out the threat model the daemon is designed against, the technical mechanisms that back each guarantee, and where the limits are. It is a coordinator — the deeper details live on the [Sandboxing](/docs/concepts/sandboxing), [Secrets](/docs/concepts/secrets), and [Integrations](/docs/concepts/integrations) pages, and the canonical vulnerability disclosure policy lives in [`SECURITY.md`](https://github.com/watchfire-io/watchfire/blob/main/SECURITY.md) on GitHub.
+
+<Callout type="info">
+The agent itself is still an arbitrary AI process. The sandbox limits filesystem reach and credential exposure — it does not reason about whether a tool call is a good idea. Review what an agent has done before merging it.
+</Callout>
+
+## Trust boundaries
+
+Watchfire has four boundaries worth naming explicitly:
+
+| Boundary | Trust direction | Mechanism |
+|----------|-----------------|-----------|
+| **User → daemon** | Trusted | gRPC + gRPC-Web on a loopback-bound port; connection info in `~/.watchfire/daemon.yaml` |
+| **Daemon → agent process** | Untrusted (the agent is arbitrary code on your behalf) | PTY child process wrapped in a platform sandbox; environment scrubbed of daemon-internal vars |
+| **Daemon → on-disk task / project files** | Trusted (you own them) | File watcher (fsnotify) + 5-second polling fallback; gitignored `.watchfire/` directory |
+| **Daemon ↔ external integrations** | Untrusted both ways | Outbound: HMAC-signed POSTs and provider-specific adapters. Inbound: signature-verified HTTP server with replay protection |
+
+What is **in scope** for the daemon to defend against:
+
+- An agent reading or exfiltrating credentials in `~/.ssh`, `~/.aws`, `~/.gnupg`, `.env`, etc.
+- An agent installing a `.git/hooks` payload that runs on the next commit (macOS only — see below).
+- A forged inbound webhook impersonating Slack, Discord, or GitHub to drive the daemon.
+- A replayed inbound delivery executing the same slash command twice.
+
+What is **not in scope**:
+
+- The agent's reasoning. If a task prompt asks the agent to delete files inside the worktree, it will.
+- A locally-privileged user who can attach a debugger, inspect the daemon's memory, or read the OS keyring directly.
+- A network-level attacker who can intercept loopback traffic on a multi-user machine.
+
+## Sandbox guarantees
+
+Every agent process runs inside a platform-specific sandbox. The full backend matrix and per-platform deny rules live on the [Sandboxing page](/docs/concepts/sandboxing); the short version is below.
+
+| Platform | Backend | Enforcement | Pattern-based denials (`.env`, `.git/hooks`) |
+|----------|---------|-------------|-----------------------------------------------|
+| **macOS** | Seatbelt (`sandbox-exec`) | Kernel | Yes (regex) |
+| **Linux 5.13+** | Landlock LSM | Kernel | No (path-only) |
+| **Linux (older)** | Bubblewrap (`bwrap`) | Mount namespace | No (path-only) |
+| **Linux (no sandbox)** | None | — | — |
+| **Windows** | None | — | — |
+
+Across every backend that is active, read **and** write access is denied to `~/.ssh`, `~/.aws`, `~/.gnupg`, `~/.netrc`, and `~/.npmrc`. The daemon also strips internal environment variables (such as `CLAUDECODE`) before exec, so agents always start with a clean environment.
+
+<Callout type="warn">
+The sandbox story is asymmetric across platforms. Seatbelt supports regex patterns and blocks `.env` files and `.git/hooks` directly; Landlock and Bubblewrap operate on paths, so those two patterns are **not** enforced on Linux. Windows has no sandbox at all — agents run with the daemon user's full permissions. If you are evaluating Watchfire for a host where this asymmetry matters, prefer macOS or Linux 5.13+.
+</Callout>
+
+## Signature verification (inbound)
+
+Beacon's inbound HTTP server (`internal/daemon/echo`) authenticates every request before dispatching it. Three constant-time verifiers are shipped, one per upstream:
+
+| Verifier | Algorithm | Replay protection |
+|----------|-----------|-------------------|
+| `VerifyGitHub` | HMAC-SHA256 over the raw body, header `sha256=<hex>` | None at the verifier (GitHub uses delivery IDs) |
+| `VerifySlack` | HMAC-SHA256 over `v0:<timestamp>:<body>` | 5-minute timestamp drift window |
+| `VerifyDiscord` | Ed25519 over `timestamp \|\| body` | 5-minute timestamp drift window |
+
+All three use constant-time comparisons so a signature mismatch leaks no timing signal. Authenticated deliveries then pass through an in-process LRU+TTL idempotency cache (1000 entries, 24-hour TTL) that drops duplicate deliveries — the same Discord interaction id will not run a slash command twice.
+
+The full setup walkthrough — how to register webhook URLs, where to copy the signing secrets, what to put in `InboundConfig` — is on the [Integrations page](/docs/concepts/integrations#signature-verification).
+
+## Outbound signing
+
+Watchfire authenticates itself to receivers as well. The generic webhook adapter signs every POST with:
+
+```
+X-Watchfire-Signature: sha256=<hex>
+```
+
+The signature is an HMAC-SHA256 over the raw request body using the per-webhook secret you configured. Receivers can verify the header to confirm the call came from your Watchfire daemon and not a third party. Slack, Discord, and the GitHub auto-PR adapter use their respective provider-native auth (bot tokens, webhook URLs, `gh` CLI auth) instead of `X-Watchfire-Signature`.
+
+## Secret storage
+
+Adapter credentials and inbound signing secrets are persisted in the OS keyring through `internal/config/keyring.go`, with a file-store fallback for hosts without a keyring backend. The fallback is gated by a clear warning at startup so you know which path is in use.
+
+The `IntegrationsService.Save` gRPC has a deliberate **write-only-on-the-wire** property: the GUI and TUI can save and replace secrets, but never read existing values back over gRPC. Secrets are present in agent system prompts (via `.watchfire/secrets/instructions.md`) and on disk in the keyring or fallback store, but they do not round-trip through the daemon's RPC surface. See the [Secrets page](/docs/concepts/secrets) for details on how secrets are surfaced to agents.
+
+## Network exposure
+
+The daemon binds two listeners. Both are loopback-only by default; opting into broader exposure is an explicit configuration step.
+
+| Listener | Default bind | How to expose |
+|----------|--------------|----------------|
+| **gRPC + gRPC-Web** | `localhost` on a dynamically-assigned port (recorded in `~/.watchfire/daemon.yaml`) | Place a reverse proxy in front of the announced port |
+| **Echo HTTP server** (inbound integrations) | `127.0.0.1:8765` | Override `ListenAddr` in `InboundConfig` and front it with a TLS-terminating proxy |
+
+`/echo/health` is the only unauthenticated endpoint on the inbound server; per-provider handlers return `503 Service Unavailable` until their signing secret is configured, so an empty `InboundConfig` opens no attack surface beyond a liveness probe. An empty `InboundConfig` skips the listener entirely — the daemon does not bind a port until at least one provider is wired.
+
+<Callout type="warn">
+Exposing either listener to the public internet is opt-in and your responsibility. The daemon's gRPC server is **not** designed to be reachable from untrusted networks — use a reverse proxy with TLS and authentication if you need remote access.
+</Callout>
+
+## Reporting a vulnerability
+
+<Callout type="warn">
+**Do not file public GitHub issues for security vulnerabilities.** Public disclosure before a fix is available puts every Watchfire user at risk.
+</Callout>
+
+If you find a vulnerability, email **[security@watchfire.io](mailto:security@watchfire.io)** with a description, reproduction steps, and any impact you have identified. The published timeline is:
+
+- **Acknowledgment** within 48 hours of the report.
+- **Initial assessment** within 1 week.
+- **Fix and coordinated disclosure** targeted within 30 days, depending on complexity.
+
+Reporters are credited in release notes unless they prefer anonymity. The canonical version of this policy lives in [`SECURITY.md`](https://github.com/watchfire-io/watchfire/blob/main/SECURITY.md) in the repo — if anything on this page disagrees with that file, that file wins.
