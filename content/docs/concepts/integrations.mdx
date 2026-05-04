@@ -190,3 +190,7 @@ An empty `InboundConfig` is the signal to skip the listener entirely — the dae
 - **Known issue (v5.0 follow-up)** — a Slack HTTP transport on top of `commands.Route` did not ship. `/watchfire status`, `/watchfire retry`, and `/watchfire cancel` work in Discord today but not in Slack.
 
 For the surfaces that drive integrations from the UI side, see the [Integrations panel in the GUI Settings doc](/docs/components/gui#integrations) and the [Integrations overlay in the CLI / TUI doc](/docs/components/cli#integrations-overlay-ctrli). For CLI commands, see [`watchfire integrations`](/docs/commands/integrations).
+
+## See also
+
+- [Security](/docs/security) — how inbound signature verification, outbound signing, and secret storage fit into the broader threat model.
