@@ -4,6 +4,15 @@ import { Outfit, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import "./globals.css";
+import {
+  siteUrl,
+  siteName,
+  siteTitle,
+  siteDescription,
+  siteShareDescription,
+  softwareVersion,
+  socialLinks,
+} from "@/lib/site";
 
 const GA_ID = "G-HZXJ271420";
 
@@ -17,8 +26,6 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
-const siteUrl = "https://watchfire.io";
-
 export const viewport: Viewport = {
   themeColor: "#e07040",
 };
@@ -26,25 +33,22 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Watchfire — Better context. Better code.",
-    template: "%s | Watchfire",
+    default: siteTitle,
+    template: `%s | ${siteName}`,
   },
-  description:
-    "Better context. Better code. Watchfire turns clear specs into scoped tasks, then lets Claude Code, OpenAI Codex, opencode, Gemini CLI, or GitHub Copilot CLI build them in sandboxed git worktrees.",
+  description: siteDescription,
   openGraph: {
-    title: "Watchfire — Better context. Better code.",
-    description:
-      "Better context. Better code. Define what you want, and let Claude Code, OpenAI Codex, opencode, Gemini CLI, or GitHub Copilot CLI build it — in sandboxed git worktrees with clean transcripts.",
+    title: siteTitle,
+    description: siteShareDescription,
     type: "website",
-    siteName: "Watchfire",
+    siteName,
     url: siteUrl,
     images: [{ url: "/og-image.png" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Watchfire — Better context. Better code.",
-    description:
-      "Better context. Better code. Define what you want, and let Claude Code, OpenAI Codex, opencode, Gemini CLI, or GitHub Copilot CLI build it — in sandboxed git worktrees with clean transcripts.",
+    title: siteTitle,
+    description: siteShareDescription,
     images: ["/og-image.png"],
   },
   icons: {
@@ -54,6 +58,39 @@ export const metadata: Metadata = {
       { url: "/favicon-16.svg", type: "image/svg+xml", sizes: "16x16" },
     ],
     apple: [{ url: "/favicon.svg" }],
+  },
+};
+
+const organizationLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: siteName,
+  url: siteUrl,
+  logo: `${siteUrl}/logo.svg`,
+  description: siteDescription,
+  sameAs: [socialLinks.github, socialLinks.bluesky, socialLinks.x],
+};
+
+const softwareApplicationLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: siteName,
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "macOS, Linux, Windows",
+  description: siteDescription,
+  url: siteUrl,
+  downloadUrl: `${siteUrl}/docs/installation`,
+  softwareVersion,
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  license: "https://www.apache.org/licenses/LICENSE-2.0",
+  author: {
+    "@type": "Organization",
+    name: siteName,
+    url: siteUrl,
   },
 };
 
@@ -79,6 +116,18 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased transition-colors bg-white text-zinc-900 dark:bg-[#16181d] dark:text-zinc-100`}
       >
+        <script
+          id="ld-organization"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationLd) }}
+        />
+        <script
+          id="ld-software-application"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(softwareApplicationLd),
+          }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
