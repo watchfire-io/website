@@ -53,13 +53,43 @@ Sends a SIGTERM to the daemon process, gracefully shutting it down. All active a
 
 ## Examples
 
+### Start the daemon manually for debugging
+
 ```bash
-# Check if the daemon is running
-watchfire daemon status
-
-# Manually start the daemon
-watchfire daemon start
-
-# Stop the daemon
-watchfire daemon stop
+watchfired --foreground
 ```
+
+Running `watchfired` directly in the foreground prints startup output to your terminal — useful when `watchfire daemon start` exits silently and you need to see why. See [Daemon won't start](/docs/troubleshooting#daemon-wont-start).
+
+### Quick health check
+
+```bash
+watchfire daemon status
+```
+
+Sample output:
+
+```text
+host:    127.0.0.1
+port:    37291
+pid:     54812
+uptime:  4h 12m
+sessions: 2 active
+```
+
+The `sessions` line tells you how many agent sessions the daemon is currently driving across all registered projects.
+
+### Stop and restart cleanly
+
+```bash
+watchfire daemon stop
+watchfire daemon start
+```
+
+Use this pair after a Watchfire upgrade or when the connection-info file has gone stale and the CLI hangs on `connection refused`.
+
+## Common pitfalls
+
+- **Daemon already running** — `watchfire daemon start` exits because `watchfired` is already up. *Fix:* run `watchfire daemon status` first; only stop/start if you actually want a fresh process.
+- **Stop terminates every active session** — `watchfire daemon stop` kills every connected agent across every project, not just the current one. *Fix:* let in-flight tasks finish first, or stop only the specific session via the TUI/GUI.
+- **Stale `~/.watchfire/daemon.yaml`** — CLI reports `connection refused` even though the daemon "should" be up. *Fix:* see [CLI/TUI can't connect to daemon](/docs/troubleshooting#cli-tui-cant-connect-to-daemon).

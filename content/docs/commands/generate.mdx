@@ -46,13 +46,34 @@ This spawns an agent session that reads your project definition and creates a se
 
 ## Examples
 
+### Generate a definition for a fresh project
+
 ```bash
-# Generate a project definition from your codebase
+watchfire init
 watchfire generate
+watchfire define
+```
 
-# Using the alias
-watchfire gen
+After `init`, `generate` walks the codebase and drafts a `definition` field in `project.yaml`. Always follow with [`watchfire define`](/docs/commands/definition) to tighten the draft — the edited version is what every future session reads.
 
-# Generate tasks from the project definition
+### Re-generate tasks after the definition changes
+
+```bash
 watchfire plan
 ```
+
+`plan` reads the current `project.definition` and writes new task YAML files to `.watchfire/tasks/`. Run it after a meaningful definition edit so the task list reflects the new scope.
+
+### Skip the sandbox when bootstrapping
+
+```bash
+watchfire generate --no-sandbox
+```
+
+Useful on a brand-new machine where the sandbox configuration hasn't been verified yet — keep this flag scoped to the bootstrap step and re-enable the sandbox for normal task runs.
+
+## Common pitfalls
+
+- **Empty definition produces empty tasks** — `watchfire plan` finishes but the new tasks are vague. *Fix:* tighten `project.definition` first — see [Generate phase produces empty or low-quality tasks](/docs/troubleshooting#generate-phase-produces-empty-or-low-quality-tasks).
+- **Existing definition silently overwritten** — `watchfire generate` rewrites `project.definition` from scratch. *Fix:* if you have a hand-authored definition you care about, edit it with [`watchfire define`](/docs/commands/definition) instead, or copy it elsewhere before re-running `generate`.
+- **Drafts pile up in `.watchfire/tasks/`** — `watchfire plan` adds new draft tasks but does not remove old ones. *Fix:* delete or refine stale drafts with [`watchfire task delete`](/docs/commands/task#task-delete) or let the [Wildfire](/docs/commands/wildfire) refine phase consolidate them.

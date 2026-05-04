@@ -34,7 +34,34 @@ The status output includes:
 
 ## Examples
 
+### Quick check on the current project
+
 ```bash
-# Show project status
 watchfire status
 ```
+
+Sample output:
+
+```text
+project: my-project
+daemon:  connected (127.0.0.1:37291)
+agents:
+  - task 3 — claude-code (5m running)
+tasks:   2 draft, 4 ready, 12 done
+```
+
+The `agents` block lists the backend each active session is using — useful for confirming a task picked up the agent you expected.
+
+### Status across all projects
+
+```bash
+watchfire daemon status
+```
+
+`watchfire status` is project-scoped (current directory). For a daemon-wide view including total active sessions, fall through to [`watchfire daemon status`](/docs/commands/daemon#daemon-status) or open the [Beacon dashboard](/docs/components/gui#dashboard) in the GUI.
+
+## Common pitfalls
+
+- **`connection refused` outside a project** — `watchfire status` errors when the cwd isn't a Watchfire-initialised project. *Fix:* `cd` into the project root, or initialise it with [`watchfire init`](/docs/commands/init).
+- **Daemon not running** — output reports `daemon: not connected` and the agents/tasks sections are empty. *Fix:* see [CLI/TUI can't connect to daemon](/docs/troubleshooting#cli-tui-cant-connect-to-daemon).
+- **Status doesn't show a "running" task** — Watchfire has no `running` task state, only `draft`/`ready`/`done`; an in-flight task still shows as `ready` until it completes. *Fix:* check the `agents` block for which task is actually being worked on, or open the TUI/GUI for live progress.

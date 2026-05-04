@@ -37,10 +37,41 @@ The definition is stored in the `definition` field of `.watchfire/project.yaml`.
 
 ## Examples
 
-```bash
-# Edit the project definition
-watchfire define
+### Bootstrap a definition for a new project
 
-# Using the alias
+```bash
+watchfire generate
+watchfire define
+```
+
+`watchfire generate` drafts a definition from the codebase; `watchfire define` opens it in `$EDITOR` so you can tighten it before any tasks are generated. The edited version is what every agent session reads.
+
+### Edit the existing definition
+
+```bash
 watchfire def
 ```
+
+The alias is identical to `watchfire define`. A typical edit narrows scope — add explicit non-goals, name the directories that are off-limits, list the test commands the agent should run.
+
+### Definition shape that produces useful tasks
+
+```yaml
+definition: |
+  Express API serving an internal admin tool. Goal of this
+  cleanup pass: every route handler has a unit test, README
+  documents local dev, eslint runs clean.
+
+  Constraints:
+  - No new runtime dependencies
+  - Public API surface stays unchanged
+  - Tests live next to source as *.test.ts
+```
+
+Concrete targets and explicit constraints are what keep [`watchfire generate`](/docs/commands/generate) and the [Wildfire](/docs/commands/wildfire) refine phase from drifting.
+
+## Common pitfalls
+
+- **`$EDITOR` not set** — `watchfire define` errors out or falls back to a surprising editor. *Fix:* export `EDITOR` (e.g. `export EDITOR=vim`) in your shell profile before running.
+- **Empty or generic definition** — Wildfire and `watchfire generate` produce vague tasks because they have nothing concrete to anchor on. *Fix:* see [Generate phase produces empty or low-quality tasks](/docs/troubleshooting#generate-phase-produces-empty-or-low-quality-tasks).
+- **Definition not committed** — `.watchfire/` is gitignored by default, so the definition lives only on the machine that wrote it. *Fix:* if you want the definition shared, copy the relevant context into the project's `README` or check in a separate `definition.md` your team agrees on.
