@@ -3,7 +3,7 @@ title: Security
 description: Watchfire's threat model — sandbox guarantees, signature verification, secret storage, network exposure, and how to report a vulnerability.
 ---
 
-Watchfire runs arbitrary AI processes against your source tree. This page lays out the threat model the daemon is designed against, the technical mechanisms that back each guarantee, and where the limits are. It is a coordinator — the deeper details live on the [Sandboxing](/docs/concepts/sandboxing), [Secrets](/docs/concepts/secrets), and [Integrations](/docs/concepts/integrations) pages, and the canonical vulnerability disclosure policy lives in [`SECURITY.md`](https://github.com/watchfire-io/watchfire/blob/main/SECURITY.md) on GitHub.
+Watchfire runs arbitrary AI processes against your source tree. This page lays out the threat model the daemon is designed against, the technical mechanisms that back each guarantee, and where the limits are. It is a coordinator — the deeper details live on the [Sandboxing](/docs/concepts/sandboxing), [Secrets](/docs/concepts/secrets), and [Integrations](/docs/concepts/integrations) pages, and the canonical vulnerability disclosure policy lives in [`SECURITY.md`](https://github.com/watchfire-io/watchfire/blob/main/SECURITY.md) on GitHub. For data flow off your machine and the website's own analytics, see [/privacy](/privacy).
 
 <Callout type="info">
 The agent itself is still an arbitrary AI process. The sandbox limits filesystem reach and credential exposure — it does not reason about whether a tool call is a good idea. Review what an agent has done before merging it.
