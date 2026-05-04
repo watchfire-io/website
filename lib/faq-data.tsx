@@ -26,6 +26,26 @@ export const faqItems: FAQItem[] = [
       "Watchfire wraps any of those CLIs in a per-task git worktree and a platform sandbox, fed by structured task files and reviewed through clean transcripts. You can run multiple agents in parallel without merge conflicts and inspect every change before it lands on your default branch — the agent stays the same, the workflow around it gets safer and repeatable.",
   },
   {
+    question: "How does Watchfire compare to Aider, Cursor, or Devin?",
+    answer: (
+      <>
+        Short version: those are agents (or in Cursor&rsquo;s case, an
+        editor with an agent mode); Watchfire is an orchestrator that
+        runs the coding-agent CLIs you already trust in sandboxed,
+        parallel git worktrees.{" "}
+        <Link
+          href="/docs/compare"
+          className="text-fire-600 hover:underline dark:text-fire-300"
+        >
+          See the full comparison
+        </Link>{" "}
+        for tool-by-tool positioning.
+      </>
+    ),
+    answerText:
+      "Short version: those are agents (or in Cursor's case, an editor with an agent mode); Watchfire is an orchestrator that runs the coding-agent CLIs you already trust in sandboxed, parallel git worktrees. See the full comparison at /docs/compare for tool-by-tool positioning.",
+  },
+  {
     question: "Which agent backends are supported?",
     answer: (
       <>
