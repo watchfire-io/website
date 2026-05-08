@@ -87,7 +87,7 @@ A three-step wizard for adding new projects:
 - Auto-merge on completion
 - Delete branch after merge
 - Auto-start tasks
-- Coding agent — picker populated from the daemon's `SettingsService.ListAgents` RPC (Claude Code, Codex, opencode, Gemini, Copilot, plus any future backends). Seeds `project.default_agent`.
+- Coding agent — picker populated from the daemon's `SettingsService.ListAgents` RPC (Claude Code, Codex, opencode, Gemini, Copilot, Cursor, plus any future backends). Seeds `project.default_agent`.
 
 ### Step 3 — Project Definition
 - Markdown editor for project context
@@ -255,7 +255,7 @@ A live view of every active worktree and branch with status (in development, mer
 
 #### Logs
 
-Per-task session history. The Logs tab renders formatted conversation transcripts (User/Assistant messages with tool call summaries) for every supported backend — Claude Code, Codex, opencode, Gemini, Copilot — and falls back to raw PTY scrollback when no transcript is available.
+Per-task session history. The Logs tab renders formatted conversation transcripts (User/Assistant messages with tool call summaries) for every supported backend — Claude Code, Codex, opencode, Gemini, Copilot, Cursor — and falls back to raw PTY scrollback when no transcript is available.
 
 <img
   src="/screenshots/project-logs.webp"
@@ -303,7 +303,7 @@ This is a general-purpose shell — use it for running builds, git commands, or 
 
 Open Settings from the bottom of the sidebar to manage app-wide preferences — appearance, the defaults applied to every new project, and the per-backend binary paths the daemon should use to launch agents.
 
-Flare reorganises this surface into a macOS-style two-pane layout: the left sidebar lists eight categories (Appearance, Defaults, Agent Paths, Notifications, Integrations, Inbound, Updates, About), the right pane shows only the selected category. A search box at the top filters categories AND surfaces individual matching controls with category breadcrumbs — clicking a result navigates to the category and pulses the matching field for ~1.5 seconds. `Cmd/Ctrl+F` focuses search, `Esc` clears, `Up`/`Down`/`Enter` navigate. Existing deep-link routes (`#integrations` etc.) still work.
+The surface uses a macOS-style two-pane layout: the left sidebar lists eight categories (Appearance, Defaults, Agent Paths, Notifications, Integrations, Inbound, Updates, About), the right pane shows only the selected category. A search box at the top filters categories AND surfaces individual matching controls with category breadcrumbs — clicking a result navigates to the category and pulses the matching field for ~1.5 seconds. `Cmd/Ctrl+F` focuses search, `Esc` clears, `Up`/`Down`/`Enter` navigate. Existing deep-link routes (`#integrations` etc.) still work.
 
 <img
   src="/screenshots/global-settings.webp"
@@ -319,7 +319,7 @@ Flare reorganises this surface into a macOS-style two-pane layout: the left side
 |---------|---------|
 | **Appearance** | Theme (System / Light / Dark) |
 | **Defaults** | Automation toggles for new projects, plus the **default coding agent** used when a project hasn't chosen one. Includes an **"Ask per project"** option that forces `watchfire init` to prompt every time. |
-| **Agents** | Per-backend binary paths — `claude`, `codex`, `opencode`, `gemini`, `copilot`. Leave blank to fall back to `PATH` and common install locations. Also shows auto-detection status and install instructions for each backend. |
+| **Agents** | Per-backend binary paths — `claude`, `codex`, `opencode`, `gemini`, `copilot`, `cursor-agent`. Leave blank to fall back to `PATH` and common install locations. Also shows auto-detection status and install instructions for each backend. |
 | **Notifications** | Notification preferences — master toggle, per-event toggles (`TASK_FAILED`, `RUN_COMPLETE`, `WEEKLY_DIGEST`), sounds + volume, quiet hours, and a per-project mute list. See below. |
 | **Integrations** | Outbound adapters (webhook, Slack, Discord, GitHub auto-PR) plus the **Inbound** subsection covering the HTTP server, per-provider secrets, and per-provider URLs. See below. |
 | **Updates** | Check frequency, auto-download toggle |

@@ -34,6 +34,7 @@ Quick definitions for Watchfire-specific terms. For deeper explanations follow t
 - [Notification bus](#notification-bus)
 - [Notification kind](#notification-kind)
 - [Notification preferences](#notification-preferences)
+- [Phoenix](#phoenix)
 - [Project](#project)
 - [Project YAML](#project-yaml)
 - [Relay dispatcher](#relay-dispatcher)
@@ -66,7 +67,7 @@ The 2.x release line that introduced the pluggable [agent backend](#backend) int
 
 ### Blaze
 
-The 3.x release line that added GitHub Copilot CLI as a fifth first-class backend. [Changelog →](/docs/changelog)
+The 3.x release line that added GitHub Copilot CLI as the fifth first-class backend (Cursor Agent CLI followed in [Phoenix](#phoenix) as the sixth). [Changelog →](/docs/changelog)
 
 ### Beacon
 
@@ -75,6 +76,10 @@ The 4.x release line — the consolidated dashboard, notifications, insights, an
 ### Flare
 
 The 5.x release line — closes the Beacon inbound loop with the GitHub PR-merge handler and Slack HTTP transport, adds OAuth bot tokens, GitHub Enterprise / GitLab / Bitbucket inbound parity, per-IP rate limiting, Slack interactive components, Discord guild auto-registration, the run-all auto-merge halt fix, and macOS-style category sub-pages with search in Settings. [Changelog →](/docs/changelog)
+
+### Phoenix
+
+The 6.x release line — atomic YAML writes that close the `project.yaml` data-loss race, flock-based singleton-daemon hardening, Cursor Agent CLI as a sixth first-class backend, a TUI rewrite (Project Settings sidebar, Trash filter mode, Definition `$EDITOR` shellout, Branches overlay, text-select mode), and a full agent-pane terminal-emulator swap to `charmbracelet/x/vt` that fixes the long-standing "input lands at top" tear bug. [Changelog →](/docs/changelog)
 
 ## Agent modes
 
@@ -174,7 +179,7 @@ The fallback Linux sandbox backend (`bwrap`) that uses mount namespaces with a r
 
 ### Backend
 
-A single Go implementation of the `Backend` interface in `internal/daemon/agent/backend/` — one per supported coding agent (`claude-code`, `codex`, `opencode`, `gemini`, `copilot`) — that owns binary resolution, command construction, system-prompt delivery, transcript discovery, and sandbox extras. [Supported agents →](/docs/concepts/supported-agents)
+A single Go implementation of the `Backend` interface in `internal/daemon/agent/backend/` — one per supported coding agent (`claude-code`, `codex`, `opencode`, `gemini`, `copilot`, `cursor`) — that owns binary resolution, command construction, system-prompt delivery, transcript discovery, and sandbox extras. [Supported agents →](/docs/concepts/supported-agents)
 
 ## Beacon vocabulary
 

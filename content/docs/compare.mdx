@@ -34,7 +34,7 @@ axes that actually differ between them:
 
 | Axis | Watchfire | Raw agent CLI | Aider | Cursor agents | Copilot Workspace | Cloud autonomous (Devin / Codegen / Replit Agent) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Agent backend | Pluggable: Claude Code, Codex, opencode, Gemini, Copilot CLI | Pinned to that CLI | Many models via API key | Cursor's models / your key | GitHub-hosted models | Vendor-managed |
+| Agent backend | Pluggable: Claude Code, Codex, opencode, Gemini, Copilot CLI, Cursor Agent | Pinned to that CLI | Many models via API key | Cursor's models / your key | GitHub-hosted models | Vendor-managed |
 | Sandbox / isolation | Seatbelt (macOS), Landlock/Bubblewrap (Linux); per-task git worktree | Inherits your shell, full FS, full creds | Inherits your shell | Editor-scoped | GitHub-hosted VM | Vendor VM |
 | Git workflow | Branch + worktree per task; review-then-merge | Edits your working tree | Auto-commits in working tree | Edits your working tree | PR-based | PR-based |
 | Parallel tasks | One per project, many projects concurrently | One terminal at a time | One session at a time | Limited | One session per task | Yes (vendor-side) |
@@ -122,6 +122,15 @@ want a single tight conversational loop and direct model control.
 Cursor's agent mode runs inside the Cursor editor: you select a
 scope, describe the change, and the agent edits files directly in
 your editor session, with diffs and apply/reject controls.
+
+<Callout title="Cursor Agent CLI is also a Watchfire backend">
+Phoenix (v6.0.0) adds the headless `cursor-agent` CLI as a sixth
+first-class backend — see [Supported Agents](/docs/concepts/supported-agents#cursor-agent).
+That backend orchestrates Cursor's models in the same task-shaped,
+worktree-isolated, sandboxed flow as the other agents. The
+comparison below is about Cursor's **interactive in-editor mode**,
+which is a different surface.
+</Callout>
 
 ### Where it shines
 

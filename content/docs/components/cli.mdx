@@ -64,7 +64,7 @@ The CLI/TUI is the primary interface for developers. A single binary (`watchfire
 3. Create initial project.yaml
 4. Append .watchfire/ to .gitignore
 5. Commit .gitignore change
-6. Prompt for the coding agent (Claude Code, Codex, opencode, Gemini, Copilot)
+6. Prompt for the coding agent (Claude Code, Codex, opencode, Gemini, Copilot, Cursor)
    — seeded into project.default_agent
 7. Prompt for project definition (optional)
 8. Prompt for project settings
@@ -165,7 +165,7 @@ The Insights overlay (`i`) is the TUI mirror of the GUI [Insights tab](/docs/com
 | Tab | Content |
 |-----|---------|
 | **Chat** | Live agent terminal output |
-| **Logs** | Past session logs per task. Formatted transcripts render for all supported backends (Claude Code, Codex, opencode, Gemini, Copilot), falling back to PTY scrollback when no transcript is available. |
+| **Logs** | Past session logs per task. Formatted transcripts render for all supported backends (Claude Code, Codex, opencode, Gemini, Copilot, Cursor), falling back to PTY scrollback when no transcript is available. |
 
 ### Task Form
 
@@ -185,7 +185,9 @@ The Add / Edit Task overlay includes an **agent** field — a cycling selector b
 
 The TUI exposes app-wide preferences through a `globalsettings` overlay — the keyboard mirror of the GUI [Global Settings](/docs/components/gui#global-settings) panel. It reads and writes the same `~/.watchfire/settings.yaml` file, so a value changed in either client takes effect everywhere on the next event.
 
-Flare splits the overlay into eight category sub-pages (Appearance, Defaults, Agent Paths, Notifications, Integrations, Inbound, Updates, About). Press `/` from the overlay to open a search overlay that filters categories and surfaces individual matching controls; selecting a result jumps to the category and pulses the matching field briefly.
+The overlay is split into eight category sub-pages (Appearance, Defaults, Agent Paths, Notifications, Integrations, Inbound, Updates, About). Press `/` from the overlay to open a search overlay that filters categories and surfaces individual matching controls; selecting a result jumps to the category and pulses the matching field briefly.
+
+Phoenix adds a parallel **per-project** Settings sidebar inside the project view (open with the Settings tab) that mirrors this UX with seven sections — General, Automation, Notifications, Integrations, Metadata, Secrets, Danger zone — for the per-project knobs (project-scoped notification overrides, Slack channel + Discord guild bindings, archive / regenerate ID / reset task numbering / prune merged branches / unregister).
 
 #### Notification Preferences
 

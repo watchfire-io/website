@@ -35,7 +35,7 @@ next_task_number: 5
 
 ### Agent Selection
 
-`default_agent` is a first-class project setting. Set it when you want a project to prefer one backend by default, such as `codex`, `claude-code`, `opencode`, `gemini`, or `copilot`.
+`default_agent` is a first-class project setting. Set it when you want a project to prefer one backend by default, such as `codex`, `claude-code`, `opencode`, `gemini`, `copilot`, or `cursor`.
 
 The field is optional. When Watchfire needs to decide which backend to run for a task or session, it resolves the effective agent in this order:
 
@@ -115,7 +115,7 @@ updated_at: "2026-01-15T10:30:00Z"
 | `status` | enum | `draft`, `ready`, or `done` |
 | `success` | bool/null | `null` (pending), `true`, or `false` |
 | `failure_reason` | string | Agent-reported failure (set by the agent when `success: false`) |
-| `merge_failure_reason` | string | Auto-merge failure populated by the daemon when the silent merge can't land — e.g. dirty default branch, merge conflict, post-merge hook failure (Flare). The task's own work still landed on its `watchfire/<n>` branch; only the merge step failed |
+| `merge_failure_reason` | string | Auto-merge failure populated by the daemon when the silent merge can't land — e.g. dirty default branch, merge conflict, post-merge hook failure. The task's own work still landed on its `watchfire/<n>` branch; only the merge step failed |
 | `position` | int | Order within the task list |
 
 ### Task Agent Override

@@ -36,10 +36,10 @@ Every agent-specific detail — which binary to launch, how to assemble the comm
 | Aspect | Behavior |
 |--------|----------|
 | **Interface** | `Backend` in `internal/daemon/agent/backend/` — one struct per agent |
-| **Registry** | Process-wide `Register`/`Get`/`List` keyed by name (`claude-code`, `codex`, `opencode`, `gemini`, `copilot`) |
-| **Shipped backends** | Claude Code, OpenAI Codex, opencode, Gemini CLI, GitHub Copilot CLI |
+| **Registry** | Process-wide `Register`/`Get`/`List` keyed by name (`claude-code`, `codex`, `opencode`, `gemini`, `copilot`, `cursor`) |
+| **Shipped backends** | Claude Code, OpenAI Codex, opencode, Gemini CLI, GitHub Copilot CLI, Cursor Agent |
 | **Command construction** | Backends own `BuildCommand` — binary path, args, env, whether the initial prompt is embedded or pasted after launch |
-| **System prompt delivery** | Watchfire composes one canonical prompt; each backend's `InstallSystemPrompt` delivers it (CLI flag for Claude Code, `AGENTS.md` for Codex/opencode/Copilot, `system.md` for Gemini) |
+| **System prompt delivery** | Watchfire composes one canonical prompt; each backend's `InstallSystemPrompt` delivers it (CLI flag for Claude Code, `AGENTS.md` for Codex/opencode/Copilot/Cursor, `system.md` for Gemini) |
 | **Transcript discovery** | Backends own `LocateTranscript` and `FormatTranscript` — the daemon copies and renders whatever the backend returns |
 | **Sandbox extras** | `SandboxExtras()` contributes writable paths, cache patterns, and env vars to strip; the sandbox layer merges these with the base policy |
 
@@ -55,7 +55,7 @@ Empty string at any level defers to the next. Chat, wildfire-refine, and wildfir
 
 ### Per-Session Homes
 
-Four of the five backends get an isolated per-session home so the Watchfire system prompt never contaminates the user's real configuration, while auth and global settings continue to flow from the shared location:
+Five of the six backends get an isolated per-session home so the Watchfire system prompt never contaminates the user's real configuration, while auth and global settings continue to flow from the shared location:
 
 | Backend | Isolation | Location | What's isolated | What's reused |
 |---------|-----------|----------|------------------|---------------|
@@ -64,6 +64,7 @@ Four of the five backends get an isolated per-session home so the Watchfire syst
 | **opencode** | `OPENCODE_CONFIG_DIR` + `OPENCODE_DATA_DIR` | `~/.watchfire/opencode-home/<session>/` | `AGENTS.md`, permission config, per-message JSON | Auth/providers/agents symlinked from `~/.config/opencode/` |
 | **Gemini** | `GEMINI_SYSTEM_MD` | `~/.watchfire/gemini-home/<session>/system.md` | Watchfire system prompt | Auth, settings, hierarchical `GEMINI.md` from `~/.gemini/` |
 | **GitHub Copilot CLI** | `COPILOT_HOME` + `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` | `~/.watchfire/copilot-home/<session>/` | `AGENTS.md`, per-session state | GitHub login, MCP config, and session history symlinked from `~/.copilot/` |
+| **Cursor Agent** | per-session home | `~/.watchfire/cursor-home/<project_id>/<session_id>/` | `AGENTS.md`, per-session state | `~/.cursor/` auth/config files symlinked in |
 
 ### Adding a Backend
 
@@ -75,7 +76,7 @@ Watchfire uses a real PTY (pseudo-terminal) to run coding agents, with terminal 
 
 <Mermaid chart={`
 graph TD
-    SB["Sandbox (platform-specific)"] --> AG["Coding Agent (Claude Code / Codex / opencode / Gemini / Copilot)"]
+    SB["Sandbox (platform-specific)"] --> AG["Coding Agent (Claude Code / Codex / opencode / Gemini / Copilot / Cursor)"]
     AG --> PTY["PTY (creack/pty)"]
     PTY --> VT["vt10x Terminal Parser"]
     VT --> BUF["Screen Buffer (rows × cols)"]
@@ -127,6 +128,8 @@ Session logs capture the agent's structured JSONL transcript in addition to raw 
 | **Codex** | `<CODEX_HOME>/sessions/**/rollout-*.jsonl` (per-session home) |
 | **opencode** | Per-message JSON under `<OPENCODE_DATA_DIR>/storage/message/` collated into a synthesized `transcript.jsonl` |
 | **Gemini** | `~/.gemini/tmp/<project_hash>/chats/session-*.jsonl` (or legacy `logs.json`) |
+| **GitHub Copilot CLI** | Per-session JSONL inside `<COPILOT_HOME>/session-state/` |
+| **Cursor Agent** | Per-session JSONL inside `~/.watchfire/cursor-home/<project_id>/<session_id>/` |
 
 The backend copies or synthesizes a JSONL file into the Watchfire logs directory.
 
@@ -174,7 +177,9 @@ Per-backend session homes live alongside `logs/`:
 ~/.watchfire/
 ├── codex-home/<session>/          # Per-session CODEX_HOME (Codex)
 ├── opencode-home/<session>/       # Per-session config + data dirs (opencode)
-└── gemini-home/<session>/         # Per-session system.md (Gemini)
+├── gemini-home/<session>/         # Per-session system.md (Gemini)
+├── copilot-home/<session>/        # Per-session COPILOT_HOME (Copilot)
+└── cursor-home/<project_id>/<session_id>/   # Per-session home (Cursor Agent)
 ```
 
 ### Per-Project (`<project>/.watchfire/`)

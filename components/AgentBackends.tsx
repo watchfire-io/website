@@ -30,6 +30,14 @@ const CopilotLogo = () => (
   </svg>
 );
 
+const CursorLogo = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-7 w-7">
+    <path d="M11.925 24l10.425-6-10.425-6L1.5 18l10.425 6z" fillOpacity="0.85" />
+    <path d="M22.35 18V6L11.925 0v12l10.425 6z" fillOpacity="0.65" />
+    <path d="M11.925 0L1.5 6v12l10.425-6V0z" fillOpacity="1" />
+  </svg>
+);
+
 const agents = [
   {
     name: "Claude Code",
@@ -70,6 +78,14 @@ const agents = [
     Logo: CopilotLogo,
     accent: "#8957e5",
     accentRgb: "137, 87, 229",
+  },
+  {
+    name: "Cursor Agent",
+    tag: "cursor",
+    vendor: "Anysphere",
+    Logo: CursorLogo,
+    accent: "#9ca3af",
+    accentRgb: "156, 163, 175",
   },
 ];
 

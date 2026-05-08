@@ -152,7 +152,7 @@ Tasks are grouped by status and sorted by `position` then `task_number`. Add `--
 watchfire task add
 ```
 
-When prompted for the agent, set `gemini` (or any of `claude-code`, `codex`, `opencode`, `copilot`). The resulting YAML carries the override:
+When prompted for the agent, set `gemini` (or any of `claude-code`, `codex`, `opencode`, `copilot`, `cursor`). The resulting YAML carries the override:
 
 ```yaml
 task_number: 7
@@ -175,4 +175,4 @@ Soft-deleting a `ready` task removes it from the queue. To stop an actively runn
 
 - **Empty task list** — `watchfire task list` prints nothing because the project has no `ready` tasks (deleted ones are hidden by default). *Fix:* run `watchfire task list --deleted` to see soft-deleted tasks, or add new ones with `watchfire task add` / [`watchfire generate`](/docs/commands/generate).
 - **Editing a `done` task does not re-run it** — `watchfire task <number>` lets you change fields, but flipping `status` from `done` back to `ready` does not always re-trigger the agent. *Fix:* if you want a fresh run, add a new task instead of resurrecting a completed one.
-- **`agent:` value rejected** — only the five supported backends are valid. *Fix:* use `claude-code`, `codex`, `opencode`, `gemini`, or `copilot` — see [Supported Agents](/docs/concepts/supported-agents).
+- **`agent:` value rejected** — only the six supported backends are valid. *Fix:* use `claude-code`, `codex`, `opencode`, `gemini`, `copilot`, or `cursor` — see [Supported Agents](/docs/concepts/supported-agents).

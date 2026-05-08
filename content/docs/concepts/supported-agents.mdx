@@ -1,15 +1,16 @@
 ---
 title: Supported Agents
-description: Watchfire supports Claude Code, OpenAI Codex, opencode, Gemini CLI, and GitHub Copilot CLI. Learn what to install, how authentication works, and how Watchfire finds each backend.
+description: Watchfire supports Claude Code, OpenAI Codex, opencode, Gemini CLI, GitHub Copilot CLI, and Cursor Agent. Learn what to install, how authentication works, and how Watchfire finds each backend.
 ---
 
-Watchfire can orchestrate five coding agent backends:
+Watchfire can orchestrate six coding agent backends:
 
 - **Claude Code** (`claude-code`)
 - **OpenAI Codex** (`codex`)
 - **opencode** (`opencode`)
 - **Gemini CLI** (`gemini`)
 - **GitHub Copilot CLI** (`copilot`)
+- **Cursor Agent** (`cursor`)
 
 You can choose a default backend per project, change the global default in Watchfire settings, and override the backend per task when needed.
 
@@ -32,6 +33,7 @@ Watchfire reuses the agent's existing local login and config. It does not replac
 | **opencode** | `opencode` | `~/.config/opencode/` | Each session gets its own config + data dirs |
 | **Gemini CLI** | `gemini` | `~/.gemini/` | Each session gets its own `GEMINI_SYSTEM_MD` |
 | **GitHub Copilot CLI** | `copilot` | `~/.copilot/` | Each session gets its own `COPILOT_HOME` |
+| **Cursor Agent** | `cursor-agent` | `~/.cursor/` | Each session gets its own home with `~/.cursor/` files symlinked in |
 
 ## How Watchfire Finds Agent Binaries
 
@@ -154,6 +156,30 @@ If Watchfire cannot find the binary, set an explicit path in the Watchfire globa
 
 - The Watchfire system prompt stays isolated per session
 - Your existing Copilot login, MCP configuration, and session history continue to work unchanged
+
+## Cursor Agent
+
+**What to install**
+
+- Install [Cursor Agent CLI](https://docs.cursor.com/cli) so the `cursor-agent` binary is available
+
+**What to authenticate**
+
+- Sign in to Cursor Agent normally before using it through Watchfire, so `~/.cursor/` carries valid auth and config
+
+**How Watchfire uses it**
+
+- Watchfire looks for `cursor-agent` in settings, then on `PATH`, then in common local install locations
+- Each Watchfire session gets its own home under `~/.watchfire/cursor-home/<project_id>/<session_id>/`
+- Watchfire symlinks the user's real `~/.cursor/` auth/config files into that session home (missing files are skipped)
+- The composed Watchfire system prompt is installed as `AGENTS.md` in the session home
+- Sessions launch headless via `cursor-agent --workspace <worktree> --print` with the yolo / trust flag; the Watchfire sandbox is the boundary
+
+**What this means in practice**
+
+- The Watchfire system prompt stays isolated per session
+- Your existing Cursor login and configuration continue to work unchanged
+- Cursor Agent CLI (the headless backend) is distinct from the Cursor editor's interactive in-editor agent — see [Comparison](/docs/compare#cursor-agents) for the editor-mode contrast
 
 ## Choosing a Backend in Watchfire
 

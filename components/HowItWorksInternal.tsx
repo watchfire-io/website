@@ -14,7 +14,7 @@ const manualSteps: Step[] = [
   {
     number: 1,
     title: "watchfire init",
-    description: "Define your project and pick a default agent — Claude Code, Codex, opencode, Gemini CLI, or GitHub Copilot CLI",
+    description: "Define your project and pick a default agent — Claude Code, Codex, opencode, Gemini CLI, GitHub Copilot CLI, or Cursor",
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M12 5v14M5 12h14" />

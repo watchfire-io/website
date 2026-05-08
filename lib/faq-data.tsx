@@ -51,9 +51,9 @@ export const faqItems: FAQItem[] = [
     question: "Which agent backends are supported?",
     answer: (
       <>
-        Claude Code, OpenAI Codex, opencode, Gemini CLI, and GitHub Copilot CLI
-        today. Backends are pluggable, so you can mix and match across tasks or
-        switch any time.{" "}
+        Claude Code, OpenAI Codex, opencode, Gemini CLI, GitHub Copilot CLI,
+        and Cursor Agent today. Backends are pluggable, so you can mix and
+        match across tasks or switch any time.{" "}
         <Link
           href="/docs/concepts/supported-agents"
           className="text-fire-600 hover:underline dark:text-fire-300"
@@ -64,7 +64,7 @@ export const faqItems: FAQItem[] = [
       </>
     ),
     answerText:
-      "Claude Code, OpenAI Codex, opencode, Gemini CLI, and GitHub Copilot CLI today. Backends are pluggable, so you can mix and match across tasks or switch any time. The supported-agents reference at /docs/concepts/supported-agents lists install paths and per-backend notes.",
+      "Claude Code, OpenAI Codex, opencode, Gemini CLI, GitHub Copilot CLI, and Cursor Agent today. Backends are pluggable, so you can mix and match across tasks or switch any time. The supported-agents reference at /docs/concepts/supported-agents lists install paths and per-backend notes.",
   },
   {
     question: "Is my code and are my credentials safe?",

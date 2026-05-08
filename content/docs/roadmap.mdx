@@ -1,11 +1,11 @@
 ---
 title: Roadmap
-description: A snapshot of where Watchfire is heading after Flare — what's shipped, what's likely next, and what we're still thinking about.
+description: A snapshot of where Watchfire is heading after Phoenix — what's shipped, what's likely next, and what we're still thinking about.
 ---
 
 This page is a snapshot of intent, not a commitment. Watchfire is open
 source and small, and priorities shift with what users actually run into.
-Everything below is grounded in the [Flare (v5.0.0)](/docs/changelog)
+Everything below is grounded in the [Phoenix (v6.0.0)](/docs/changelog)
 release on top of the [Beacon (v4.0.0)](/docs/changelog#400-beacon)
 foundation — the [notification bus](/docs/glossary#notification-bus), the
 [outbound relay framework](/docs/concepts/integrations#outbound), the
@@ -21,48 +21,59 @@ won't ship anything that pretends to be a feature when it isn't. If a
 the bottom of the page.
 </Callout>
 
-## Now (shipped — v5.0.0 Flare)
+## Now (shipped — v6.0.0 Phoenix)
 
-Flare closes the inbound loop Beacon left half-open and hardens the
-run-all path. Both Beacon "Known issues" — the missing GitHub PR-merge
-handler and the missing Slack HTTP transport — ship in this release,
-the inbound surface picks up OAuth and multi-host parity, and the
-run-all silent-halt bug is fixed. The [full changelog](/docs/changelog)
-has every entry; the short version:
+Phoenix lands the `project.yaml` data-loss fix, the flock-based
+singleton-daemon hardening, and Cursor Agent CLI as a sixth first-class
+backend, plus a TUI rewrite that touches Project Settings, the agent
+pane, and a half-dozen new overlays. The
+[full changelog](/docs/changelog) has every entry; the short version:
 
-- **Inbound parity** — GitHub `pull_request.closed` handler closes the
-  auto-PR loop automatically; Slack slash-command HTTP transport reaches
-  Discord parity for `/watchfire status / retry / cancel`. See the
-  [Integrations page](/docs/concepts/integrations).
-- **OAuth + multi-host inbound** — Slack `xoxb-...` and Discord bot
-  tokens via OAuth replace the paste-a-signing-secret model; per-project
-  `github_host` plus new GitLab and Bitbucket handlers extend inbound
-  beyond github.com.
-- **Slack interactive components** — `Retry` / `Cancel` / `View in
-  Watchfire` buttons on the Slack `TASK_FAILED` template, plus a
-  cancel-reason modal that lands its text in `task.failure_reason`.
-- **Discord guild auto-registration** — the daemon enumerates joined
-  guilds at startup and subscribes to `GUILD_CREATE`, so commands appear
-  in a freshly-added guild within 30 seconds without the CLI step.
-- **Per-IP rate limiting** — token bucket on every `/echo/*` route
-  (default 30/min/IP, configurable via `RateLimitPerMin`) bounds abuse
-  without affecting idempotent re-deliveries.
-- **Run-all silent-halt fix** — auto-merge failures now emit a
-  `TASK_FAILED` notification, populate the new `merge_failure_reason`
-  field on the task, and surface in the GUI/TUI badges. The chain still
-  stops on a dirty `main` — the silence is gone.
-- **Settings UI sub-pages with search** — both GUI and TUI replace the
-  long scrolling page with eight category sub-pages (Appearance,
-  Defaults, Agent Paths, Notifications, Integrations, Inbound, Updates,
-  About) plus a search box that jumps straight to a matching control.
-- **Beacon foundation, still shipping** — the dashboard, notifications,
-  insights, and integrations layers from
-  [v4.0.0 Beacon](/docs/changelog#400-beacon) continue to underpin
-  everything Flare adds.
+- **Cursor Agent CLI as a sixth backend** — `cursor-agent` joins
+  Claude Code, Codex, opencode, Gemini, and Copilot through the same
+  `Backend` interface, with per-session home, symlinked auth, and
+  JSONL transcripts. See [Supported Agents](/docs/concepts/supported-agents#cursor-agent).
+- **Atomic YAML writes** — `config.SaveYAML` now writes to a sibling
+  tmp file, `fsync`s, then `os.Rename`s into place. Closes the
+  `project.yaml` data-loss race that let a partially-loaded struct
+  round-trip back to disk and wipe project metadata.
+- **Singleton daemon via flock** — `~/.watchfire/daemon.lock` is held
+  for the daemon's full lifetime, so two `watchfired` processes can
+  no longer race onto separate dynamic ports and spawn duplicate
+  menu-bar tray icons.
+- **TUI Project Settings sidebar refactor** — the per-project
+  Settings tab gets a macOS-style sidebar + content-pane layout with
+  seven sections (General, Automation, Notifications, Integrations,
+  Metadata, Secrets, Danger zone) and a `/` search overlay that jumps
+  straight to a matching control.
+- **Project-scoped notifications + integrations** — per-event,
+  quiet-hours, sound, Slack channel, Discord guild ID, and GitHub
+  auto-PR membership all override globals on a per-project basis from
+  inside the new sidebar.
+- **TUI Trash filter mode** — `D` flips the Tasks tab between active
+  and soft-deleted subsets, with `u` restoring and `x` permanently
+  deleting (refused if the `watchfire/<n>` branch reports unmerged
+  work).
+- **TUI Definition tab `$EDITOR` shellout** — `e` opens the project
+  definition in your editor of choice via `tea.ExecProcess`, diffs
+  the result, and dispatches `UpdateProject` only when content
+  changed.
+- **TUI Branches overlay (`Ctrl+B`)** — list every `watchfire/<n>`
+  branch with merge/worktree status, age, and orphan detection. `m`
+  merges, `x` deletes, `X` force-deletes, `P` prunes all
+  merged-orphans.
+- **TUI text-select mode (`Ctrl+T`)** — toggle Bubble Tea mouse
+  capture so host-native click-and-drag selection works inside the
+  TUI without leaving the session.
+- **TUI agent pane terminal-emulator swap** — the agent pane now
+  runs `charmbracelet/x/vt` against `SubscribeRawOutput`, restoring
+  full xterm-compat alt-screen + scroll regions and fixing the
+  long-standing "input lands at top" tear bug under claude code.
+  Up to 5000 lines of real scrollback.
 
-## Next (v6.0)
+## Next (v7.0)
 
-Plausible next steps that fall naturally out of the Flare architecture
+Plausible next steps that fall naturally out of the Phoenix architecture
 — written as direction, not as scoped work.
 
 - **Richer report templates** — the Markdown export already runs through
@@ -81,14 +92,18 @@ Plausible next steps that fall naturally out of the Flare architecture
   beyond slash commands, generic webhook ingest) are additive.
 - **Expanded backend matrix** — the
   [pluggable agent backend interface](/docs/concepts/supported-agents)
-  already covers Claude Code, OpenAI Codex, opencode, Gemini CLI, and
-  GitHub Copilot CLI. Filling in the Copilot metrics stub (so token and
-  cost rollups stop being partial) and adding new backends as they
-  appear are natural follow-ups.
-- **Tray and dashboard polish** — the dynamic tray menu and the
-  Dashboard rollup card both rebuild on every state change. There is
-  room to surface more (per-project digests, integration health, recent
-  notification history) without new gRPC.
+  already covers Claude Code, OpenAI Codex, opencode, Gemini CLI,
+  GitHub Copilot CLI, and Cursor. Filling in the Copilot and Cursor
+  metrics stubs (so token and cost rollups stop being partial) and
+  adding new backends as they appear are natural follow-ups.
+- **GUI parity for the new TUI overlays** — the Project Settings
+  sidebar, Branches overlay, and Trash filter mode all landed in the
+  TUI first. Bringing them across to the Electron client is mostly
+  layout work on top of the existing gRPC surface.
+- **Concurrent-edit handling for the Definition `$EDITOR` flow** —
+  Phoenix's last-write-wins is fine for v6.x but a preconditioned
+  `UpdateProject` (with an `UpdatedAt` field on the proto) would let
+  two simultaneous editors converge instead of clobber.
 
 ## Later (exploratory)
 

@@ -1,9 +1,9 @@
 ---
 title: Watchfire
-description: Better context. Better code. Watchfire turns clear specs into scoped tasks, then lets Claude Code, Codex, opencode, Gemini CLI, or GitHub Copilot CLI build them in sandboxed git worktrees.
+description: Better context. Better code. Watchfire turns clear specs into scoped tasks, then lets Claude Code, Codex, opencode, Gemini CLI, GitHub Copilot CLI, or Cursor build them in sandboxed git worktrees.
 ---
 
-Watchfire orchestrates coding agent sessions based on task files. It supports **Claude Code**, **OpenAI Codex**, **opencode**, **Gemini CLI**, and **GitHub Copilot CLI**. The daemon runs **one agent per project** at a time, but coordinates **many projects concurrently**, spawning each session in a sandboxed PTY with git worktree isolation. Thin clients (CLI/TUI and GUI) connect over gRPC.
+Watchfire orchestrates coding agent sessions based on task files. It supports **Claude Code**, **OpenAI Codex**, **opencode**, **Gemini CLI**, **GitHub Copilot CLI**, and **Cursor Agent**. The daemon runs **one agent per project** at a time, but coordinates **many projects concurrently**, spawning each session in a sandboxed PTY with git worktree isolation. Thin clients (CLI/TUI and GUI) connect over gRPC.
 
 ## Components
 
@@ -40,4 +40,4 @@ watchfire wildfire    # Agents generate tasks, code, and merge — autonomously
 - [Tips & Best Practices](/docs/tips) — Field guide to writing tasks, sizing work, and picking modes
 - [Keyboard Shortcuts](/docs/keyboard-shortcuts) — Printable cheat sheet of every TUI and GUI binding
 - [Troubleshooting](/docs/troubleshooting) — Common errors and copy-paste fixes
-- [Roadmap](/docs/roadmap) — Where Watchfire is heading after Flare
+- [Roadmap](/docs/roadmap) — Where Watchfire is heading after Phoenix
