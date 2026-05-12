@@ -22,6 +22,7 @@ Quick definitions for Watchfire-specific terms. For deeper explanations follow t
 - [Filter chips](#filter-chips)
 - [Flare](#flare)
 - [Focus events](#focus-events)
+- [Forge](#forge)
 - [Generate Definition mode](#generate-definition-mode)
 - [Generate Tasks mode](#generate-tasks-mode)
 - [GitHub auto-PR](#github-auto-pr)
@@ -80,6 +81,10 @@ The 5.x release line — closes the Beacon inbound loop with the GitHub PR-merge
 ### Phoenix
 
 The 6.x release line — atomic YAML writes that close the `project.yaml` data-loss race, flock-based singleton-daemon hardening, Cursor Agent CLI as a sixth first-class backend, a TUI rewrite (Project Settings sidebar, Trash filter mode, Definition `$EDITOR` shellout, Branches overlay, text-select mode), and a full agent-pane terminal-emulator swap to `charmbracelet/x/vt` that fixes the long-standing "input lands at top" tear bug. [Changelog →](/docs/changelog)
+
+### Forge
+
+The 7.x release line — manual task reordering across the full stack (TUI `Shift+↑/↓`, GUI `@dnd-kit` drag-and-drop, new `TaskService.ReorderTasks` RPC), the spec'd `(position ASC, task_number ASC)` task work order with a new-task-defaults-to-bottom rule, a daemon-side `SubscribeRawFrom` byte cursor that stops the GUI chat terminal from snapping to byte 0 mid-scroll, and a GUI Open-in-IDE PATH fix that finds Homebrew / `/usr/local/bin` CLIs when launched from Finder or the Dock. [Changelog →](/docs/changelog)
 
 ## Agent modes
 

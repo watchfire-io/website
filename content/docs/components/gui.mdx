@@ -111,7 +111,7 @@ Selecting a project opens the split layout: a tabbed main area for managing the 
 
 #### Tasks
 
-Tasks are grouped by status (Draft, Ready, Done) with search, filters, and a "New Task" button. Each row shows a compact agent badge when its `agent` field overrides the project default.
+Tasks are grouped by status (Draft, Ready, Done) with search, filters, and a "New Task" button. Each row shows a compact agent badge when its `agent` field overrides the project default. Active rows ("In Development" / "Todo") carry a `GripVertical` handle on the left for drag-to-reorder; the row body itself stays click-to-open so a single click still launches the edit modal. The "Failed" and "Done" groups render non-sortable rows.
 
 <img
   src="/screenshots/task-list.webp"

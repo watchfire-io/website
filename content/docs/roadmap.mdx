@@ -1,11 +1,11 @@
 ---
 title: Roadmap
-description: A snapshot of where Watchfire is heading after Phoenix — what's shipped, what's likely next, and what we're still thinking about.
+description: A snapshot of where Watchfire is heading after Forge — what's shipped, what's likely next, and what we're still thinking about.
 ---
 
 This page is a snapshot of intent, not a commitment. Watchfire is open
 source and small, and priorities shift with what users actually run into.
-Everything below is grounded in the [Phoenix (v6.0.0)](/docs/changelog)
+Everything below is grounded in the [Forge (v7.0.0)](/docs/changelog)
 release on top of the [Beacon (v4.0.0)](/docs/changelog#400-beacon)
 foundation — the [notification bus](/docs/glossary#notification-bus), the
 [outbound relay framework](/docs/concepts/integrations#outbound), the
@@ -21,59 +21,42 @@ won't ship anything that pretends to be a feature when it isn't. If a
 the bottom of the page.
 </Callout>
 
-## Now (shipped — v6.0.0 Phoenix)
+## Now (shipped — v7.0.0 Forge)
 
-Phoenix lands the `project.yaml` data-loss fix, the flock-based
-singleton-daemon hardening, and Cursor Agent CLI as a sixth first-class
-backend, plus a TUI rewrite that touches Project Settings, the agent
-pane, and a half-dozen new overlays. The
-[full changelog](/docs/changelog) has every entry; the short version:
+Forge brings manual task reordering across the full stack and fixes
+two long-standing GUI papercuts (chat viewport snap-to-zero and
+Open-in-IDE PATH resolution). The [full changelog](/docs/changelog)
+has every entry; the short version:
 
-- **Cursor Agent CLI as a sixth backend** — `cursor-agent` joins
-  Claude Code, Codex, opencode, Gemini, and Copilot through the same
-  `Backend` interface, with per-session home, symlinked auth, and
-  JSONL transcripts. See [Supported Agents](/docs/concepts/supported-agents#cursor-agent).
-- **Atomic YAML writes** — `config.SaveYAML` now writes to a sibling
-  tmp file, `fsync`s, then `os.Rename`s into place. Closes the
-  `project.yaml` data-loss race that let a partially-loaded struct
-  round-trip back to disk and wipe project metadata.
-- **Singleton daemon via flock** — `~/.watchfire/daemon.lock` is held
-  for the daemon's full lifetime, so two `watchfired` processes can
-  no longer race onto separate dynamic ports and spawn duplicate
-  menu-bar tray icons.
-- **TUI Project Settings sidebar refactor** — the per-project
-  Settings tab gets a macOS-style sidebar + content-pane layout with
-  seven sections (General, Automation, Notifications, Integrations,
-  Metadata, Secrets, Danger zone) and a `/` search overlay that jumps
-  straight to a matching control.
-- **Project-scoped notifications + integrations** — per-event,
-  quiet-hours, sound, Slack channel, Discord guild ID, and GitHub
-  auto-PR membership all override globals on a per-project basis from
-  inside the new sidebar.
-- **TUI Trash filter mode** — `D` flips the Tasks tab between active
-  and soft-deleted subsets, with `u` restoring and `x` permanently
-  deleting (refused if the `watchfire/<n>` branch reports unmerged
-  work).
-- **TUI Definition tab `$EDITOR` shellout** — `e` opens the project
-  definition in your editor of choice via `tea.ExecProcess`, diffs
-  the result, and dispatches `UpdateProject` only when content
-  changed.
-- **TUI Branches overlay (`Ctrl+B`)** — list every `watchfire/<n>`
-  branch with merge/worktree status, age, and orphan detection. `m`
-  merges, `x` deletes, `X` force-deletes, `P` prunes all
-  merged-orphans.
-- **TUI text-select mode (`Ctrl+T`)** — toggle Bubble Tea mouse
-  capture so host-native click-and-drag selection works inside the
-  TUI without leaving the session.
-- **TUI agent pane terminal-emulator swap** — the agent pane now
-  runs `charmbracelet/x/vt` against `SubscribeRawOutput`, restoring
-  full xterm-compat alt-screen + scroll regions and fixing the
-  long-standing "input lands at top" tear bug under claude code.
-  Up to 5000 lines of real scrollback.
+- **Manual task reordering across the full stack** —
+  `TaskService.ReorderTasks` RPC backs `Shift+↑/↓` in the TUI and
+  `@dnd-kit`-powered drag-and-drop in the GUI. Both surfaces apply
+  the new order optimistically, then either commit the server
+  response or revert the snapshot + toast on RPC failure.
+- **Canonical task work order — `(position ASC, task_number ASC)`** —
+  replaces the silent task-number-descending sort that walked
+  `start-all` and `wildfire` queues backwards. `Position` was always
+  on the model; Forge finally honours it. New tasks default to the
+  bottom of the queue (`max(active.position) + 1`) so manual
+  reorderings survive task creation.
+- **GUI chat terminal viewport stays put on scroll** — daemon-side
+  `SubscribeRawFrom(id, bytesReceived)` lets the client resume from
+  a byte cursor instead of replaying the full raw buffer; the
+  client-side subscribe effect is idempotent and the unsubscribe
+  path is debounced 3 s so a single 2 s status-poll flicker can't
+  tear down a live subscription. Plus xterm `scrollback` raised from
+  1 000 to 10 000 lines.
+- **GUI Open-in-IDE finds CLIs in Homebrew + `/usr/local/bin`** —
+  the GUI inherits a stripped-down PATH when launched from
+  Finder/Dock; a new `spawnEnv()` helper prepends the well-known
+  macOS install locations (`/usr/local/bin`, `/usr/local/sbin`,
+  `/opt/homebrew/bin`, `/opt/homebrew/sbin`, `~/.local/bin`,
+  `~/bin`) so `code`, `cursor`, `windsurf`, `zed`, `subl`,
+  `webstorm`, `idea`, and `fleet` all launch correctly.
 
-## Next (v7.0)
+## Next (v8.0)
 
-Plausible next steps that fall naturally out of the Phoenix architecture
+Plausible next steps that fall naturally out of the Forge architecture
 — written as direction, not as scoped work.
 
 - **Richer report templates** — the Markdown export already runs through
@@ -96,12 +79,12 @@ Plausible next steps that fall naturally out of the Phoenix architecture
   GitHub Copilot CLI, and Cursor. Filling in the Copilot and Cursor
   metrics stubs (so token and cost rollups stop being partial) and
   adding new backends as they appear are natural follow-ups.
-- **GUI parity for the new TUI overlays** — the Project Settings
+- **GUI parity for the Phoenix TUI overlays** — the Project Settings
   sidebar, Branches overlay, and Trash filter mode all landed in the
   TUI first. Bringing them across to the Electron client is mostly
   layout work on top of the existing gRPC surface.
 - **Concurrent-edit handling for the Definition `$EDITOR` flow** —
-  Phoenix's last-write-wins is fine for v6.x but a preconditioned
+  Phoenix's last-write-wins is fine for now but a preconditioned
   `UpdateProject` (with an `UpdatedAt` field on the proto) would let
   two simultaneous editors converge instead of clobber.
 
