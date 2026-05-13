@@ -10,7 +10,96 @@ import { Callout } from "fumadocs-ui/components/callout";
 import DownloadButton from "@/components/DownloadButton";
 import EditOnGithub from "@/components/EditOnGithub";
 import Mermaid from "@/components/Mermaid";
+import ChangelogJsonLd from "@/components/ChangelogJsonLd";
 import { sectionLabel } from "@/lib/docs-section";
+import { siteUrl } from "@/lib/site";
+import { buildOgUrl, buildAbsoluteOgUrl } from "@/lib/og-url";
+import { getPageDates } from "@/lib/page-dates";
+import type {
+  BreadcrumbList,
+  BreadcrumbListItem,
+  TechArticle,
+  HowTo,
+  HowToFrontmatter,
+} from "@/lib/jsonld-types";
+
+const WATCHFIRE_ORG = {
+  "@type": "Organization" as const,
+  name: "Watchfire",
+  url: siteUrl,
+};
+
+const WATCHFIRE_PUBLISHER = {
+  "@type": "Organization" as const,
+  name: "Watchfire",
+  url: siteUrl,
+  logo: {
+    "@type": "ImageObject" as const,
+    url: `${siteUrl}/logo.svg`,
+  },
+};
+
+function buildBreadcrumbs(
+  slug: string[],
+  pageTitle: string,
+  pageUrl: string,
+): BreadcrumbList {
+  const items: BreadcrumbListItem[] = [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Docs",
+      item: `${siteUrl}/docs`,
+    },
+  ];
+
+  if (slug.length === 0) {
+    return {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: items,
+    };
+  }
+
+  if (slug.length >= 2) {
+    const sectionSlug = slug[0];
+    items.push({
+      "@type": "ListItem",
+      position: items.length + 1,
+      name: sectionLabel([sectionSlug]),
+      item: `${siteUrl}/docs/${sectionSlug}`,
+    });
+  }
+
+  items.push({
+    "@type": "ListItem",
+    position: items.length + 1,
+    name: pageTitle,
+    item: pageUrl,
+  });
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items,
+  };
+}
+
+function buildHowTo(howto: HowToFrontmatter): HowTo {
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: howto.name,
+    ...(howto.totalTime ? { totalTime: howto.totalTime } : {}),
+    step: howto.steps.map((s, i) => ({
+      "@type": "HowToStep",
+      position: i + 1,
+      name: s.name,
+      text: s.text,
+      ...(s.url ? { url: s.url } : {}),
+    })),
+  };
+}
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -21,7 +110,32 @@ export default async function Page(props: {
 
   const MDXContent = page.data.body;
   const filePath = `content/docs/${page.path}`;
-  const slugPath = (params.slug ?? []).join("/");
+  const slug = params.slug ?? [];
+  const slugPath = slug.join("/");
+  const pageUrl =
+    slug.length === 0 ? `${siteUrl}/docs` : `${siteUrl}/docs/${slugPath}`;
+
+  const breadcrumbsLd = buildBreadcrumbs(slug, page.data.title, pageUrl);
+
+  const { published, modified } = getPageDates(page.path);
+  const techArticleLd: TechArticle = {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    headline: page.data.title,
+    ...(page.data.description
+      ? { description: page.data.description }
+      : {}),
+    url: pageUrl,
+    image: buildAbsoluteOgUrl(page, slug),
+    datePublished: published,
+    dateModified: modified,
+    author: WATCHFIRE_ORG,
+    publisher: WATCHFIRE_PUBLISHER,
+    inLanguage: "en",
+  };
+
+  const howto = (page.data as { howto?: HowToFrontmatter }).howto;
+  const howToLd = howto ? buildHowTo(howto) : null;
 
   return (
     <DocsPage
@@ -33,10 +147,29 @@ export default async function Page(props: {
       <span id="main-content" tabIndex={-1} className="sr-only">
         Main content
       </span>
+      <script
+        id="ld-breadcrumbs"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsLd) }}
+      />
+      <script
+        id="ld-tech-article"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(techArticleLd) }}
+      />
+      {howToLd && (
+        <script
+          id="ld-howto"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd) }}
+        />
+      )}
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>
-        <MDXContent components={{ Callout, DownloadButton, Mermaid }} />
+        <MDXContent
+          components={{ Callout, DownloadButton, Mermaid, ChangelogJsonLd }}
+        />
       </DocsBody>
       <EditOnGithub
         filePath={filePath}
@@ -59,13 +192,7 @@ export async function generateMetadata(props: {
   if (!page) notFound();
 
   const slug = params.slug ?? [];
-  const ogParams = new URLSearchParams({
-    title: page.data.title,
-    description: page.data.description ?? "",
-    section: sectionLabel(slug),
-  });
-  if (slug.length > 0) ogParams.set("slug", slug.join("/"));
-  const ogImageUrl = `/api/og?${ogParams.toString()}`;
+  const ogImageUrl = buildOgUrl(page, slug);
 
   return {
     title: page.data.title,

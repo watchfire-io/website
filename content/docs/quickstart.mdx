@@ -1,6 +1,28 @@
 ---
 title: Quick Start
 description: Get up and running with Watchfire in minutes. Initialize a project and let Wildfire mode handle the rest.
+howto:
+  name: Get started with Watchfire
+  totalTime: PT10M
+  steps:
+    - name: Initialize a project
+      text: Run watchfire init inside your project to create the .watchfire/ directory, a project.yaml, and add .watchfire/ to .gitignore.
+      url: https://watchfire.io/docs/quickstart#1-initialize-a-project
+    - name: Launch Wildfire
+      text: Run watchfire wildfire to let the agent generate a project definition, create tasks, and execute them in isolated git worktrees.
+      url: https://watchfire.io/docs/quickstart#2-launch-wildfire
+    - name: Add tasks manually
+      text: Use watchfire task add to author your own tasks with a title, prompt, and acceptance criteria; tasks live as YAML in .watchfire/tasks/.
+      url: https://watchfire.io/docs/quickstart#add-tasks-manually
+    - name: Configure secrets
+      text: Place API keys and service setup notes in .watchfire/secrets/instructions.md so agents can reach external services without hardcoded secrets.
+      url: https://watchfire.io/docs/quickstart#configure-secrets
+    - name: Launch the TUI
+      text: Run watchfire to open the split-pane TUI for managing tasks and watching the agent terminal live.
+      url: https://watchfire.io/docs/quickstart#launch-the-tui
+    - name: Run tasks from the CLI
+      text: Use watchfire run <n> for a single task or watchfire run all to execute every ready task sequentially.
+      url: https://watchfire.io/docs/quickstart#run-tasks-from-the-cli
 ---
 
 Two commands to go from zero to autonomous coding agents.
