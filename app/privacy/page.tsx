@@ -19,7 +19,7 @@ const LAST_UPDATED = "2026-05-04";
 export const metadata: Metadata = {
   title: "Privacy",
   description:
-    "What Watchfire collects, what it doesn't, and what the website does with visitor data. The short version: no telemetry in the software; minimal analytics on the site.",
+    "Watchfire's privacy policy: no telemetry or analytics in the software, GA4-only on the site, no cross-site tracking, and clear opt-out instructions.",
   alternates: {
     canonical: `${siteUrl}/privacy`,
   },

@@ -193,14 +193,19 @@ export async function generateMetadata(props: {
 
   const slug = params.slug ?? [];
   const ogImageUrl = buildOgUrl(page, slug);
+  const canonical = `${siteUrl}${page.url}`;
 
   return {
     title: page.data.title,
     description: page.data.description,
+    alternates: {
+      canonical,
+    },
     openGraph: {
       title: page.data.title,
       description: page.data.description,
       type: "article",
+      url: canonical,
       images: [
         {
           url: ogImageUrl,

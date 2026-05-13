@@ -1,6 +1,6 @@
 ---
 title: Git Worktree Isolation
-description: Each task runs in its own git worktree on a dedicated branch — isolating it from your main working tree, and (across projects) from any other agent running concurrently.
+description: Git worktree isolation — every Watchfire task runs in its own worktree on a dedicated branch, isolated from your main tree and from concurrent agents.
 ---
 
 Watchfire uses git [worktrees](/docs/glossary#worktree) to isolate each task's work from the main working tree. Within a single project the agent runs one task at a time, but the worktree means even that single task is fully insulated from your branch, your uncommitted edits, and any other project running concurrently on the same daemon.

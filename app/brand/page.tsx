@@ -5,6 +5,7 @@ import { Download } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import FlameLogo from "@/components/FlameLogo";
+import { siteUrl } from "@/lib/site";
 
 const syne = Syne({
   subsets: ["latin"],
@@ -16,7 +17,10 @@ const syne = Syne({
 export const metadata: Metadata = {
   title: "Brand",
   description:
-    "Watchfire logos, color palette, typography, and downloadable brand assets.",
+    "Watchfire press kit — flame logo SVG and PNG, fire/ember color palette with hex tokens, Outfit and JetBrains Mono typography, and brand do's and don'ts.",
+  alternates: {
+    canonical: `${siteUrl}/brand`,
+  },
 };
 
 type Swatch = {
@@ -181,7 +185,7 @@ export default function BrandPage() {
                   className="flex h-56 items-center justify-center rounded-xl border border-zinc-800"
                   style={{ background: "#16181d" }}
                 >
-                  <FlameLogo size={120} />
+                  <FlameLogo size={120} decorative />
                 </div>
                 <p className="mt-4 text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                   On dark — Charcoal #16181d
@@ -199,7 +203,7 @@ export default function BrandPage() {
                   className="flex h-56 items-center justify-center rounded-xl border border-zinc-200"
                   style={{ background: "#fdfcfa" }}
                 >
-                  <FlameLogo size={120} />
+                  <FlameLogo size={120} decorative />
                 </div>
                 <p className="mt-4 text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                   On light — Off-white #fdfcfa
