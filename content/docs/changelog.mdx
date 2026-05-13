@@ -10,6 +10,8 @@ RSS works in most readers (NetNewsWire, Feedly, Inoreader, Reeder); Atom is
 the more machine-correct cousin; JSON Feed is the lightweight modern format.
 </Callout>
 
+<ChangelogJsonLd />
+
 ## [7.1.0] Forge
 
 Forge 7.1 is a GUI-only point release that cleans up the chat terminal regressions introduced alongside v7.0.0's `bytes_received` cursor work. Typing in chat mode no longer line-steps with `[Agent stopped]` floods between chunks, Run All / Wildfire starts (and phase transitions) now render the daemon-sent initial prompt instead of dropping it, same-process stream blips no longer replay the buffer onto a stale xterm and stack overlapping Claude Code banners, and the intermittent `timed out waiting for previous agent to stop` toast when switching modes is gone. The TUI streaming path and the daemon's `SubscribeRawOutput` protocol are untouched — the fix is GUI-only and lives in four renderer files.
