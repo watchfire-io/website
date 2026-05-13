@@ -14,7 +14,7 @@ export function Header() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <FlameLogo size={28} />
+          <FlameLogo size={28} decorative />
           <span className="text-lg font-semibold text-zinc-900 dark:text-white">Watchfire</span>
         </Link>
 

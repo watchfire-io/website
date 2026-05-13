@@ -27,7 +27,10 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#e07040",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fdfcfa" },
+    { media: "(prefers-color-scheme: dark)", color: "#16181d" },
+  ],
 };
 
 export const metadata: Metadata = {
@@ -60,6 +63,7 @@ export const metadata: Metadata = {
     apple: [{ url: "/favicon.svg" }],
   },
   alternates: {
+    canonical: siteUrl,
     types: {
       "application/rss+xml": `${siteUrl}/feed.xml`,
       "application/atom+xml": `${siteUrl}/atom.xml`,
@@ -69,6 +73,10 @@ export const metadata: Metadata = {
         { url: `${siteUrl}/llms-full.txt`, title: "llms-full.txt" },
       ],
     },
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 

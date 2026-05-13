@@ -18,7 +18,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       nav={{
         title: (
           <span className="inline-flex items-center gap-2">
-            <FlameLogo size={22} />
+            <FlameLogo size={22} decorative />
             <span className="font-semibold">Watchfire</span>
           </span>
         ),

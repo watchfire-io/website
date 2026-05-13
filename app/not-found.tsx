@@ -1,8 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen, Rocket, FileClock, Github, Search } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import FlameLogo from "@/components/FlameLogo";
+
+export const metadata: Metadata = {
+  title: "Page not found",
+  description:
+    "We couldn't find the page you were after. Try the documentation, the quick start, the changelog, or jump to the GitHub repository.",
+  alternates: { canonical: null },
+  robots: { index: false, follow: true },
+};
 
 const destinations = [
   {

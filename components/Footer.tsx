@@ -15,7 +15,7 @@ export function Footer() {
           {/* Brand + tagline */}
           <div className="flex max-w-sm flex-col items-center gap-3 text-center sm:items-start sm:text-left">
             <div className="flex items-center gap-2">
-              <Image src="/logo.svg" alt="Watchfire" width={28} height={28} />
+              <Image src="/logo.svg" alt="" width={28} height={28} aria-hidden="true" />
               <span className="text-lg font-semibold text-zinc-900 dark:text-white">Watchfire</span>
             </div>
             <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">

@@ -1,14 +1,21 @@
 interface FlameLogoProps {
   className?: string;
   size?: number;
-  title?: string;
+  /** Accessible name. Pass `null` (or omit alongside `decorative`) to render the icon as purely decorative. */
+  title?: string | null;
+  /** When true, the SVG is hidden from assistive tech (use when adjacent text already names the brand). */
+  decorative?: boolean;
 }
 
 export default function FlameLogo({
   className,
   size = 28,
   title = "Watchfire",
+  decorative = false,
 }: FlameLogoProps) {
+  const a11yProps = decorative || title === null
+    ? { "aria-hidden": true as const, focusable: false as const }
+    : { role: "img" as const, "aria-label": title };
   return (
     <svg
       viewBox="0 0 64 64"
@@ -16,8 +23,7 @@ export default function FlameLogo({
       height={size}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-label={title}
+      {...a11yProps}
       className={className}
     >
       <path
