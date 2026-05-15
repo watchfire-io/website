@@ -100,6 +100,13 @@ const softwareApplicationLd = {
   url: siteUrl,
   downloadUrl: `${siteUrl}/docs/installation`,
   softwareVersion,
+  screenshot: [
+    `${siteUrl}/screenshots/dashboard.webp`,
+    `${siteUrl}/screenshots/project-tasks.webp`,
+    `${siteUrl}/screenshots/chat-active.webp`,
+    `${siteUrl}/screenshots/task-edit.webp`,
+  ],
+  sameAs: [socialLinks.github, socialLinks.bluesky, socialLinks.x],
   offers: {
     "@type": "Offer",
     price: "0",
