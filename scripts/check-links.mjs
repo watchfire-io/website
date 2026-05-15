@@ -13,10 +13,17 @@ import { join, relative, dirname, posix } from "node:path";
 
 const repoRoot = process.cwd();
 const docsDir = join(repoRoot, "content/docs");
+const blogDir = join(repoRoot, "content/blog");
 
 function listMdx(dir) {
   const out = [];
-  for (const entry of readdirSync(dir)) {
+  let entries;
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return out;
+  }
+  for (const entry of entries) {
     const full = join(dir, entry);
     const st = statSync(full);
     if (st.isDirectory()) {
@@ -39,11 +46,20 @@ function pageUrlForFile(absPath) {
   return `/docs/${noExt}`;
 }
 
+function blogUrlForFile(absPath) {
+  // content/blog/2026-05-14-hello-world.mdx -> /blog/2026-05-14-hello-world
+  const rel = relative(blogDir, absPath).replace(/\\/g, "/");
+  const noExt = rel.replace(/\.mdx$/, "");
+  return `/blog/${noExt}`;
+}
+
 const STATIC_ROUTES = new Set([
   "/",
   "/docs",
   "/brand",
   "/privacy",
+  "/blog",
+  "/blog/feed.xml",
   "/feed.xml",
   "/atom.xml",
   "/feed.json",
@@ -54,8 +70,14 @@ const STATIC_ROUTES = new Set([
 ]);
 
 const docFiles = listMdx(docsDir);
+const blogFiles = listMdx(blogDir);
 const knownDocUrls = new Set(docFiles.map(pageUrlForFile));
-const allKnownUrls = new Set([...STATIC_ROUTES, ...knownDocUrls]);
+const knownBlogUrls = new Set(blogFiles.map(blogUrlForFile));
+const allKnownUrls = new Set([
+  ...STATIC_ROUTES,
+  ...knownDocUrls,
+  ...knownBlogUrls,
+]);
 
 function listSourceFiles(dir) {
   const out = [];
@@ -151,6 +173,10 @@ for (const file of docFiles) {
   checkFile(file, pageUrlForFile(file));
 }
 
+for (const file of blogFiles) {
+  checkFile(file, blogUrlForFile(file));
+}
+
 // Also sweep the React source for href="/..." links so PRs that touch components
 // can't introduce broken or trailing-slashed internal navigation.
 const sourceDirs = ["app", "components"];
@@ -175,7 +201,7 @@ if (errors.length > 0) {
 }
 
 console.log(
-  `check-links: ${docFiles.length} MDX files, ${knownDocUrls.size} doc routes, 0 errors`,
+  `check-links: ${docFiles.length} doc + ${blogFiles.length} blog MDX files, ${knownDocUrls.size + knownBlogUrls.size} content routes, 0 errors`,
 );
 
 // Reference 'posix' / 'dirname' to satisfy linters that flag unused imports.

@@ -1,0 +1,63 @@
+import type { BlogPage } from "@/lib/blog-source";
+import type { Article } from "@/lib/jsonld-types";
+import { fileLastModified } from "@/lib/sitemap-dates";
+import { siteUrl } from "@/lib/site";
+
+const WATCHFIRE_AUTHOR = {
+  "@type": "Organization" as const,
+  name: "Watchfire",
+  url: siteUrl,
+};
+
+const WATCHFIRE_PUBLISHER = {
+  "@type": "Organization" as const,
+  name: "Watchfire",
+  url: siteUrl,
+  logo: {
+    "@type": "ImageObject" as const,
+    url: `${siteUrl}/logo.svg`,
+  },
+};
+
+function absoluteImage(image?: string): string {
+  const path = image && image.length > 0 ? image : "/og-image.png";
+  if (/^https?:\/\//.test(path)) return path;
+  return `${siteUrl}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
+export default function BlogArticleJsonLd({ post }: { post: BlogPage }) {
+  const slug = post.slugs[0];
+  const filePath = `content/blog/${slug}.mdx`;
+  const modifiedDate = fileLastModified(filePath);
+  const datePublished = post.data.date;
+  const dateModified =
+    modifiedDate.getTime() > 0
+      ? modifiedDate.toISOString()
+      : new Date(datePublished).toISOString();
+
+  const canonicalId =
+    post.data.canonical ?? `${siteUrl}/blog/${slug}`;
+
+  const article: Article = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.data.title,
+    description: post.data.summary,
+    datePublished,
+    dateModified,
+    author: WATCHFIRE_AUTHOR,
+    publisher: WATCHFIRE_PUBLISHER,
+    image: absoluteImage(post.data.image),
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": canonicalId,
+    },
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(article) }}
+    />
+  );
+}

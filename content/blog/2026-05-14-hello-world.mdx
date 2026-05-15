@@ -1,0 +1,13 @@
+---
+title: "Hello from Watchfire"
+date: "2026-05-14"
+summary: "Why we are building Watchfire, what is in v7.1.0 Forge, and what to expect next from the blog."
+tags: ["announcements", "release"]
+image: "/banner-dark.png"
+---
+
+Welcome to the Watchfire blog. We are building a remote control for AI coding agents: a daemon that takes clear specs, scopes them into tasks, and runs each one inside a sandboxed git worktree so the work stays reviewable. The full story, the architecture, and the install guide live in [the docs](/docs), and the source is on [GitHub](https://github.com/watchfire-io/watchfire).
+
+This post ships alongside v7.1.0 Forge. Forge focuses on the rough edges of long sessions: the chat input no longer drops keystrokes during heavy agent output, mode switches surface a quick toast so you can confirm where you landed, and the prompt is visible the whole way through a task instead of disappearing once execution starts. Small fixes, but they make Wildfire mode feel a lot less like an experiment.
+
+What to expect from this blog: short release notes when a new version cuts, longer pieces when we change something interesting under the hood (sandbox policy, the gRPC schema, how worktrees get reused), and the occasional behind-the-scenes look at the agent loop. No newsletter sign-up yet, no comments. If you want to follow along, the post list lives at `/blog` and there is an RSS feed at [/blog/feed.xml](/blog/feed.xml).

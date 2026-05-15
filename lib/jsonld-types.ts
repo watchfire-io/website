@@ -61,6 +61,24 @@ export interface ArticleEntry {
   inLanguage: "en";
 }
 
+export interface ArticleMainEntityOfPage {
+  "@type": "WebPage";
+  "@id": string;
+}
+
+export interface Article {
+  "@context": "https://schema.org";
+  "@type": "Article";
+  headline: string;
+  description: string;
+  datePublished: string;
+  dateModified: string;
+  author: OrganizationRef;
+  publisher: OrganizationRef;
+  image: string;
+  mainEntityOfPage: ArticleMainEntityOfPage;
+}
+
 export interface HowToFrontmatterStep {
   name: string;
   text: string;

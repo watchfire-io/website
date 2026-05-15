@@ -22,4 +22,18 @@ export const docs = defineDocs({
   },
 });
 
+export const blog = defineDocs({
+  dir: 'content/blog',
+  docs: {
+    schema: frontmatterSchema.extend({
+      date: z.string(),
+      summary: z.string(),
+      tags: z.array(z.string()).default([]),
+      image: z.string().optional(),
+      canonical: z.string().url().optional(),
+      draft: z.boolean().default(false),
+    }),
+  },
+});
+
 export default defineConfig();
