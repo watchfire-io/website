@@ -7,6 +7,7 @@ import {
   maxLastModified,
 } from "@/lib/sitemap-dates";
 import { getChangelogEntries } from "@/lib/changelog";
+import { listPublishedBlogPosts } from "@/lib/blog-source";
 
 function feedLastModified(): Date {
   const entries = getChangelogEntries();
@@ -17,6 +18,14 @@ function feedLastModified(): Date {
   );
 }
 
+function blogPostLastModified(slug: string, fallbackIso: string): Date {
+  const filePath = `content/blog/${slug}.mdx`;
+  const fromGit = fileLastModified(filePath);
+  const epoch = new Date(0).getTime();
+  if (fromGit.getTime() > epoch) return fromGit;
+  return new Date(fallbackIso);
+}
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const docPages = source.getPages().map((page) => ({
     url: `${siteUrl}${page.url}`,
@@ -24,6 +33,34 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: "weekly" as const,
     priority: 0.7,
   }));
+
+  const blogPosts = listPublishedBlogPosts();
+  const blogPostPages = blogPosts.map((post) => {
+    const slug = post.slugs[0];
+    return {
+      url: `${siteUrl}/blog/${slug}`,
+      lastModified: blogPostLastModified(slug, post.data.date),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    };
+  });
+
+  const blogIndexLastMod = maxLastModified([
+    ...blogPosts.map((p) => `content/blog/${p.slugs[0]}.mdx`),
+    "app/blog/page.tsx",
+    "app/blog/layout.tsx",
+    "app/blog/[slug]/page.tsx",
+    "components/BlogPostCard.tsx",
+    "components/BlogArticleJsonLd.tsx",
+  ]);
+
+  const blogFeedLastMod =
+    blogPostPages.length > 0
+      ? blogPostPages.reduce(
+          (acc, p) => (p.lastModified > acc ? p.lastModified : acc),
+          new Date(0),
+        )
+      : new Date();
 
   const homeLastMod = maxLastModified([
     "app/page.tsx",
@@ -87,6 +124,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.5,
     },
     {
+      url: `${siteUrl}/blog`,
+      lastModified: blogIndexLastMod,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    {
+      url: `${siteUrl}/blog/feed.xml`,
+      lastModified: blogFeedLastMod,
+      changeFrequency: "weekly",
+      priority: 0.4,
+    },
+    {
       url: `${siteUrl}/feed.xml`,
       lastModified: feedLastMod,
       changeFrequency: "weekly",
@@ -117,5 +166,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.4,
     },
     ...docPages,
+    ...blogPostPages,
   ];
 }
