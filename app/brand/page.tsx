@@ -21,6 +21,21 @@ export const metadata: Metadata = {
   alternates: {
     canonical: `${siteUrl}/brand`,
   },
+  openGraph: {
+    title: "Brand",
+    description:
+      "Watchfire press kit — flame logo, fire/ember palette, and typography for the Watchfire brand.",
+    url: `${siteUrl}/brand`,
+    type: "article",
+    images: [{ url: "/og-image.png" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Brand",
+    description:
+      "Watchfire press kit — flame logo, fire/ember palette, and typography for the Watchfire brand.",
+    images: ["/og-image.png"],
+  },
 };
 
 type Swatch = {
