@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Lints internal links across the site:
 //   - links to /docs/* must resolve to a known Fumadocs page
-//   - top-level routes (`/`, `/docs`, `/brand`, `/privacy`) are always allowed
+//   - top-level routes (`/`, `/docs`, `/brand`, `/privacy`, `/demos`) are always allowed
 //   - trailing slashes on internal links are an error (the site does not use them)
 //   - a page that links to its own absolute path with a hash (e.g. `/docs/x#y`
 //     from inside `/docs/x.mdx`) is rewritten to `#y` — error if found
@@ -58,6 +58,7 @@ const STATIC_ROUTES = new Set([
   "/docs",
   "/brand",
   "/privacy",
+  "/demos",
   "/blog",
   "/blog/feed.xml",
   "/feed.xml",
