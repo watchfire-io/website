@@ -8,6 +8,12 @@ export interface OgUrlPage {
   };
 }
 
+export interface OgUrlOptions {
+  title: string;
+  description?: string;
+  section?: string;
+}
+
 export function buildOgUrl(page: OgUrlPage, slug: string[]): string {
   const params = new URLSearchParams({
     title: page.data.title,
@@ -20,4 +26,20 @@ export function buildOgUrl(page: OgUrlPage, slug: string[]): string {
 
 export function buildAbsoluteOgUrl(page: OgUrlPage, slug: string[]): string {
   return `${siteUrl}${buildOgUrl(page, slug)}`;
+}
+
+export function buildBlogOgUrl(options: OgUrlOptions): string {
+  const params = new URLSearchParams({ title: options.title });
+  if (options.description) params.set("description", options.description);
+  if (options.section) params.set("section", options.section);
+  return `/api/og?${params.toString()}`;
+}
+
+export function buildAbsoluteBlogOgUrl(options: OgUrlOptions): string {
+  return `${siteUrl}${buildBlogOgUrl(options)}`;
+}
+
+export function resolveAbsoluteImageUrl(image: string): string {
+  if (/^https?:\/\//.test(image)) return image;
+  return `${siteUrl}${image.startsWith("/") ? "" : "/"}${image}`;
 }

@@ -9,6 +9,10 @@ import {
   listPublishedBlogPosts,
 } from "@/lib/blog-source";
 import { siteUrl } from "@/lib/site";
+import {
+  buildAbsoluteBlogOgUrl,
+  resolveAbsoluteImageUrl,
+} from "@/lib/og-url";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
@@ -38,7 +42,13 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
   const url = `${siteUrl}/blog/${slug}`;
   const canonical = page.data.canonical ?? url;
-  const ogImage = page.data.image ?? "/og-image.png";
+  const ogImage = page.data.image
+    ? resolveAbsoluteImageUrl(page.data.image)
+    : buildAbsoluteBlogOgUrl({
+        title: page.data.title,
+        description: page.data.summary,
+        section: "Blog",
+      });
 
   return {
     title: page.data.title,
@@ -77,6 +87,13 @@ export default async function BlogPostPage(props: PageProps) {
   const MDX = page.data.body;
   const formattedDate = formatDate(page.data.date);
   const tags = page.data.tags ?? [];
+  const ogImage = page.data.image
+    ? resolveAbsoluteImageUrl(page.data.image)
+    : buildAbsoluteBlogOgUrl({
+        title: page.data.title,
+        description: page.data.summary,
+        section: "Blog",
+      });
 
   return (
     <article className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
@@ -105,7 +122,7 @@ export default async function BlogPostPage(props: PageProps) {
           {page.data.title}
         </h1>
 
-        <BlogArticleJsonLd post={page} />
+        <BlogArticleJsonLd post={page} image={ogImage} />
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-500 dark:text-zinc-400">
           <time dateTime={page.data.date}>{formattedDate}</time>
