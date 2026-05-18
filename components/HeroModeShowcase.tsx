@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import Image from "next/image";
 import AnimatedTerminal from "./AnimatedTerminal";
 import TuiPreviewSvg from "./TuiPreviewSvg";
+import GuiPreviewSvg from "./GuiPreviewSvg";
 
-type Mode = "cli" | "tui" | "gui";
-const MODES: Mode[] = ["cli", "tui", "gui"];
+type Mode = "gui" | "tui" | "cli";
+const MODES: Mode[] = ["gui", "tui", "cli"];
 const MODE_LABEL: Record<Mode, string> = {
-  cli: "CLI",
-  tui: "TUI",
   gui: "GUI",
+  tui: "TUI",
+  cli: "CLI",
 };
 const ROTATION_MS = 4000;
 const CLICK_PAUSE_MS = 6000;
@@ -77,20 +77,16 @@ function TuiFrame() {
 
 function GuiFrame() {
   return (
-    <div className="relative mx-auto h-full w-full max-w-2xl">
+    <div
+      role="img"
+      aria-label="Watchfire GUI dashboard showing the multi-project sidebar and project cards with live status"
+      className="relative mx-auto h-full w-full max-w-2xl"
+    >
       <FrameGlow />
       <div className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-700/70 bg-[#16181d] shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-sm">
         <FrameChrome label="Watchfire.app - dashboard" />
-        <div className="relative flex-1 overflow-hidden">
-          <Image
-            src="/screenshots/dashboard.webp"
-            alt="Watchfire GUI dashboard showing the multi-project sidebar, an active project, and a live agent terminal"
-            width={2000}
-            height={1355}
-            sizes="(min-width: 768px) 40vw, 100vw"
-            loading="lazy"
-            className="h-full w-full object-cover object-top"
-          />
+        <div className="flex-1 overflow-hidden px-4 py-4">
+          <GuiPreviewSvg className="h-full w-full" />
         </div>
       </div>
     </div>
@@ -98,7 +94,7 @@ function GuiFrame() {
 }
 
 export default function HeroModeShowcase() {
-  const [mode, setMode] = useState<Mode>("cli");
+  const [mode, setMode] = useState<Mode>("gui");
   const reducedMotion = useSyncExternalStore(
     subscribeReducedMotion,
     getReducedMotionSnapshot,
