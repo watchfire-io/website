@@ -4,11 +4,14 @@ import { notFound } from "next/navigation";
 import { Callout } from "fumadocs-ui/components/callout";
 import Mermaid from "@/components/Mermaid";
 import BlogArticleJsonLd from "@/components/BlogArticleJsonLd";
+import RelatedPosts from "@/components/RelatedPosts";
 import {
   getBlogPage,
+  getBlogPostBodyMarkdown,
   listPublishedBlogPosts,
 } from "@/lib/blog-source";
 import { slugifyTag } from "@/lib/blog-tags";
+import { estimateReadingTimeMinutes } from "@/lib/reading-time";
 import { siteUrl } from "@/lib/site";
 import {
   buildAbsoluteBlogOgUrl,
@@ -88,6 +91,9 @@ export default async function BlogPostPage(props: PageProps) {
   const MDX = page.data.body;
   const formattedDate = formatDate(page.data.date);
   const tags = page.data.tags ?? [];
+  const readingMinutes = estimateReadingTimeMinutes(
+    getBlogPostBodyMarkdown(slug),
+  );
   const ogImage = page.data.image
     ? resolveAbsoluteImageUrl(page.data.image)
     : buildAbsoluteBlogOgUrl({
@@ -123,10 +129,18 @@ export default async function BlogPostPage(props: PageProps) {
           {page.data.title}
         </h1>
 
-        <BlogArticleJsonLd post={page} image={ogImage} />
+        <BlogArticleJsonLd
+          post={page}
+          image={ogImage}
+          readingMinutes={readingMinutes}
+        />
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-500 dark:text-zinc-400">
           <time dateTime={page.data.date}>{formattedDate}</time>
+          <span aria-hidden="true" className="text-zinc-400 dark:text-zinc-600">
+            ·
+          </span>
+          <span>{readingMinutes} min read</span>
           {tags.length > 0 ? (
             <div className="flex flex-wrap items-center gap-1.5">
               {tags.map((tag) => (
@@ -146,6 +160,8 @@ export default async function BlogPostPage(props: PageProps) {
       <div className="blog-prose space-y-5 text-base leading-relaxed text-zinc-700 dark:text-zinc-300">
         <MDX components={{ Callout, Mermaid }} />
       </div>
+
+      <RelatedPosts currentSlug={slug} />
 
       <footer className="mt-16 border-t border-zinc-200 pt-8 dark:border-zinc-800">
         <Link

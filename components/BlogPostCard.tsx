@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { BlogPage } from "@/lib/blog-source";
+import { getBlogPostBodyMarkdown, type BlogPage } from "@/lib/blog-source";
 import { slugifyTag } from "@/lib/blog-tags";
+import { estimateReadingTimeMinutes } from "@/lib/reading-time";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
@@ -19,6 +20,9 @@ export default function BlogPostCard({ post }: { post: BlogPage }) {
   const href = `/blog/${slug}`;
   const tags = (post.data.tags ?? []).slice(0, 2);
   const formattedDate = formatDate(post.data.date);
+  const readingMinutes = estimateReadingTimeMinutes(
+    getBlogPostBodyMarkdown(slug),
+  );
 
   return (
     <article className="card-hover group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white/70 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/40">
@@ -64,12 +68,11 @@ export default function BlogPostCard({ post }: { post: BlogPage }) {
           </Link>
         </h3>
 
-        <time
-          dateTime={post.data.date}
-          className="text-sm text-zinc-500 dark:text-zinc-400"
-        >
-          {formattedDate}
-        </time>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <time dateTime={post.data.date}>{formattedDate}</time>
+          <span aria-hidden="true"> · </span>
+          <span>{readingMinutes} min</span>
+        </p>
 
         <p className="line-clamp-3 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
           {post.data.summary}
