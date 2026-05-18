@@ -8,6 +8,7 @@ import {
 } from "@/lib/sitemap-dates";
 import { getChangelogEntries } from "@/lib/changelog";
 import { listPublishedBlogPosts } from "@/lib/blog-source";
+import { getAllTags, getPostsByTagSlug } from "@/lib/blog-tags";
 
 function feedLastModified(): Date {
   const entries = getChangelogEntries();
@@ -53,6 +54,30 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "components/BlogPostCard.tsx",
     "components/BlogArticleJsonLd.tsx",
   ]);
+
+  const tags = getAllTags();
+  const tagsIndexLastMod = maxLastModified([
+    ...blogPosts.map((p) => `content/blog/${p.slugs[0]}.mdx`),
+    "app/blog/tags/page.tsx",
+    "app/blog/tags/[tag]/page.tsx",
+    "lib/blog-tags.ts",
+  ]);
+
+  const tagPages = tags.map(({ slug }) => {
+    const posts = getPostsByTagSlug(slug);
+    const newest = posts.reduce((acc, post) => {
+      const mod = blogPostLastModified(post.slugs[0], post.data.date);
+      return mod > acc ? mod : acc;
+    }, new Date(0));
+    const lastModified =
+      newest.getTime() > 0 ? newest : fileLastModified("app/blog/tags/[tag]/page.tsx");
+    return {
+      url: `${siteUrl}/blog/tags/${slug}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.5,
+    };
+  });
 
   const blogFeedLastMod =
     blogPostPages.length > 0
@@ -140,6 +165,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
+      url: `${siteUrl}/blog/tags`,
+      lastModified: tagsIndexLastMod,
+      changeFrequency: "weekly",
+      priority: 0.5,
+    },
+    {
       url: `${siteUrl}/blog/feed.xml`,
       lastModified: blogFeedLastMod,
       changeFrequency: "weekly",
@@ -177,5 +208,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     ...docPages,
     ...blogPostPages,
+    ...tagPages,
   ];
 }

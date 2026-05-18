@@ -60,6 +60,7 @@ const STATIC_ROUTES = new Set([
   "/privacy",
   "/demos",
   "/blog",
+  "/blog/tags",
   "/blog/feed.xml",
   "/feed.xml",
   "/atom.xml",
@@ -70,14 +71,52 @@ const STATIC_ROUTES = new Set([
   "/robots.txt",
 ]);
 
+// Mirror lib/blog-tags.ts slugify rule for tag URL detection.
+function slugifyTag(tag) {
+  return tag
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function extractTagsFromMdx(absPath) {
+  const content = readFileSync(absPath, "utf8");
+  // Look at the frontmatter block for a `tags: [...]` array. Crude but
+  // sufficient for the simple inline-array format used in content/blog.
+  const fm = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!fm) return [];
+  const tagsLine = fm[1].match(/^tags:\s*\[(.*)\]\s*$/m);
+  if (!tagsLine) return [];
+  const items = [...tagsLine[1].matchAll(/"([^"]*)"|'([^']*)'/g)];
+  return items.map((m) => m[1] ?? m[2]).filter(Boolean);
+}
+
+function blogIsDraft(absPath) {
+  const content = readFileSync(absPath, "utf8");
+  const fm = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!fm) return false;
+  return /^draft:\s*true\s*$/m.test(fm[1]);
+}
+
 const docFiles = listMdx(docsDir);
 const blogFiles = listMdx(blogDir);
 const knownDocUrls = new Set(docFiles.map(pageUrlForFile));
 const knownBlogUrls = new Set(blogFiles.map(blogUrlForFile));
+
+const knownTagUrls = new Set();
+for (const file of blogFiles) {
+  if (blogIsDraft(file)) continue;
+  for (const tag of extractTagsFromMdx(file)) {
+    const slug = slugifyTag(tag);
+    if (slug) knownTagUrls.add(`/blog/tags/${slug}`);
+  }
+}
+
 const allKnownUrls = new Set([
   ...STATIC_ROUTES,
   ...knownDocUrls,
   ...knownBlogUrls,
+  ...knownTagUrls,
 ]);
 
 function listSourceFiles(dir) {
@@ -202,7 +241,7 @@ if (errors.length > 0) {
 }
 
 console.log(
-  `check-links: ${docFiles.length} doc + ${blogFiles.length} blog MDX files, ${knownDocUrls.size + knownBlogUrls.size} content routes, 0 errors`,
+  `check-links: ${docFiles.length} doc + ${blogFiles.length} blog MDX files, ${knownDocUrls.size + knownBlogUrls.size + knownTagUrls.size} content routes, 0 errors`,
 );
 
 // Reference 'posix' / 'dirname' to satisfy linters that flag unused imports.

@@ -8,6 +8,7 @@ import {
   getBlogPage,
   listPublishedBlogPosts,
 } from "@/lib/blog-source";
+import { slugifyTag } from "@/lib/blog-tags";
 import { siteUrl } from "@/lib/site";
 import {
   buildAbsoluteBlogOgUrl,
@@ -129,12 +130,13 @@ export default async function BlogPostPage(props: PageProps) {
           {tags.length > 0 ? (
             <div className="flex flex-wrap items-center gap-1.5">
               {tags.map((tag) => (
-                <span
+                <Link
                   key={tag}
-                  className="rounded-full bg-fire-500/10 px-2 py-0.5 text-xs font-medium text-fire-500 dark:text-fire-400"
+                  href={`/blog/tags/${slugifyTag(tag)}`}
+                  className="rounded-full bg-fire-500/10 px-2 py-0.5 text-xs font-medium text-fire-500 transition-colors hover:bg-fire-500/20 hover:text-fire-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fire-500/60 dark:text-fire-400 dark:hover:text-fire-300"
                 >
                   {tag}
-                </span>
+                </Link>
               ))}
             </div>
           ) : null}

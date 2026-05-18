@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import BlogPostCard from "@/components/BlogPostCard";
 import { listPublishedBlogPosts } from "@/lib/blog-source";
+import { getAllTags } from "@/lib/blog-tags";
 import { siteUrl } from "@/lib/site";
 import { buildAbsoluteBlogOgUrl } from "@/lib/og-url";
 
@@ -41,6 +43,7 @@ export const metadata: Metadata = {
 
 export default function BlogIndexPage() {
   const posts = listPublishedBlogPosts();
+  const tags = getAllTags();
 
   return (
     <section className="px-6 py-16 sm:py-20">
@@ -58,6 +61,29 @@ export default function BlogIndexPage() {
             sandboxed git worktrees.
           </p>
         </div>
+
+        {tags.length > 0 ? (
+          <div className="mt-6 flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+              Tags
+            </span>
+            {tags.map(({ tag, slug }) => (
+              <Link
+                key={slug}
+                href={`/blog/tags/${slug}`}
+                className="rounded-full bg-fire-500/10 px-2.5 py-0.5 text-xs font-medium text-fire-500 transition-colors hover:bg-fire-500/20 hover:text-fire-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fire-500/60 dark:text-fire-400 dark:hover:text-fire-300"
+              >
+                {tag}
+              </Link>
+            ))}
+            <Link
+              href="/blog/tags"
+              className="rounded-full border border-zinc-300 px-2.5 py-0.5 text-xs font-medium text-zinc-600 transition-colors hover:border-fire-500/50 hover:text-fire-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fire-500/60 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-fire-400/50 dark:hover:text-fire-300"
+            >
+              All tags →
+            </Link>
+          </div>
+        ) : null}
 
         <div className="mx-auto mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {posts.map((post) => (
