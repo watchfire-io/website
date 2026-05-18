@@ -13,6 +13,7 @@ import KeyFeatures from "@/components/KeyFeatures";
 import RawVsWatchfire from "@/components/RawVsWatchfire";
 import CommonWorkflows from "@/components/CommonWorkflows";
 import FleetOps from "@/components/FleetOps";
+import StarHistory from "@/components/StarHistory";
 import RecentBlogPosts from "@/components/RecentBlogPosts";
 import FAQ from "@/components/FAQ";
 import FAQJsonLd from "@/components/FAQJsonLd";
@@ -198,6 +199,12 @@ export default async function Home() {
 
     <ScrollReveal staggerChildren>
       <ProductShowcase />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal>
+      <StarHistory />
     </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
