@@ -2,9 +2,16 @@ import type { Metadata } from "next";
 import BlogPostCard from "@/components/BlogPostCard";
 import { listPublishedBlogPosts } from "@/lib/blog-source";
 import { siteUrl } from "@/lib/site";
+import { buildAbsoluteBlogOgUrl } from "@/lib/og-url";
 
 const description =
   "Notes, releases, and deep dives from the team building Watchfire, the remote control for AI coding agents running in sandboxed git worktrees.";
+
+const ogImage = buildAbsoluteBlogOgUrl({
+  title: "Watchfire Blog",
+  description,
+  section: "Blog",
+});
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -22,13 +29,13 @@ export const metadata: Metadata = {
     title: "Blog | Watchfire",
     description,
     url: `${siteUrl}/blog`,
-    images: ["/og-image.png"],
+    images: [ogImage],
   },
   twitter: {
     card: "summary_large_image",
     title: "Blog | Watchfire",
     description,
-    images: ["/og-image.png"],
+    images: [ogImage],
   },
 };
 

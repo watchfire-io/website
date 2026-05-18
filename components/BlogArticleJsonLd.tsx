@@ -2,6 +2,10 @@ import type { BlogPage } from "@/lib/blog-source";
 import type { Article } from "@/lib/jsonld-types";
 import { fileLastModified } from "@/lib/sitemap-dates";
 import { siteUrl } from "@/lib/site";
+import {
+  buildAbsoluteBlogOgUrl,
+  resolveAbsoluteImageUrl,
+} from "@/lib/og-url";
 
 const WATCHFIRE_AUTHOR = {
   "@type": "Organization" as const,
@@ -19,13 +23,13 @@ const WATCHFIRE_PUBLISHER = {
   },
 };
 
-function absoluteImage(image?: string): string {
-  const path = image && image.length > 0 ? image : "/og-image.png";
-  if (/^https?:\/\//.test(path)) return path;
-  return `${siteUrl}${path.startsWith("/") ? "" : "/"}${path}`;
-}
-
-export default function BlogArticleJsonLd({ post }: { post: BlogPage }) {
+export default function BlogArticleJsonLd({
+  post,
+  image,
+}: {
+  post: BlogPage;
+  image?: string;
+}) {
   const slug = post.slugs[0];
   const filePath = `content/blog/${slug}.mdx`;
   const modifiedDate = fileLastModified(filePath);
@@ -38,6 +42,16 @@ export default function BlogArticleJsonLd({ post }: { post: BlogPage }) {
   const canonicalId =
     post.data.canonical ?? `${siteUrl}/blog/${slug}`;
 
+  const resolvedImage =
+    image ??
+    (post.data.image
+      ? resolveAbsoluteImageUrl(post.data.image)
+      : buildAbsoluteBlogOgUrl({
+          title: post.data.title,
+          description: post.data.summary,
+          section: "Blog",
+        }));
+
   const article: Article = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -47,7 +61,7 @@ export default function BlogArticleJsonLd({ post }: { post: BlogPage }) {
     dateModified,
     author: WATCHFIRE_AUTHOR,
     publisher: WATCHFIRE_PUBLISHER,
-    image: absoluteImage(post.data.image),
+    image: resolvedImage,
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": canonicalId,
