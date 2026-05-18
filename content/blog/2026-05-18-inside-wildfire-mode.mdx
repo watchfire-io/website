@@ -1,0 +1,83 @@
+---
+title: "Inside Wildfire mode — the autonomous task loop"
+date: "2026-05-18"
+summary: "Wildfire mode turns a project definition into a self-refining queue of tasks. Here is how the loop is shaped, why each phase exists, and where the safety rails are."
+tags: ["deep-dive", "wildfire"]
+image: "/banner-dark.png"
+---
+
+You have a `project.yaml`, a half-written list of tasks, and a rough sense of where the codebase should be a week from now. The slow part is rarely the coding — it is keeping the queue in front of the agent honest as the repo changes underneath it. Wildfire mode delegates that bookkeeping. You hand it a definition and a starting list of tasks, and it executes, refines, and grows the queue on its own until it decides the project is done or you stop it.
+
+This post walks through what the loop does, how a single pass looks from the outside, and why it is structured the way it is. The mechanics are covered in [the agent modes reference](/docs/concepts/agent-modes); this is the why behind the shape.
+
+## What Wildfire actually does
+
+Wildfire is the autonomous mode in Watchfire. It is built around three phases the daemon runs in sequence:
+
+- **Execute** — pick the next `ready` task, spawn an agent in a fresh worktree, let it work the task to completion, merge.
+- **Refine** — when no `ready` tasks remain, take a `draft` task and tighten its prompt and acceptance criteria into something an executor can act on. Mark it `ready`.
+- **Generate** — when there are no `draft` tasks left either, look at the project as a whole and decide whether more work belongs in the queue. If yes, write new tasks. If no, the loop ends.
+
+The fourth move is the one that turns three phases into a system: **repeat**. Every time Generate produces new tasks, the daemon goes back to Execute and starts the cycle again with a queue that already reflects everything the previous pass did. The phase terminology mirrors the [agent modes docs](/docs/concepts/agent-modes) exactly — this is the canonical naming.
+
+## One pass, in detail
+
+Picture a project with three `ready` tasks, two `draft` tasks, and a definition that says the goal is to wire up a new auth flow. You run `watchfire wildfire` from the project directory.
+
+```bash
+watchfire wildfire
+```
+
+The daemon scans for `ready` tasks, sorts them by `position` then `task_number`, and picks the top one — call it task `0042`. It spawns Claude Code on branch `watchfire/0042`, inside a brand-new git worktree at `.watchfire/worktrees/0042/`. The agent reads the task YAML, works inside its sandbox, commits as it goes, and when it sets `status: done` and `success: true`, the daemon detects the change, merges `watchfire/0042` back into the default branch, and tears the worktree down.
+
+The daemon then re-scans. Two `ready` tasks left, so it loops on Execute. Same pattern, new worktree, fresh agent. After all three are done, the queue holds only drafts. The daemon shifts into Refine, spawning an agent at the project root — no worktree this time, because the refine agent is rewriting a YAML file, not changing the codebase. It reads the project definition, the recently merged commits, and the draft itself, and produces a sharper prompt with acceptance criteria a human could review. It writes the file, signals completion by creating `.watchfire/refine_done.yaml`, and exits.
+
+Back to scanning. There is now a new `ready` task, so the daemon swings into Execute. This is the rhythm: ready drains into Execute, drafts drain into Refine, and only when both queues are empty does the loop run Generate. Generate looks at the whole picture — definition, merged history, current task list — and either writes one or more new tasks or signals that there is nothing meaningful left to do. If new tasks land, the daemon goes back to Execute. If not, Wildfire transitions to chat mode and waits.
+
+<Mermaid chart={`
+flowchart LR
+    S([Start]) --> Q{Ready tasks?}
+    Q -->|yes| E[Execute<br/>in worktree]
+    Q -->|no| D{Draft tasks?}
+    D -->|yes| R[Refine<br/>at project root]
+    D -->|no| G[Generate<br/>at project root]
+    E --> Q
+    R --> Q
+    G -->|new tasks| Q
+    G -->|nothing left| C([Chat mode])
+`} />
+
+Each phase is a separate agent process. The daemon owns the transitions; the agents own the work inside a phase. Every transition shows up as a file change you can audit after the fact.
+
+## Why three phases and a loop?
+
+The natural question is why this is not one phase — why not let a single agent run the queue, write new tasks as it sees fit, and keep going until it decides to stop.
+
+Two reasons. The first is that **new tasks should reflect the state of the repo after the previous batch lands, not before**. If the agent writing the task list runs in the same session as the agent doing the work, the task list is always a step behind reality. Pulling Generate into its own phase, after Execute has merged what it produced, means the planning agent sees finished commits, not the agent's plan for them.
+
+The second is that **drafting and executing are different jobs with different incentives**. The drafter wants to capture intent — "rework this module to use the new client" — and stays vague where the implementation could legitimately go several ways. The executor wants a tight spec it can verify against: which files, which functions, what behavior is being preserved, what an acceptance test looks like. Refine is where those two views meet. A human can do the same job in pull request review, but doing it inside the loop is what lets Wildfire run unattended without producing thirty half-formed branches.
+
+Repeating is what turns the phases into a system. Each Generate decision is informed by everything the prior cycles produced; the queue keeps rewriting itself in response to its own output.
+
+## The safety rails
+
+Autonomy without safeguards is just a foot-gun on a timer. Wildfire has a few specific rails worth knowing about:
+
+- **Worktree isolation.** Every Execute-phase agent runs inside its own `.watchfire/worktrees/<n>/` directory on a dedicated `watchfire/<n>` branch. If it goes off the rails, you delete the branch and the worktree, and your working tree is untouched.
+- **Sandboxed processes.** On macOS, agents run under `sandbox-exec` with a restricted profile — no `~/.ssh`, no `~/.aws`, no writes outside the project. See the [security notes](/docs/security) for the exact policy.
+- **Merge only on success.** The daemon only merges a worktree branch back when the agent sets `success: true`. A failed or stuck task leaves its branch behind for inspection rather than landing junk on the default branch.
+- **No force-pushes, ever.** The daemon does not rewrite published history. If a merge conflicts, it stops the chain rather than papering over it.
+- **The Generate contract.** When the Generate phase produces no new tasks, Wildfire stops. It does not loop forever looking for something to do, and it does not invent work to keep itself busy. "Nothing left" is a valid terminal state.
+- **Restart protection.** If the same task fails to complete three times in a row — rate limits, crashes, auth errors — the daemon stops the loop and drops into chat mode so a human can look.
+
+The worst case for a Wildfire run is a pile of unmerged branches and a chat-mode prompt waiting for you. Nothing destructive lands without the same checks a single-task run would have.
+
+## When Wildfire is the right tool
+
+Wildfire is at its best when the project has a clear definition and a backlog of discrete, scoped work: refactors, migrations, filling in a documented feature, raising test coverage, applying a renaming convention across a codebase. Anywhere a human would write a list of issues and grind through them, Wildfire can run that list and grow it.
+
+It is less useful when the problem is shaped by your preferences in ways the definition cannot capture. Green-field product design, anything where the right answer is "let me see how it feels," API design with strong aesthetic constraints — those still want a human in chat mode, arguing with the agent in real time.
+
+## Closing
+
+Wildfire is the mode that makes Watchfire feel different from a fancy terminal wrapper. It is also the mode with the highest expectations of the underlying definition: the better your `project.yaml` describes the goal, the better the loop performs. The full mechanics are in the [agent modes documentation](/docs/concepts/agent-modes), and the entry point is `watchfire wildfire` from any initialized project. Try it on a scoped, sandboxed project first — somewhere the worst case is a branch you delete — and see what it does with an afternoon.
