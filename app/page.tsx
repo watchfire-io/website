@@ -17,6 +17,7 @@ import FAQ from "@/components/FAQ";
 import FAQJsonLd from "@/components/FAQJsonLd";
 import FinalCTAServer from "@/components/FinalCTAServer";
 import ScrollReveal from "@/components/ScrollReveal";
+import SignupCTA from "@/components/SignupCTA";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
@@ -137,6 +138,12 @@ export default async function Home() {
     </section>
 
     {/* Section divider */}
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal>
+      <SignupCTA />
+    </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
 
