@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import LiteYouTube from "@/components/LiteYouTube";
+import AnimatedTerminal from "@/components/AnimatedTerminal";
+import DemoFrame from "@/components/DemoFrame";
+import GuiScreenshotCarousel from "@/components/GuiScreenshotCarousel";
+import TuiPreviewSvg from "@/components/TuiPreviewSvg";
 import { siteUrl } from "@/lib/site";
 
 const description =
-  "Watch Watchfire in action across three interfaces: the scriptable CLI, the interactive TUI, and the multi-project GUI for AI coding agents.";
+  "See Watchfire in action across three interfaces: the scriptable CLI, the interactive TUI, and the multi-project GUI for AI coding agents.";
 
 export const metadata: Metadata = {
   title: "Demos",
@@ -33,9 +36,6 @@ type Demo = {
   id: "cli" | "tui" | "gui";
   heading: string;
   description: string;
-  videoTitle: string;
-  videoId: string;
-  runtime: string;
   docsHref: string;
   docsLabel: string;
 };
@@ -46,10 +46,6 @@ const demos: Demo[] = [
     heading: "CLI",
     description:
       "Scriptable commands you can run anywhere. Bootstrap a project with watchfire init, define work with watchfire task add, and slot Watchfire into the shell, scripts, or CI you already use.",
-    videoTitle: "Watchfire CLI demo",
-    // TODO: replace placeholder video ID with real demo
-    videoId: "dQw4w9WgXcQ",
-    runtime: "3:12",
     docsHref: "/docs/components/cli",
     docsLabel: "Read the CLI docs",
   },
@@ -58,10 +54,6 @@ const demos: Demo[] = [
     heading: "TUI",
     description:
       "An interactive Bubbletea interface with a multi-project sidebar and live terminal output from every running agent. The same keystrokes work on macOS, Linux, and a remote SSH session.",
-    videoTitle: "Watchfire TUI demo",
-    // TODO: replace placeholder video ID with real demo
-    videoId: "dQw4w9WgXcQ",
-    runtime: "3:12",
     docsHref: "/docs/components/cli#tui-mode",
     docsLabel: "Read the TUI docs",
   },
@@ -70,10 +62,6 @@ const demos: Demo[] = [
     heading: "GUI",
     description:
       "An Electron dashboard for juggling many projects at once. Drag and drop to reorder tasks, watch agent transcripts as they stream, and keep an eye on everything from the system tray.",
-    videoTitle: "Watchfire GUI demo",
-    // TODO: replace placeholder video ID with real demo
-    videoId: "dQw4w9WgXcQ",
-    runtime: "3:12",
     docsHref: "/docs/components/gui",
     docsLabel: "Read the GUI docs",
   },
@@ -89,6 +77,26 @@ const itemListLd = {
     url: `${siteUrl}/demos#${demo.id}`,
   })),
 };
+
+function DemoPreview({ id }: { id: Demo["id"] }) {
+  if (id === "cli") {
+    return <AnimatedTerminal />;
+  }
+  if (id === "tui") {
+    return (
+      <DemoFrame label="watchfire — tui">
+        <div className="absolute inset-0 flex items-center justify-center p-4">
+          <TuiPreviewSvg className="h-full w-full" />
+        </div>
+      </DemoFrame>
+    );
+  }
+  return (
+    <DemoFrame label="Watchfire.app">
+      <GuiScreenshotCarousel />
+    </DemoFrame>
+  );
+}
 
 export default function DemosPage() {
   return (
@@ -130,16 +138,9 @@ export default function DemosPage() {
                       {demo.description}
                     </p>
                     <div className="mt-6">
-                      <LiteYouTube
-                        id={demo.videoId}
-                        title={demo.videoTitle}
-                      />
+                      <DemoPreview id={demo.id} />
                     </div>
-                    <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
-                      <span>{demo.runtime}</span>
-                      <span aria-hidden="true">·</span>
-                      <span>Press Enter to play</span>
-                      <span aria-hidden="true">·</span>
+                    <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
                       <Link
                         href={demo.docsHref}
                         className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
