@@ -13,6 +13,7 @@ import KeyFeatures from "@/components/KeyFeatures";
 import RawVsWatchfire from "@/components/RawVsWatchfire";
 import CommonWorkflows from "@/components/CommonWorkflows";
 import FleetOps from "@/components/FleetOps";
+import RecentBlogPosts from "@/components/RecentBlogPosts";
 import FAQ from "@/components/FAQ";
 import FAQJsonLd from "@/components/FAQJsonLd";
 import FinalCTAServer from "@/components/FinalCTAServer";
@@ -210,6 +211,12 @@ export default async function Home() {
     <FAQJsonLd />
     <ScrollReveal>
       <FAQ />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal>
+      <RecentBlogPosts />
     </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
