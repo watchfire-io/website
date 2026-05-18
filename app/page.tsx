@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import AnimatedTerminal from "@/components/AnimatedTerminal";
+import HeroModeShowcase from "@/components/HeroModeShowcase";
 import DownloadInstall from "@/components/DownloadInstall";
 import GitHubStars from "@/components/GitHubStars";
 import HowItWorks from "@/components/HowItWorks";
@@ -55,7 +55,7 @@ export default async function Home() {
       <div className="hero-entrance relative mx-auto flex w-full max-w-7xl flex-col items-center gap-6 sm:gap-10 md:flex-row md:items-center md:gap-12 lg:gap-20">
         {/* Animated terminal — on mobile: shown above text, on md+: shown to the right */}
         <div className="w-full md:order-2 md:flex-1">
-          <AnimatedTerminal />
+          <HeroModeShowcase />
         </div>
 
         {/* Text content */}
