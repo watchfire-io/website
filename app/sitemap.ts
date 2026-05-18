@@ -102,6 +102,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const brandLastMod = fileLastModified("app/brand/page.tsx");
   const privacyLastMod = fileLastModified("app/privacy/page.tsx");
+  const demosLastMod = maxLastModified([
+    "app/demos/page.tsx",
+    "components/LiteYouTube.tsx",
+  ]);
   const feedLastMod = feedLastModified();
 
   return [
@@ -122,6 +126,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: privacyLastMod,
       changeFrequency: "monthly",
       priority: 0.5,
+    },
+    {
+      url: `${siteUrl}/demos`,
+      lastModified: demosLastMod,
+      changeFrequency: "monthly",
+      priority: 0.6,
     },
     {
       url: `${siteUrl}/blog`,
