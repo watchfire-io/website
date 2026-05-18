@@ -26,9 +26,11 @@ const WATCHFIRE_PUBLISHER = {
 export default function BlogArticleJsonLd({
   post,
   image,
+  readingMinutes,
 }: {
   post: BlogPage;
   image?: string;
+  readingMinutes?: number;
 }) {
   const slug = post.slugs[0];
   const filePath = `content/blog/${slug}.mdx`;
@@ -67,6 +69,10 @@ export default function BlogArticleJsonLd({
       "@id": canonicalId,
     },
   };
+
+  if (readingMinutes && readingMinutes > 0) {
+    article.timeRequired = `PT${readingMinutes}M`;
+  }
 
   return (
     <script

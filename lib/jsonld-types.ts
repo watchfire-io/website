@@ -77,6 +77,7 @@ export interface Article {
   publisher: OrganizationRef;
   image: string;
   mainEntityOfPage: ArticleMainEntityOfPage;
+  timeRequired?: string;
 }
 
 export interface HowToFrontmatterStep {
