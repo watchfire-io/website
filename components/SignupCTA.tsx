@@ -51,11 +51,11 @@ export default function SignupCTA() {
             <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400 sm:text-base">
               Help us reach more developers.
             </p>
-            <div className="mt-6 flex flex-col items-center gap-5 rounded-2xl border border-fire-500/15 bg-fire-500/[0.04] px-6 py-8 shadow-[0_0_40px_rgba(224,112,64,0.12)] dark:border-fire-400/20 dark:bg-fire-400/[0.05] dark:shadow-[0_0_50px_rgba(224,112,64,0.18)] md:items-start">
+            <div className="mt-6 flex flex-col items-center gap-5 rounded-2xl border border-fire-500/15 bg-fire-500/[0.04] px-6 py-8 shadow-[0_0_40px_rgba(224,112,64,0.12)] dark:border-fire-400/20 dark:bg-fire-400/[0.05] dark:shadow-[0_0_50px_rgba(224,112,64,0.18)]">
               <Suspense fallback={githubStarsFallback}>
                 <GitHubStars />
               </Suspense>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <a
                   href={socialLinks.bluesky}
                   target="_blank"
@@ -67,14 +67,10 @@ export default function SignupCTA() {
                     width="18"
                     height="18"
                     viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    fill="currentColor"
                     aria-hidden="true"
                   >
-                    <path d="M12 11C9.5 6.5 5.5 3.5 4 5.5C2.8 7.5 3.5 10.5 5 12.5C3.2 13.2 3 16 5 17C7 18 10 15 12 13C14 15 17 18 19 17C21 16 20.8 13.2 19 12.5C20.5 10.5 21.2 7.5 20 5.5C18.5 3.5 14.5 6.5 12 11Z" />
+                    <path d="M6.335 5.144c2.929 2.199 6.08 6.658 7.236 9.052 1.157-2.394 4.308-6.853 7.237-9.052 2.113-1.587 5.535-2.815 5.535 1.09 0 .779-.447 6.546-.71 7.483-.91 3.255-4.227 4.086-7.18 3.583 5.16.879 6.474 3.787 3.64 6.694-5.382 5.522-7.733-1.386-8.337-3.156-.11-.325-.161-.476-.161-.346 0-.13-.05.021-.16.346-.604 1.77-2.955 8.678-8.337 3.156-2.834-2.907-1.52-5.815 3.64-6.694-2.953.503-6.27-.328-7.18-3.583-.263-.937-.71-6.704-.71-7.483 0-3.905 3.422-2.677 5.535-1.09z" />
                   </svg>
                 </a>
                 <a
@@ -85,18 +81,13 @@ export default function SignupCTA() {
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white/70 text-zinc-600 transition-colors hover:border-fire-500/50 hover:text-fire-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fire-500/60 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300 dark:hover:border-fire-400/50 dark:hover:text-fire-300"
                 >
                   <svg
-                    width="18"
-                    height="18"
+                    width="14"
+                    height="14"
                     viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    fill="currentColor"
                     aria-hidden="true"
                   >
-                    <path d="M4 4L20 20" />
-                    <path d="M20 4L4 20" />
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                   </svg>
                 </a>
               </div>
