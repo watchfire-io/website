@@ -375,15 +375,13 @@ export default function AboutPage() {
               >
                 blog
               </Link>
-              , or get in touch via{" "}
-              <a
-                href="https://github.com/watchfire-io/watchfire/discussions"
-                target="_blank"
-                rel="noopener noreferrer"
+              , or come say hi on the{" "}
+              <Link
+                href="/community"
                 className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
               >
-                GitHub Discussions
-              </a>
+                community page
+              </Link>
               .
             </p>
           </div>
