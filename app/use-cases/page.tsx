@@ -109,6 +109,17 @@ const scenarios: Scenario[] = [
     linkLabel: "Tips for writing good tasks",
     linkHref: "/docs/tips",
   },
+  {
+    id: "switch-from-raw-cli",
+    tag: "Switching from raw CLI",
+    icon: ArrowRightLeft,
+    headline:
+      "Already driving Claude Code or Codex directly? Keep the agent, change the workspace.",
+    body:
+      "If you live at the raw CLI prompt today, Watchfire is not a rewrite of how you work — it is a steering wheel and seatbelts around the agent you already trust. The migration guide walks through the four real shifts (task instead of prompt, worktree instead of working tree, sandbox, diff-review instead of live intervention) and the first hour of using Watchfire on a project you already know.",
+    linkLabel: "Read the migration guide",
+    linkHref: "/blog/2026-05-20-migrating-from-raw-cli-to-watchfire",
+  },
 ];
 
 const breadcrumbsLd: BreadcrumbList = {
