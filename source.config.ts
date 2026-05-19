@@ -13,6 +13,15 @@ const howtoSchema = z.object({
   steps: z.array(howtoStepSchema).min(1),
 });
 
+const authorSchema = z.union([
+  z.string().min(1),
+  z.object({
+    name: z.string().min(1),
+    url: z.string().url().optional(),
+    title: z.string().min(1).optional(),
+  }),
+]);
+
 export const docs = defineDocs({
   dir: 'content/docs',
   docs: {
@@ -32,6 +41,7 @@ export const blog = defineDocs({
       image: z.string().optional(),
       canonical: z.string().url().optional(),
       draft: z.boolean().default(false),
+      author: authorSchema.optional(),
     }),
   },
 });

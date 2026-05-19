@@ -11,6 +11,7 @@ import {
   getBlogPostBodyMarkdown,
   listPublishedBlogPosts,
 } from "@/lib/blog-source";
+import { isExternalUrl, normalizeBlogAuthor } from "@/lib/blog-author";
 import { slugifyTag } from "@/lib/blog-tags";
 import { estimateReadingTimeMinutes } from "@/lib/reading-time";
 import { siteUrl } from "@/lib/site";
@@ -92,6 +93,7 @@ export default async function BlogPostPage(props: PageProps) {
   const MDX = page.data.body;
   const formattedDate = formatDate(page.data.date);
   const tags = page.data.tags ?? [];
+  const author = normalizeBlogAuthor(page.data.author);
   const readingMinutes = estimateReadingTimeMinutes(
     getBlogPostBodyMarkdown(slug),
   );
@@ -137,6 +139,40 @@ export default async function BlogPostPage(props: PageProps) {
         />
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-500 dark:text-zinc-400">
+          {author ? (
+            <>
+              <span>
+                <span className="text-zinc-500 dark:text-zinc-400">By </span>
+                {author.url ? (
+                  <Link
+                    href={author.url}
+                    {...(isExternalUrl(author.url)
+                      ? { target: "_blank", rel: "noopener noreferrer" }
+                      : {})}
+                    className="font-medium text-zinc-700 transition-colors hover:text-fire-600 dark:text-zinc-200 dark:hover:text-fire-400"
+                  >
+                    {author.name}
+                  </Link>
+                ) : (
+                  <span className="font-medium text-zinc-700 dark:text-zinc-200">
+                    {author.name}
+                  </span>
+                )}
+                {author.title ? (
+                  <span className="text-zinc-500 dark:text-zinc-400">
+                    {" · "}
+                    {author.title}
+                  </span>
+                ) : null}
+              </span>
+              <span
+                aria-hidden="true"
+                className="text-zinc-400 dark:text-zinc-600"
+              >
+                ·
+              </span>
+            </>
+          ) : null}
           <time dateTime={page.data.date}>{formattedDate}</time>
           <span aria-hidden="true" className="text-zinc-400 dark:text-zinc-600">
             ·

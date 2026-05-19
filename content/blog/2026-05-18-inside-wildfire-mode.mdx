@@ -4,6 +4,7 @@ date: "2026-05-18"
 summary: "Wildfire mode turns a project definition into a self-refining queue of tasks. Here is how the loop is shaped, why each phase exists, and where the safety rails are."
 tags: ["deep-dive", "wildfire"]
 image: "/banner-dark.png"
+author: "Nuno Coração"
 ---
 
 You have a `project.yaml`, a half-written list of tasks, and a rough sense of where the codebase should be a week from now. The slow part is rarely the coding — it is keeping the queue in front of the agent honest as the repo changes underneath it. Wildfire mode delegates that bookkeeping. You hand it a definition and a starting list of tasks, and it executes, refines, and grows the queue on its own until it decides the project is done or you stop it.
