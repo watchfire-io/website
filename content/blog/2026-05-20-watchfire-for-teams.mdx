@@ -1,0 +1,92 @@
+---
+title: "Watchfire for teams: shared task lists, review surfaces, and multi-agent fleets"
+date: "2026-05-20"
+summary: "Watchfire was designed for one developer running many agents — but the same primitives (tasks as files, worktrees as review surfaces, audit trails on disk) turn out to be exactly what a team needs. Here's how it works when there's more than one of you."
+tags: ["teams", "collaboration", "case-study"]
+author: "Nuno Coração"
+---
+
+A reader evaluating Watchfire for themselves can stop reading after the second paragraph of any of the other deep-dives. A reader evaluating it for a team of engineers cannot. Their next question is one we have not answered in print yet, and it is the one every buyer asks first: _how does this work when there is more than one of us?_ Does it survive two engineers queueing work against the same project? Does it survive a third coming back from vacation and wondering what the agents have been up to? Does it survive a reviewer who would rather read a diff than a transcript?
+
+The honest answer is that we did not design Watchfire for teams. We designed it for one operator running a queue of agents, and we built every primitive — tasks, worktrees, the merge contract, the metrics file — around that single-operator picture. What happened next is that the picture turned out to scale better than the design did. Not because of any team-specific feature we added afterwards — there isn't one — but because the primitives we picked were the primitives a team already uses. The task list is a directory in `git`. The unit of review is a branch with a single merge commit. The audit trail is a sibling file next to the task that produced it. None of that needed to be re-invented for two people; it needed to be _noticed_ for two people. That is what this post is for.
+
+## Tasks are files in `git`
+
+The simplest, most under-rated thing about Watchfire is the location of the queue. Every task lives at `.watchfire/tasks/<n>.yaml` inside the project repository. The directory is not a database, not a hosted service, not a JSON blob inside the daemon's state. It is a directory of small YAML files. Open one and you can read the entire brief in under a minute.
+
+```bash
+$ ls .watchfire/tasks/ | head
+0001.yaml
+0002.yaml
+0003.yaml
+0004.yaml
+0005.yaml
+0006.yaml
+0007.yaml
+0008.yaml
+0009.yaml
+0010.yaml
+```
+
+This looks unremarkable until you start thinking about what a team would otherwise have to build to make it work. A task tracker would need permissions, accounts, a notification surface, a backup story, a way to attach the task to a code change, a way to argue about its wording in review. A team using Watchfire gets every one of those for free, because the task file is in `git`. Two reviewers can argue over a task's acceptance criteria in a pull request that touches `.watchfire/tasks/0042.yaml` the same way they would argue over a function signature. Conflicts on the same task get the same three-way merge they would get on a source file. The history of how a brief evolved is `git log .watchfire/tasks/0042.yaml` — every wording change, every scope cut, every "we tried this and it didn't work" rolled back, in the same place every other piece of project history lives.
+
+The team workflow here is the team's existing workflow. If your team reviews code via pull requests, you can review tasks via pull requests. If your team branches per feature, you can branch per task draft. If you have CI that runs against changed files, that CI also runs against changes to your task definitions if you want it to. None of this needed a feature. It needed us to pick the right location.
+
+The corollary matters too: tasks are not lost when a contributor's laptop is lost. They are not stuck behind a paywall when somebody's seat expires. They are not visible only to whoever has the right link. They are wherever the source tree is — on the GitHub mirror, on every clone, in every reviewer's editor, in the team's backup of the repository. The cost of "where does this team's work plan live" is exactly zero on top of "where does this team's code live."
+
+## The worktree is the review surface
+
+[Why we run every task in its own git worktree](/blog/2026-05-18-isolated-worktrees-per-task) makes the technical case for one task, one branch, one merge commit. For a single developer the payoff is parallelism without fights and safe failure. For a team the payoff is different and arguably larger: the unit of review is already the unit of work.
+
+Two reviewers can review two task branches at the same time without stepping on each other, because the branches are independent by construction. If task `0042` is a CSS rewrite and task `0043` is a database migration, they are two branches cut from `main`, two worktree directories on disk, two `watchfire/<n>` refs, two merge commits. The reviewer of `0042` reads one diff. The reviewer of `0043` reads a different one. Neither reviewer needs to mentally subtract the other's changes from the picture. They never have to ask "what did the agent do _besides_ this," because the only thing on the branch is the work the task asked for.
+
+This is the discipline that dies first on every other agent platform we have looked at. The natural shape of an agent session — one long-running model conversation — produces a transcript, not a diff. A transcript is not reviewable: there is no "approve" button, no inline comment surface, no per-line history. The pull request is the lingua franca of code review for the same reason `git` is the lingua franca of code history: every reviewer already knows how to use it, every editor already supports it, every CI system already integrates with it. The moment an agent platform tries to invent its own review surface it loses to whatever the team is using already.
+
+The merge contract is the part a team feels most. The daemon only merges `watchfire/<n>` back into `main` when the task is marked `success: true` and the agent has exited cleanly. Failure leaves the branch and the worktree on disk for a human to look at, exactly the same way a pull request gets parked in `Changes requested` until somebody fixes it. There is no "the agent secretly modified things on `main`" failure mode. The default branch only moves forward when the team's contract for "what good work looks like" has been satisfied, and that contract lives in the task's `acceptance_criteria` field, where the team can argue about it before the agent runs.
+
+## Multi-agent fleets per project
+
+The bring-your-own-agent post ([Bring your own agent: why Watchfire supports six backends](/blog/2026-05-18-bring-your-own-agent)) made the technical case for treating the agent as a swappable part: today the daemon orchestrates Claude Code, Codex, opencode, Gemini CLI, GitHub Copilot CLI, and Cursor against the same task contract. The team consequence of that choice deserves its own paragraph, because it is the one most buyers do not immediately see.
+
+A team has more than one engineer, and engineers have more than one opinion. The contributor who lives in Cursor in their editor wants to keep using Cursor for the unattended queue. The contributor who has been on the Claude Code beta since week one wants Claude on the hard refactor tasks. The contributor optimising the lint-and-formatting cleanup queue wants Gemini for the cost. The contributor who has to satisfy a security review that says "no proprietary models" wants opencode. In a single-agent platform, that is a four-way fight that ends with three engineers using the tool reluctantly and one happily. In Watchfire, each task is allowed to specify its own backend:
+
+```yaml
+title: "Refactor docs search"
+agent: gemini
+status: ready
+# […]
+```
+
+The resolution order is `task.agent` → `project.default_agent` → the global Watchfire setting → `claude-code`. Engineers pick the agent they prefer for the work they own; the project still ships consistent, reviewable diffs because _the interface is the task file, not the agent_. A reviewer reading the resulting branch does not need to know which CLI produced it. The acceptance criteria are the same. The merge contract is the same. The worktree layout is the same. Only the binary the daemon `exec`'d under the hood was different.
+
+This is the unobvious half of the agent-as-swappable-part bet. The swap is not just "use a better model when the leaderboard reshuffles." The swap is also "two engineers, two preferences, one project, one shipped feature." A team that would otherwise have to standardise on one agent — because the platform forced them to — instead gets to make the choice per task, by the engineer closest to the work. That is the kind of decision software organisations are bad at centralising and good at delegating, and Watchfire's project shape lets the delegation happen at the file level.
+
+## Audit trails come for free
+
+Watchfire's Insights subsystem ([What we measure when we measure an agent](/blog/2026-05-19-what-we-measure-when-we-measure-an-agent)) writes a sibling `<n>.metrics.yaml` file next to every completed task. Nine fields, fixed schema, on disk: `task_number`, `project_id`, `agent`, `duration_ms`, `tokens_in`, `tokens_out`, `cost_usd`, `exit_reason`, `captured_at`. No database. No transcript. No prompt. No code excerpt.
+
+For an individual that file is a private journal. For a team it is the audit trail nobody had to set up. Open `.watchfire/tasks/` after a week of fleet activity and `agent` plus `duration_ms` plus `cost_usd` per task is what comes out. `grep -l "exit_reason: failed" .watchfire/tasks/*.metrics.yaml` is the list of tasks the agents could not finish. `grep -l "agent_sessions: [2-9]" .watchfire/tasks/*.yaml` is the list of tasks that took more than one session and probably want a smaller brief. None of that needed a dashboard. A team lead can run those greps in the same checkout the engineers are coding against.
+
+The shape of the file was deliberate. It carries no content of the session — no prompt, no response, no diff of the code produced. That restraint is what makes the metrics file safe for a team to look at. A team lead can open a colleague's project's metrics directory without seeing the contents of a task that was about a private code path; a procurement team can be shown the cost-per-task numbers without anyone having to sanitise a transcript. The file is the schema, and the schema is nine fields, and the nine fields are quantitative. That is the entire pitch.
+
+Combine the two halves and a team gets something better than most paid telemetry products: the diff and the cost of the diff live next to each other, in the same directory, under version control. The retrospective is not a meeting where someone pulls up a dashboard. It is a `git log` and a `grep`. The team's standup can ask "which tasks took multiple sessions this week" and have an answer in five seconds, in the same editor everyone is already in.
+
+## What's not there yet
+
+This is the section where it would be tempting to overclaim. We are not going to. Watchfire today ships with no permissions or RBAC on tasks — anyone with write access to the repository can edit any task file, the same way they can edit any source file, and there is no per-task ownership beyond what `git blame` records. The daemon is single-user by design: there is no hosted, shared `watchfired` that a team can point multiple developer machines at; each developer runs their own daemon against their own clone, with the shared state being the repo itself. And the integration surface — Slack, Discord, the GitHub auto-PR loop, the inbound HTTP server — is everything documented at [`/docs/concepts/integrations`](/docs/concepts/integrations) and nothing else; Linear, Jira, Microsoft Teams, and SMTP digests are on the [roadmap](/docs/roadmap) but are not in tree today.
+
+## A team of three, one weekend
+
+Picture three engineers — Ana, Bo, Cam — and one project they have been meaning to push forward. On Friday morning Ana drafts six tasks in `.watchfire/tasks/` and opens a single pull request that adds the six YAML files. Bo and Cam review the briefs the same way they would review code: scope, acceptance criteria, file paths, the "what not to do" list. Two of the tasks come back with comments — one is two tasks pretending to be one (see [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task)), one has acceptance criteria that read like a wish list. Ana fixes the wording in two commits. The PR merges.
+
+Friday afternoon, Bo runs the queue. Three of the six are scoped tightly enough to set `status: ready` immediately; the daemon picks them up sequentially, spawns Claude Code in three successive `.watchfire/worktrees/<n>/` directories, and ships three branches and three merge commits before close of business. Cam reviews two of the three on the way out. The third was a quick rename and went green in CI without ceremony.
+
+Friday night, Cam leaves [Wildfire mode](/blog/2026-05-18-inside-wildfire-mode) running on the remaining three drafts. The loop refines each draft into a `ready` task, executes it, and merges the result; somewhere around midnight it runs out of work and drops into chat mode. Saturday morning, Ana opens her laptop, runs `git log --oneline .watchfire/tasks/` to see what landed overnight, and walks the merge commits on `main` to see the actual diffs. Three of them ship; one is reverted with a one-line task ("redo with smaller scope") added to the queue for Monday.
+
+The standup on Monday is the directory listing. There is no separate status doc, no separate dashboard tab, no separate notification channel. There is `git log`, there is `.watchfire/tasks/`, and there are the merge commits on `main`. Three engineers, one project, a weekend's worth of agent work, audited and reviewable in the same tool they were using to write code before any of this started. For more shapes of work the loop handles cleanly, [`/docs/recipes`](/docs/recipes) has the worked examples.
+
+## Closing
+
+The reason this scales from one operator to a team is not a feature we shipped. The closest [dogfooding post](/blog/2026-05-19-eating-our-own-dogfood) puts it on the record from the other side: every page on this website was produced by exactly this loop, and the directory of YAML files in this repository's `.watchfire/tasks/` is the case study. When a second person joined the queue, nothing changed in the daemon and nothing changed in the file layout. The team's existing tools picked up the work because the work was already in the shape those tools expected.
+
+That is the whole pitch for teams. Tasks are files. Reviews are diffs. Audit is `git log`. The team workflow is the workflow the team had already. Watchfire is the part that runs the agents against that workflow, and the part that picks the right primitives so the team does not have to learn a second set of them.
