@@ -191,6 +191,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
+      url: `${siteUrl}/playground`,
+      lastModified: maxLastModified([
+        "app/playground/page.tsx",
+        "components/PlaygroundBuilder.tsx",
+      ]),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
       url: `${siteUrl}/community`,
       lastModified: fileLastModified("app/community/page.tsx"),
       changeFrequency: "monthly",
