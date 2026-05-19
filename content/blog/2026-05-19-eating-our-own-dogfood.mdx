@@ -1,0 +1,105 @@
+---
+title: "Watchfire eats its own dogfood: how this website is built by the thing it documents"
+date: "2026-05-19"
+summary: "Every page, every blog post, every illustration on watchfire.io was shipped by a Watchfire task running in an isolated worktree. Here's what we learned from one hundred and thirty sessions of running the tool on the tool."
+tags: ["meta", "dogfooding", "case-study"]
+image: "/banner-dark.png"
+author: "Nuno Coração"
+---
+
+Open a terminal in the root of this website's repository and run a single command:
+
+```bash
+ls .watchfire/tasks/
+0001.yaml  0017.yaml  0033.yaml  0049.yaml  […]  0128.yaml
+0002.yaml  0018.yaml  0034.yaml  0050.yaml  […]  0129.yaml
+0003.yaml  0019.yaml  0035.yaml  0051.yaml  […]  0130.yaml
+```
+
+There are one hundred and thirty YAML files in that directory, and every page you have ever read on watchfire.io was produced by one of them. The hero on the landing page, the comparison matrix in the docs, the Mermaid diagram halfway down the Wildfire post, the "Edit on GitHub" link in the footer of every blog page, the `/about` page, the favicons, the very index you came in through — each of those lives in this repo because a Watchfire task spawned an agent in an isolated worktree, the agent shipped a diff, and the daemon merged it. The website is the output of the loop the website documents.
+
+This post is the proof. It is also a hub: every other architecture-focused post in this series — [Wildfire](/blog/2026-05-18-inside-wildfire-mode), [worktrees](/blog/2026-05-18-isolated-worktrees-per-task), [the sandbox](/blog/2026-05-19-how-watchfire-sandboxes-every-agent), [Beacon](/blog/2026-05-19-beacon-two-way-integrations), [secrets](/blog/2026-05-19-where-watchfire-keeps-your-secrets), [Insights](/blog/2026-05-19-what-we-measure-when-we-measure-an-agent), [Bring Your Own Agent](/blog/2026-05-18-bring-your-own-agent), and [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task) — argues that Watchfire's design works. A reader could fairly ask whether we actually use the thing ourselves. The answer is yes, and the receipts are sitting on disk in this very repository. One hundred and thirty task files. One hundred and twenty-nine of them are `status: done, success: true` at the time of writing. The one that is not is the one producing this paragraph.
+
+## The first task and the last task
+
+The earliest file in the directory is `0001.yaml`. Its title reads _"Scaffold Next.js project with Tailwind CSS and base layout."_ Open it and the first surprise is what it asks for: an `app/layout.tsx` with a `purple accent color (#a855f7)`, an Inter body font, a `bg-zinc-950` baseline. The website you are reading does not have any of those things. The brand colour is fire-orange. The body font is Outfit. The first eight tasks shipped a purple developer-tools website that no longer exists, and task `0009` — titled _"Rebrand website from purple to fire orange color palette"_ — is the merge commit where that website became this one. Task `0010` did the same job for the docs.
+
+The most recent task before this one is `0129.yaml`. It produced [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task). The task before that, `0128`, produced the [`/about` page](/about). The one before that produced the per-backend landing pages. The one before that produced the comparison matrix. Tracing the directory in order is tracing the history of the site the way a designer traces a layered Figma file: each task is one layer, and the merge order is the layer order.
+
+The interesting thing about the arc from `0001` to `0129` is not that it covers a year of work. It is that the cost of taking a small improvement from idea to merged change is, in practice, _one task file_. Most of the entries in that directory took less than ninety minutes of wall-clock agent time. The unit of progress on this website is a fifty-line YAML document, written by a human, executed by an agent, reviewed against acceptance criteria the human wrote in advance. The whole project is a directory listing.
+
+## One task, end to end
+
+Take task `0118` as an example, because it is small enough to walk through in full and large enough to have shipped real value.
+
+```yaml
+task_number: 118
+title: Add an "Edit on GitHub" link to blog post pages
+prompt: |
+    Docs pages already have an "Edit on GitHub" link
+    via `components/EditOnGithub.tsx`, rendered at
+    the bottom of every page under
+    `app/docs/[[...slug]]/page.tsx`. […]
+
+    Blog posts at `/blog/[slug]` have no equivalent
+    link. The MDX files live under `content/blog/`
+    and are just as fixable, but a casual reader has
+    no obvious path from "I found a typo" to a GitHub
+    edit URL. This task closes that gap.
+    # […]
+acceptance_criteria: |
+    - Every published blog post page at
+      `/blog/[slug]` shows an "Edit on GitHub" link
+      in its footer, visually identical to the docs
+      version (same component, same icon, same
+      styling).
+    - The link is rendered by reusing
+      `components/EditOnGithub.tsx` — no duplicate
+      component is created.
+    - Blog index page `/blog` and tag archive pages
+      `/blog/tags/[tag]` do **not** show the link.
+    - `npm run build` and `npm run lint` both succeed.
+status: done
+success: true
+agent_sessions: 1
+```
+
+That YAML file is the entire brief. A human spent maybe ten minutes writing it. The agent then spawned in its own worktree at `.watchfire/worktrees/0118/`, on the dedicated branch `watchfire/0118`. It read `components/EditOnGithub.tsx`, decided the existing component was already general enough, imported it into `app/blog/[slug]/page.tsx`, wired up the source-file path, ran `npm run build` and `npm run lint`, and set `status: done`. The daemon noticed, merged the branch back into `main`, and tore the worktree down.
+
+You can audit every step of that without leaving the repo. `git log app/blog/[slug]/page.tsx` shows commit `b00d9ad — "Add Edit on GitHub link to blog post pages"`, followed by `319b4a0 — "Merge watchfire/0118"`. The pencil icon you see at the bottom of this very page exists because that one task file did. The link you would click to fix a typo in this paragraph points back at the MDX file the task produced the wiring for. The fingerprints are everywhere.
+
+## What dogfooding revealed
+
+Three things, each of them obvious only in hindsight.
+
+### The task file is the spec
+
+We did not set out to write specs. We set out to queue up work. But once the prompt and the acceptance criteria are detailed enough for the agent to do the job without supervision, they are detailed enough that they _are_ the specification. The `.watchfire/tasks/` directory turned out to be a design-history archive nobody had to maintain — every change to the site, ordered, motivated, scoped, and verifiable against the diff it produced.
+
+This collapse — task as spec — is what [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task) is really arguing for. A task that the agent can finish in one session is, by construction, a task that explains its own intent. Once you write enough of them you stop opening a separate spec document, because the task already has the file paths, the acceptance commands, the negative constraints, and the cross-links. The natural artifact of running an agent _is_ the spec. The natural shape of running this loop turned the design history into a directory listing you can `grep`.
+
+### The worktree is the review surface
+
+When task `0118` finished, what it produced was not a thousand-line refactor. It was four lines of import, six lines of JSX, one new prop on an existing component. The merge commit at `319b4a0` is reviewable in under a minute. Multiply that by a hundred and thirty and the cumulative review surface is still tractable: one hundred and thirty small diffs against `main`, each on its own branch, each annotated by the YAML that produced it.
+
+That is the central argument of [Why we run every task in its own git worktree](/blog/2026-05-18-isolated-worktrees-per-task), and dogfooding made it concrete. The alternative — one long-lived branch with one hundred and thirty commits — would have been unreviewable by week three. Worktree-per-task is what kept the diff economy honest. If a task tried to do too much, the bloated diff was visible immediately, and the right move was to throw the branch out and rewrite the YAML. We did that more than once.
+
+### The metrics file is the retrospective
+
+Every task from `0061` onwards has a sibling `<n>.metrics.yaml` file alongside its task file. Sixty-nine of them, as of this writing. Each one records `duration_ms`, `tokens_in`, `tokens_out`, `cost_usd`, `exit_reason`, `agent_sessions` — the full record described in [What we measure when we measure an agent](/blog/2026-05-19-what-we-measure-when-we-measure-an-agent). All sixty-nine carry `exit_reason: completed`. Across the full directory, thirteen tasks needed more than one agent session to finish.
+
+There is no retrospective ritual here. We do not run a weekly meeting where somebody pulls up an analytics dashboard and asks where the time went. We `grep` for `agent_sessions: [2-9]` and the answer is on disk. The metrics are siblings of the work itself; the diff and the cost of the diff live next to each other in the same directory. Insight is a filesystem operation. That is what made the dashboard category go away.
+
+## What dogfooding broke
+
+Three honest things, all visible in the directory listing.
+
+The most awkward is task `0009` and `0010`. The first eight tasks shipped a purple website nobody wanted, and tasks `0009` and `0010` had to rip out every purple token and replace it with a fire-orange one. We did not anticipate the rebrand. The task file directory carries the scar, and you can read the entire wrong-then-right arc in the commit history. The lesson was real: pin the brand before the scaffolding lands. We did not, and the loop dutifully shipped the wrong one until we told it otherwise.
+
+The next is task `0020` — _"Update changelog with v0.1.1 through v0.3.0 releases."_ It carries `agent_sessions: 6`. A six-session task is a task that fought back. The story on disk is that bulk-updating a structured MDX file from a written changelog turned out to be much more error-prone than the prompt assumed; each session left the file _almost_ right and the next one had to refine. The insight file flagged it immediately, the way the [Insights post](/blog/2026-05-19-what-we-measure-when-we-measure-an-agent) describes — `grep -l "agent_sessions: [2-9]" .watchfire/tasks/*.yaml` returns thirteen tasks, and `0020` is the worst of them. The fix, in retrospect, was a smaller per-version task, not a bigger model.
+
+The third is the v4.0.0 cleanup. Task `0070` — _"Site-wide consistency pass after v4.0.0 Beacon updates"_ — exists because the seven-task v4.0.0 push (`0061` through `0070`) shipped enough drift across the site that a follow-up pass was necessary to bring everything back into alignment. That follow-up was itself one of the multi-session tasks. The pattern is honest: when a feature lands in multiple places, the per-task brief sometimes leaves the seams visible, and the only fix is another task to walk them out. Not a flaw in the loop. A flaw in the brief.
+
+## Closing
+
+The most persuasive documentation a developer tool can ship is not a tutorial, a screencast, or a comparison page. It is a repository where you can read the project's own task history and verify that the workflow the marketing site describes is the workflow the marketing site was built with. That is what `.watchfire/tasks/` is. One hundred and thirty YAML files, one hundred and twenty-nine merged, one in progress. The fact that you are reading this on a site shipped by the system it documents is the argument. The receipts are on disk. The directory listing is the case study.
