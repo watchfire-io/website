@@ -250,6 +250,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.6,
     },
+    {
+      url: `${siteUrl}/integrations`,
+      lastModified: maxLastModified([
+        "app/integrations/page.tsx",
+        "lib/integrations.ts",
+        "lib/agent-backends.ts",
+      ]),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
     ...agentBackends.map((agent) => ({
       url: `${siteUrl}/agents/${agent.slug}`,
       lastModified: new Date(),
