@@ -9,6 +9,7 @@ import {
 import { getChangelogEntries } from "@/lib/changelog";
 import { listPublishedBlogPosts } from "@/lib/blog-source";
 import { getAllTags, getPostsByTagSlug } from "@/lib/blog-tags";
+import { agentBackends } from "@/lib/agent-backends";
 
 function feedLastModified(): Date {
   const entries = getChangelogEntries();
@@ -164,6 +165,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.6,
     },
+    {
+      url: `${siteUrl}/agents`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    ...agentBackends.map((agent) => ({
+      url: `${siteUrl}/agents/${agent.slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
     {
       url: `${siteUrl}/blog`,
       lastModified: blogIndexLastMod,
