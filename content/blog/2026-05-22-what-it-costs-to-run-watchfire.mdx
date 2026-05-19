@@ -1,0 +1,95 @@
+---
+title: "What it costs to run Watchfire"
+date: "2026-05-22"
+summary: "Watchfire itself is free, but every task it runs spends real money against an agent backend. Here is a practical, numbers-forward breakdown of what each backend costs, which mode burns the most, and three concrete ways to stay under a monthly budget."
+tags: ["cost", "pricing", "agent-modes", "practical", "wildfire"]
+author: "Nuno Coração"
+---
+
+You installed Watchfire on a Friday afternoon, queued ten tasks across your side project, and pressed Start All on the way out the door. By Saturday lunch the queue had drained, four branches were merged, two were waiting on review, and the rest had bounced off acceptance criteria you had not written carefully enough. On Monday morning you opened the Anthropic console — or the OpenAI dashboard, or the Google Cloud billing tab — and the number staring back at you was either a delightful single-digit dollar figure or a slightly-terrifying three-digit one. There was nothing in between, and you were not sure which lever made the difference.
+
+The Watchfire headline is _free, open source, runs on your machine_. All of that is true. What is also true — and harder to find in the README — is that the orchestrator is free and the _agent runs_ are not. Watchfire is a control surface for a coding agent; the agent is the thing spending money. The bill on Monday morning is mostly the bill the agent backend would have run up anyway, shaped by which backend you picked, which model that backend pointed at, and which Watchfire mode you turned on.
+
+This post is the breakdown we wish someone had handed us in week one. By the end of it you will know roughly what each supported backend costs per task in 2026 dollars, which Watchfire mode is the budget risk, and three concrete things to do this afternoon so the Monday number lands where you expect it.
+
+## The cost is the model, not Watchfire
+
+There are exactly two line items in a Watchfire bill, and only one of them charges you.
+
+**Watchfire itself: zero dollars.** Watchfire is open source under Apache-2.0. It runs as a daemon on your laptop, talks gRPC to its CLI and GUI clients, and stores all state on local disk. There is no usage-based pricing, no per-seat fee, no telemetry that turns into an invoice. The [comparison doc](/docs/compare) lists this in the pricing row as _"Free (you pay your model API)"_ and that row is the whole story on our side.
+
+**The agent backend: pays per token, or per subscription.** Every task in Watchfire is a session against one of the supported coding agents — Claude Code, OpenAI Codex CLI, opencode, Gemini CLI, GitHub Copilot CLI, or Cursor Agent. Most of those bill you per token on the underlying model API; a couple bundle the cost into a flat subscription. Either way, your monthly Watchfire spend is your backend's monthly spend, and the levers that change it are the levers _that backend_ exposes: model tier, context length, retry count, mode.
+
+A few things shape the bill more than people expect. **Model choice** is the biggest single dial — the frontier tier of any provider is roughly an order of magnitude more expensive than the cheap tier. **Task length** is the second — a long task reads more context, writes more diff, and pays for both. **Mode** matters because some modes run one session per task and others run dozens. And **retries** are the silent multiplier: a task with `agent_sessions: 5` paid for five sessions, not one, and that ratio shows up in your console on Monday.
+
+All prices quoted below are from May 2026 and should be confirmed on each backend's pricing page before you commit budget against them. We do not list per-token numbers in this post on purpose — they age badly. The per-task ranges are anchored to publicly listed per-token rates at the time of writing.
+
+## Per-backend cost shape
+
+Each of the six backends Watchfire supports has a different billing shape. The ranges below are _approximate_ and assume a clean single-session task. Mileage will vary with codebase size and conversation length.
+
+**Claude Code.** Pay-as-you-go against the [Anthropic API](https://www.anthropic.com/pricing). Cost scales with model tier: Sonnet is the workhorse, Opus is the frontier. Approximate per-task ranges: roughly _$0.02–$0.20_ for a short, well-scoped task on the Sonnet tier; _$0.50–$3.00_ for a long refactor on Opus reading a large codebase. **What blows up the bill:** running Opus by default in a 100k-token repo. Switch to Sonnet for routine tasks and reserve Opus for the hard ones.
+
+**OpenAI Codex CLI.** Pay-as-you-go against the [OpenAI API](https://openai.com/api/pricing/). Cost shape mirrors Claude Code — a cheap workhorse model and a more expensive frontier model. Approximate per-task ranges land in the same _$0.02–$0.20_ band on the cheap tier and climb past a dollar on the frontier tier for long sessions. **What blows up the bill:** large-context refactors where Codex re-reads the same files across many tool calls. Scope tasks tighter to keep the conversation short.
+
+**opencode.** Bring-your-own-provider. Cost depends entirely on which model API you point opencode at — Anthropic, OpenAI, OpenRouter, a local model, or another. The per-task range is whatever that provider charges per session; opencode itself is free. **What blows up the bill:** picking an expensive frontier model and forgetting you picked it. opencode does not save you money — it lets you choose where to spend it. Confirm rates on your chosen provider's pricing page before you start a long queue.
+
+**Gemini CLI.** Pay-as-you-go against the [Gemini API](https://ai.google.dev/pricing). Google publishes per-token rates for each Gemini tier, and the cheap tier is one of the more aggressive prices on the market. Approximate per-task ranges sit in the low single cents on the cheap tier for small tasks; a long agentic session on the frontier tier can climb into dollar territory. **What blows up the bill:** loading huge contexts on the frontier tier. Gemini's long-context window is a feature; it is also a cost multiplier.
+
+**GitHub Copilot CLI.** Subscription, not per-token. Copilot pricing is billed at the plan level on [GitHub's pricing page](https://github.com/features/copilot/plans) — Individual, Business, and Enterprise tiers. A single user pays a flat monthly fee and Copilot CLI usage folds into the subscription rather than appearing as a per-task line item. We are not going to quote a number, because the plans bundle different things; check the pricing page for the current tier. **What blows up the bill:** nothing, in the sense that the bill is flat. The risk inverts — you can _under-use_ a subscription you are paying for.
+
+**Cursor Agent.** Subscription, with a usage component on the Pro tier. Cursor publishes its plan list on [the Cursor pricing page](https://www.cursor.com/pricing), and the Agent CLI usage counts against your monthly request budget. The per-task cost is "one request" or thereabouts; how many requests fit in a month depends on the plan. **What blows up the bill:** burning the monthly request budget on chatty tasks early in the month. Treat the request count the way you would treat a token budget.
+
+## Mode is the dial
+
+The same task in different Watchfire modes burns different amounts of money. Held against backend choice, mode is the second-biggest dial in the system. Ordered cheapest to most expensive:
+
+**Chat.** Cheap per message, expensive per hour, because _you are in the loop_. Each turn is a small conversation: a question, a one-paragraph answer, maybe a small diff. The token spend per turn is low, and the agent does not run unattended. The trade is your time: chat is the most attention-intensive mode, and a one-hour chat session beats a one-hour task session on cost alone. Predictable budget shape.
+
+**Task.** One conversation, one task YAML, one merged diff. Cost scales linearly with task size — a small task on the cheap tier is cents, a long refactor on the frontier tier is dollars. The predictability is the value: you can estimate a task's cost from its prompt before you press run. Most of the Watchfire budget on a working project is task-mode budget.
+
+**Start All.** Runs every `ready` task sequentially, one worktree per task. Cost scales linearly with the queue length. If you have 40 ready tasks and you run them all, expect roughly 40× the cost of a single task — and if any of those tasks fan out into retries, the multiplier is higher. Predictable, but unbounded if the queue is unbounded. A full overnight queue on the frontier tier is the most common path to a surprise bill that is not [Wildfire](/blog/2026-05-18-inside-wildfire-mode).
+
+**Wildfire.** The most expensive mode by design, and the one most worth being thoughtful about. Wildfire is the autonomous loop: Execute ready tasks, Refine drafts into ready, _and Generate new tasks when the queue is empty_. The third phase is the budget risk. Execute and Refine are bounded by your inputs. Generate is bounded by your project definition — and if the definition is thin, Generate will dream up plausible-looking work that the queue then pays to run. A poorly-scoped definition is how a weekend Wildfire run turns into a hundred-dollar bill for forty tasks none of which you wanted. Cross-link to [Anatomy of a great project definition](/blog/2026-05-21-anatomy-of-a-great-project-definition) — the definition is the budget bound on Generate.
+
+Wildfire is still worth it on the right project. The point of this section is not to scare you off, only to make the trade visible: Wildfire amplifies the shape of your project. On a well-shaped project that shape is good and the spend matches the throughput. On a vague project the shape is whatever the loop interpolates, and you pay for it.
+
+## Three concrete ways to stay under a budget
+
+There are a dozen things you _could_ do. These three are the ones that move the number the most.
+
+### 1. Pick the cheap model for the cheap work
+
+Most tasks do not need the frontier model. A documentation fix, a rename, a one-file refactor, a test case — all of these land cleanly on the cheap tier of any provider, and the cost difference between Sonnet and Opus, or between the cheap and frontier Gemini, is roughly tenfold. Set the project's [default agent](/docs/commands/settings) (and, where the backend supports it, its default model) to the cheap tier as a baseline. Reach for the frontier tier only when the task is genuinely hard — a cross-module refactor, an unfamiliar codebase, a problem the cheap tier has visibly failed on.
+
+The mechanism varies by backend. Some agents expose model selection on the CLI directly; some read it from a config file in the agent's home directory. Watchfire does not abstract that knob — it picks the _backend_, and the backend picks the model.
+
+### 2. Watch the `agent_sessions` counter
+
+Every Watchfire task YAML has an `agent_sessions` integer that records how many times the agent woke up to work on that task. A clean run finishes with `agent_sessions: 1`. A task that retried — because the agent hit a build error, or because Watchfire restarted it after a crash — finishes with a higher number. Each session is a fresh conversation that re-reads the task context, the project definition, and any relevant files. Each session pays for that reading from scratch.
+
+A task with `agent_sessions: 5` likely cost five times what the same task would have cost on a clean single-session run. Treat any task with `agent_sessions > 2` as a signal that the spec was vague, the acceptance criteria were unverifiable, or the task was too big to finish in one session. The fix is almost always to tighten the brief — see [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task) — not to give the agent more rope.
+
+### 3. Set a daily budget cap at the backend
+
+Watchfire is local-first. It does not call a billing API on your behalf, and it does not enforce a spend cap of its own — there is nothing to enforce against because the money never flows through us. But every major backend's dashboard does. Anthropic, OpenAI, and Google all expose a per-key spend ceiling that hard-stops API calls once the cap is hit. GitHub Copilot and Cursor cap you at the plan level by design.
+
+Set one. A daily cap of five or ten dollars is enough to keep a runaway Wildfire run from clearing out your week's coffee budget, and the cap fails closed — the worst case is a task that does not run, not a task that quietly drains an account.
+
+## The cost ceiling you should actually expect
+
+Three rough profiles. Numbers are _approximate_ and your mileage will vary with project size, codebase length, and model tier.
+
+**Tinkerer.** A dozen tasks a week, mostly Chat and Task on the cheap tier, occasional Start All on a small queue. Monthly spend: typically low single digits in 2026 dollars. The Watchfire bill is rounding error against the API minimum charges.
+
+**Daily driver.** One to three hours of agent work a day, a mix of Chat / Task / Start All on the cheap tier with occasional frontier-tier runs on the hard tasks. Monthly spend: low tens to low hundreds, depending on how often the frontier tier comes out. This is the realistic profile for an engineer doing real work through Watchfire.
+
+**Wildfire over the weekend.** An autonomous loop running against a long-tail project with a written definition. Monthly spend: variable — tens to several hundreds — driven mostly by project size, model choice, and how much the Generate phase fires. The honest answer is _confirm with a single Wildfire run before you commit to a recurring schedule_; one weekend is enough to size the bill.
+
+The point of these bands is not precision. It is removing the uncertainty that blocks adoption. The number is bounded, the bound is yours to set, and the shape of the bound is in the levers above.
+
+## Closing
+
+Watchfire's only ongoing cost is the agent it runs. Pick the right model, scope the task tightly, set a budget cap at the backend, and the monthly bill is a knob you control — not a surprise on Monday morning.
+
+For a starting point, the [`/templates`](/templates) page collects ready-to-paste task YAMLs that drop straight into a project; the [`/playground`](/playground) page is an interactive builder for shaping a task before you commit it to a file. For the full mechanical reference on which Watchfire mode does what — and when each one earns its keep — keep the [agent modes doc](/docs/concepts/agent-modes) and the [pricing comparison](/docs/compare) open in adjacent tabs.
