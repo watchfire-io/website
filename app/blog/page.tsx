@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import BlogPostCard from "@/components/BlogPostCard";
+import BlogSubscribe from "@/components/BlogSubscribe";
 import { listPublishedBlogPosts } from "@/lib/blog-source";
 import { getAllTags } from "@/lib/blog-tags";
 import { siteUrl } from "@/lib/site";
@@ -84,6 +85,8 @@ export default function BlogIndexPage() {
             </Link>
           </div>
         ) : null}
+
+        <BlogSubscribe />
 
         <div className="mx-auto mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {posts.map((post) => (
