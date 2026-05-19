@@ -39,6 +39,7 @@ export const blog = defineDocs({
       summary: z.string(),
       tags: z.array(z.string()).default([]),
       image: z.string().optional(),
+      ogImage: z.string().optional(),
       canonical: z.string().url().optional(),
       draft: z.boolean().default(false),
       author: authorSchema.optional(),

@@ -50,8 +50,8 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
   const url = `${siteUrl}/blog/${slug}`;
   const canonical = page.data.canonical ?? url;
-  const ogImage = page.data.image
-    ? resolveAbsoluteImageUrl(page.data.image)
+  const ogImage = page.data.ogImage
+    ? resolveAbsoluteImageUrl(page.data.ogImage)
     : buildAbsoluteBlogOgUrl({
         title: page.data.title,
         description: page.data.summary,
@@ -101,8 +101,8 @@ export default async function BlogPostPage(props: PageProps) {
   );
   const tocItems = extractBlogToc(slug);
   const hasToc = tocItems.length >= 2;
-  const ogImage = page.data.image
-    ? resolveAbsoluteImageUrl(page.data.image)
+  const ogImage = page.data.ogImage
+    ? resolveAbsoluteImageUrl(page.data.ogImage)
     : buildAbsoluteBlogOgUrl({
         title: page.data.title,
         description: page.data.summary,
