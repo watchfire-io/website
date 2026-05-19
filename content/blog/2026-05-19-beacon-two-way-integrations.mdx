@@ -1,0 +1,87 @@
+---
+title: "How Beacon turns the daemon two-way"
+date: "2026-05-19"
+summary: "The autonomous loop is only useful if a human can hear about it from wherever they happen to be. Beacon is the layer that lets Watchfire talk to Slack, Discord, and the PR queue — and just as carefully, lets them talk back."
+tags: ["deep-dive", "beacon", "integrations"]
+image: "/banner-dark.png"
+author: "Nuno Coração"
+---
+
+The whole point of [the Wildfire loop](/blog/2026-05-18-inside-wildfire-mode) is that it runs without you. The daemon picks the next task, spawns an agent in [its own worktree](/blog/2026-05-18-isolated-worktrees-per-task), waits for [the sandbox](/blog/2026-05-19-how-watchfire-sandboxes-every-agent) to keep the agent honest, merges the result, and rolls on. By the time you sit back down at the laptop, an afternoon's worth of work has either landed or stalled out somewhere you need to look.
+
+That second case is the interesting one. A loop you do not have to watch is only valuable if it can find you when it needs you. If the auth refactor fails at three in the afternoon and the only place that information lives is a YAML file inside `.watchfire/tasks/`, the loop has been silently broken since lunch. "Unattended" collapses the moment it starts to mean "unobserved."
+
+Beacon is the layer that closes that loop. It shipped in v4.0.0 as the outbound half — the daemon delivering notifications to webhook receivers, Slack, Discord, and the GitHub PR queue — and was completed in v5.0.0 Flare with the inbound half: a small HTTP server that lets those same systems talk back, with the signature verification, rate limiting, and idempotency you would want before opening a port on a developer's laptop. The symmetry is deliberate. A message going out and a request coming in are the same daemon being trustworthy in both directions. This post is about why that symmetry matters, where the safety rails live, and what the layer deliberately does not try to do.
+
+## One bus, many adapters
+
+The outbound half lives in `internal/daemon/relay`. There is one `Dispatcher`, and it subscribes to a single internal `notify.Bus`. Every event the daemon wants to surface — a task that failed, a wildfire batch that finished, the weekly digest — is published to that bus as a `notify.Notification`. The dispatcher fans the event out to every registered `Adapter`, and each adapter is a thin renderer that turns the canonical envelope into whatever shape the upstream provider wants.
+
+This is a small choice with a large consequence. The contract every integration implements is the `Adapter` interface and the `notify.Notification` envelope. New providers do not get to invent their own event schema or their own retry policy. They get to decide how to render the envelope into Block Kit or a Discord embed or an HTTP POST body, and the dispatcher handles everything else. That "everything else" is the part that is easy to get wrong if every integration writes it from scratch.
+
+The dispatcher owns three reliability primitives. The first is per-adapter retry, with exponential backoff at `[500ms, 2s, 8s]`. The second is a circuit breaker — three failures inside a rolling five-minute window opens the breaker on that adapter, and subsequent events skip it until the window expires. The third is concurrency: adapters dispatch in parallel, so one slow provider never blocks the others. None of these are novel on their own, but they are the difference between an integrations layer that degrades gracefully when Slack has a bad day and one that wedges the entire pipeline because one POST took thirty seconds.
+
+Secrets live in the OS keyring through `internal/config/keyring.go`, with a file-store fallback for hosts without a keyring backend. They are write-only on the gRPC wire — the GUI and TUI can save and replace them, but never read existing values back.
+
+## Outbound, in tight pairs
+
+The four outbound adapters ship in two natural pairs. The first is the chat surfaces: Slack and Discord, both rendering the same three envelopes — `TASK_FAILED`, `RUN_COMPLETE`, and `WEEKLY_DIGEST` — into their own native shape. Slack uses Block Kit (header, section, context, actions blocks) and authenticates with an OAuth `xoxb-...` bot token returned from the workspace install flow; the OAuth path means slash responses can include rich attachments and DM the originator when a failure happened in a private channel. Discord mirrors the same three envelopes as rich embeds tinted by the project color, authenticated with `Authorization: Bot <token>`, and registered as slash commands in every guild the bot lives in. The legacy signing-secret + public-key path stays additive for users mid-cutover, but the install button in the Integrations settings UI is the recommended path on both.
+
+The second pair is the programmable surfaces: webhook and GitHub auto-PR. The `WebhookAdapter` POSTs the canonical `notify.Notification` payload — plus delivery metadata like event id, attempt number, timestamp — to a user-supplied URL. Each request carries an `X-Watchfire-Signature: sha256=<hex>` HMAC over the raw body, so a receiver that bothers to verify can reject forged calls. If you want to wire Watchfire into something the daemon does not ship support for — Linear, Jira, a homegrown ops bot — this is the seam.
+
+```bash
+curl -i -X POST https://your-receiver.example.com/hook \
+  -H 'X-Watchfire-Signature: sha256=<hex>' \
+  -H 'Content-Type: application/json' \
+  --data-binary @notification.json
+```
+
+GitHub auto-PR is the most "agent-ish" of the four, and the only one that does not just send a message. It is opt-in per project (`github.auto_pr.enabled: true` in `project.yaml`), gated on `gh` being on `PATH` and `gh auth status` returning zero. When a task finishes, `internal/daemon/git/pr.go::OpenPR` parses `<owner>/<repo>` from the git remote, force-pushes `watchfire/<n>` with `--force-with-lease`, renders the PR body from a template, and opens the PR through `gh api`. Sentinel errors distinguish silent fallback (one WARN per project lifetime when the prerequisites are missing) from per-attempt failures (logged at WARN, retried on the next task). The integration is honest about its prerequisites and quiet about its retries — exactly the posture you want for something that mutates state on a remote system.
+
+## Inbound, as the mirror image
+
+The inbound half lives in `internal/daemon/echo`. It binds a small HTTP server — default `127.0.0.1:8765`, configurable through `InboundConfig.ListenAddr` — wraps it in a 1 MiB body cap and a panic-recovery middleware, exposes an unauthenticated `/echo/health` for liveness probes, and gates every other handler behind signature verification. An empty `InboundConfig` means no listener at all. The daemon does not open a port until at least one provider has been configured. Concrete handlers return `503` until their per-provider secret is set.
+
+Verification is the part that earns the symmetry with outbound. `verify.go` exposes three constant-time verifiers — `VerifyGitHub` (HMAC-SHA256 over the raw body), `VerifySlack` (HMAC-SHA256 over `v0:<timestamp>:<body>`), and `VerifyDiscord` (Ed25519 over `timestamp || body`). Both Slack and Discord enforce a five-minute timestamp drift window to bound replay. The webhook adapter outbound and the GitHub handler inbound speak the same HMAC vocabulary — the daemon signs what it sends with the same care it requires from what it receives.
+
+Two more primitives complete the picture. A per-IP token bucket via `golang.org/x/time/rate` sits in front of every `/echo/*` route, with a default budget of 30 requests per minute per IP, configurable through `RateLimitPerMin` (`0` disables the limiter). Idempotent re-deliveries that hit the LRU cache do not count against the bucket, so retried Slack and Discord deliveries during a network blip are not penalized. The LRU+TTL idempotency cache itself — 1000 entries, 24-hour TTL, process-local — drops duplicate deliveries so a chatty provider that retries the same event five times does not run the same task five times.
+
+## The command router
+
+What makes the inbound side feel cohesive, rather than four loosely related handlers, is the command router. Slash commands from Slack and Discord, button clicks on the Slack `TASK_FAILED` envelope, and the GitHub PR-merge handler all converge on a single transport-agnostic function:
+
+```go
+Route(ctx, cmd, subcmd, rest, CommandContext) CommandResponse
+```
+
+Three commands are wired today: `status` returns the current per-project status block, `retry <task>` re-runs the named task, and `cancel <task>` cancels the named task. The response shape is intentionally transport-neutral — text, blocks, ephemeral, in_channel — and each transport handler is responsible for rendering it into the native envelope its API expects. New commands plug into `commands.Route` once and surface everywhere a transport is wired.
+
+```
+/watchfire retry 0042
+```
+
+A Slack user typing that, a Discord user typing the same thing in another guild, and a click on the `Retry` action of a `TASK_FAILED` envelope are the exact same call into the router. They land on the same project state with the same permissions. The transports differ; the semantics do not.
+
+The GitHub PR-merge handler is the cleanest example of why this matters. When a pull request opened by the auto-PR flow gets merged, `handler_github.go` receives the `pull_request.closed` webhook, verifies the HMAC, deduplicates against the idempotency cache, narrows on `merged == true`, matches the Watchfire task by `pull_request.head.ref == watchfire/<n>`, and calls the same `task.MarkDoneIfNotAlready` the local agent would have called. The outbound auto-PR loop opens the PR; the inbound merge handler closes it. The daemon is the same actor at both ends.
+
+## Why this layer belongs in the daemon
+
+The agent comes and goes. A Wildfire run might spawn dozens of agent processes over an afternoon — each in its own worktree, each under its own sandbox profile, each exiting when its task is done. The integrations live across all of those runs. The Slack workspace token still works between tasks. The webhook receiver does not care which agent process posted to it. The GitHub merge handler reacts to events that arrive hours after the agent that opened the PR has exited.
+
+Pulling the integrations into the daemon, rather than letting each agent reach out on its own, is what lets the loop talk back. The daemon is the long-lived process. It owns the keyring, the bus, the dispatcher, the HTTP server, and the cache. It is still listening when the agent that produced the notification has been gone for an hour. That separation is also why a slash command typed in Slack can act on a project whose last task finished yesterday — the router does not need an agent to be running, because it dispatches against the same project state the daemon already manages.
+
+## What Beacon deliberately does not do
+
+Beacon is the layer that makes the autonomous loop visible, not the layer that solves every integration anyone could want. A few specific limits are worth naming.
+
+There is no Microsoft Teams adapter today. The four outbound providers are webhook, Slack, Discord, and GitHub auto-PR. The inbound providers are GitHub PR-merge (with multi-host parity for GitHub Enterprise), GitLab merge requests, Bitbucket pull requests, and the Slack and Discord command surfaces. Teams is not in tree. The webhook adapter is the escape hatch — anything that can accept a signed JSON POST can be wired through it — but a native adapter with proper Block Kit equivalents is not something the dispatcher knows about today.
+
+The retry budget is three attempts on the `[500ms, 2s, 8s]` curve. There is no fourth attempt, no escalating retry queue, no dead-letter sink. If a provider is down past the eight-second mark, the event is dropped from that adapter's queue, the circuit breaker counts the failure, and the daemon moves on. The JSONL fallback at `~/.watchfire/logs/<project_id>/notifications.log` is the record-of-truth — every notification is appended there regardless of what the adapters do.
+
+The idempotency cache is process-local. A daemon restart drops state, which is acceptable for a 24-hour replay window. Signature verification is what makes the corresponding replay attack uninteresting anyway. And the per-IP rate limit is a coarse instrument: right for "a developer's laptop with a port open," wrong for "a public-facing webhook ingestion service." Beacon is the former.
+
+## Closing
+
+Wildfire gives the daemon a loop. Worktrees give the loop a safe place to run. The sandbox gives each run a kernel-enforced boundary. Beacon is the layer that makes all three visible — outward to Slack, Discord, and the PR queue, and inward through the same channels when a human wants to steer the loop without sitting at the laptop.
+
+The full reference for what Beacon does lives at [`/docs/concepts/integrations`](/docs/concepts/integrations). The version-by-version evolution from the v4.0.0 outbound shipment through the v5.0.0 Flare inbound completion is in [the changelog](/docs/changelog). The trilogy — Wildfire, worktrees, sandbox — is what makes the loop possible; Beacon is what makes the loop reachable.
