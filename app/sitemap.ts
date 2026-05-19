@@ -170,6 +170,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.5,
     },
     {
+      url: `${siteUrl}/press`,
+      lastModified: maxLastModified([
+        "app/press/page.tsx",
+        "lib/press-kit.ts",
+        "components/CodeCopyButton.tsx",
+      ]),
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
       url: `${siteUrl}/demos`,
       lastModified: demosLastMod,
       changeFrequency: "monthly",
