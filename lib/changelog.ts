@@ -134,6 +134,55 @@ function renderMarkdown(md: string): string {
   return out.join("\n");
 }
 
+// Strip inline-markdown syntax (links, **bold**, *em*, `code`) to plain text.
+// Used by the /changelog marketing page to render bullet labels.
+export function stripInlineMarkdown(text: string): string {
+  return text
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1$2")
+    .replace(/\[([^\]]+)\]\([^)\s]+\)/g, "$1");
+}
+
+// Return the first non-empty paragraph in a release section that's not a heading
+// and not a bullet list. Returns null when the section jumps straight into `###`.
+export function extractReleaseSummary(markdown: string): string | null {
+  const lines = markdown.split("\n");
+  const buf: string[] = [];
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) {
+      if (buf.length > 0) return stripInlineMarkdown(buf.join(" "));
+      continue;
+    }
+    if (line.startsWith("#") || line.startsWith("- ") || line.startsWith("* ")) {
+      if (buf.length > 0) return stripInlineMarkdown(buf.join(" "));
+      return null;
+    }
+    buf.push(line);
+  }
+  return buf.length > 0 ? stripInlineMarkdown(buf.join(" ")) : null;
+}
+
+// Return up to `max` top-level bullet labels. A bullet of the form
+// `- **Headline.** body...` returns the headline portion (sans trailing period);
+// a plain bullet returns its full text. Inline markdown is stripped.
+export function extractReleaseHighlights(markdown: string, max: number): string[] {
+  const lines = markdown.split("\n");
+  const out: string[] = [];
+  for (const raw of lines) {
+    if (out.length >= max) break;
+    const m = raw.match(/^[-*]\s+(.+)$/);
+    if (!m) continue;
+    const text = m[1].trim();
+    const bold = text.match(/^\*\*(.+?)\*\*/);
+    const label = bold ? bold[1].trim() : text;
+    const clean = stripInlineMarkdown(label).replace(/[.\s]+$/, "");
+    if (clean) out.push(clean);
+  }
+  return out;
+}
+
 let cached: ChangelogEntry[] | null = null;
 
 export function getChangelogEntries(): ChangelogEntry[] {
