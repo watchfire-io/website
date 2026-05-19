@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Callout } from "fumadocs-ui/components/callout";
 import Mermaid from "@/components/Mermaid";
 import BlogArticleJsonLd from "@/components/BlogArticleJsonLd";
+import BlogPostToc from "@/components/BlogPostToc";
 import EditOnGithub from "@/components/EditOnGithub";
 import RelatedPosts from "@/components/RelatedPosts";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@/lib/blog-source";
 import { isExternalUrl, normalizeBlogAuthor } from "@/lib/blog-author";
 import { slugifyTag } from "@/lib/blog-tags";
+import { extractBlogToc } from "@/lib/blog-toc";
 import { estimateReadingTimeMinutes } from "@/lib/reading-time";
 import { siteUrl } from "@/lib/site";
 import {
@@ -97,6 +99,8 @@ export default async function BlogPostPage(props: PageProps) {
   const readingMinutes = estimateReadingTimeMinutes(
     getBlogPostBodyMarkdown(slug),
   );
+  const tocItems = extractBlogToc(slug);
+  const hasToc = tocItems.length >= 2;
   const ogImage = page.data.image
     ? resolveAbsoluteImageUrl(page.data.image)
     : buildAbsoluteBlogOgUrl({
@@ -106,7 +110,9 @@ export default async function BlogPostPage(props: PageProps) {
       });
 
   return (
-    <article className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
+    <article className="mx-auto max-w-3xl px-6 py-12 sm:py-16 lg:max-w-6xl">
+      <div className="lg:grid lg:grid-cols-[minmax(0,48rem)_minmax(0,14rem)] lg:items-start lg:gap-x-12">
+        <div className="mx-auto min-w-0 max-w-3xl lg:mx-0">
       <header className="mb-10">
         <Link
           href="/blog"
@@ -194,6 +200,31 @@ export default async function BlogPostPage(props: PageProps) {
         </div>
       </header>
 
+      {hasToc ? (
+        <details className="group mb-8 rounded-lg border border-zinc-200 bg-white/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50 lg:hidden">
+          <summary className="flex cursor-pointer items-center justify-between text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            <span>On this page</span>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="motion-safe:transition-transform group-open:rotate-180"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </summary>
+          <div className="mt-4">
+            <BlogPostToc items={tocItems} />
+          </div>
+        </details>
+      ) : null}
+
       <div className="blog-prose space-y-5 text-base leading-relaxed text-zinc-700 dark:text-zinc-300">
         <MDX components={{ Callout, Mermaid }} />
       </div>
@@ -228,6 +259,18 @@ export default async function BlogPostPage(props: PageProps) {
           Back to blog
         </Link>
       </footer>
+        </div>
+        {hasToc ? (
+          <aside className="hidden lg:block">
+            <div className="sticky top-24">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                On this page
+              </p>
+              <BlogPostToc items={tocItems} />
+            </div>
+          </aside>
+        ) : null}
+      </div>
     </article>
   );
 }
