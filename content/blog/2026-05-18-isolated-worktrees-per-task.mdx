@@ -1,0 +1,110 @@
+---
+title: "Why we run every task in its own git worktree"
+date: "2026-05-18"
+summary: "Every Watchfire task runs in its own git worktree on a dedicated branch, not in a fresh checkout of the main tree. Here is why that choice carries more weight than it looks."
+tags: ["deep-dive", "architecture"]
+image: "/banner-dark.png"
+---
+
+Picture three agents you want to run in parallel against the same repository. One is refactoring the auth middleware. One is filling in a missing test suite for a billing module that nobody fully trusts. One is rewriting the README so it stops lying about how installation actually works. All three start in the next thirty seconds.
+
+How do you arrange for that to not be a disaster?
+
+You cannot let them share the working tree. The auth refactor will rewrite files the test writer is reading mid-thought. You cannot put them on the same branch. Their commits will interleave into something no human will want to review. And you cannot ask the developer to stop typing for the next hour while the agents argue with each other over `git checkout`. The repo has one set of files at one path. There is no "ours" and "theirs" — there is only `src/auth.ts`, and three agents who all want to edit it right now.
+
+This is the problem Watchfire solves at the git layer, before sandboxing, before the agent loop, before anything else. The answer is `git worktree`, and the rest of this post is a defense of why a corner of Git most developers have never touched is the right primitive for multi-agent work.
+
+## A short primer on `git worktree`
+
+`git worktree` is a feature that ships with every modern Git install and that almost nobody uses. It lets you check out multiple branches at the same time, in different directories, all backed by a single `.git` repository. Each working tree gets its own files on disk, its own `HEAD`, its own index — but the object store, the refs, and the config are shared.
+
+In practice:
+
+```bash
+# you are in ~/code/myrepo, on main
+git worktree add ../myrepo-bugfix bugfix/login
+# now ~/code/myrepo-bugfix is a fully checked out copy of bugfix/login,
+# and ~/code/myrepo is still on main, untouched
+```
+
+You did not clone. You did not re-download anything. You did not duplicate the object database. You got a second working tree, on a different branch, with effectively zero cost, sharing one Git repository with the one you already had. When you are done you `git worktree remove ../myrepo-bugfix` and it is gone.
+
+Most developers reach for `git stash` or a second clone when they need to context-switch. `git worktree` is the better answer for both, and it has been sitting in `git --help` since 2015. It does not get used because the workflows it solves are unusual for humans. They are not unusual for agents.
+
+## How Watchfire uses it
+
+Every Watchfire task starts the same way. When the daemon decides to run task `0042`, it runs the equivalent of:
+
+```bash
+git worktree add .watchfire/worktrees/0042 -b watchfire/0042
+```
+
+The new branch `watchfire/0042` is cut from whatever the project's default branch points at right now. The new directory `.watchfire/worktrees/0042/` is a full checkout of that branch, sitting inside the same repository, alongside any other tasks that happen to be running at the same time. The agent is spawned inside that directory. As far as it is concerned, this *is* the project: it does not see the developer's working tree, it does not see the other tasks' worktrees, it does not see uncommitted edits on `main`. It sees a clean checkout, on its own branch, with its name on the door.
+
+When the task finishes — the agent commits, sets `status: done` and `success: true` in `.watchfire/tasks/0042.yaml`, and exits — the daemon's file watcher picks up the change, merges `watchfire/0042` back into the default branch, deletes the branch (if `auto_delete_branch` is enabled), and removes the worktree directory. Between tasks, `.watchfire/worktrees/` is usually empty. During tasks, it contains exactly one directory per running task, no more, no less. The full mechanics are written up in [Git worktree isolation](/docs/concepts/worktrees) and the configuration toggles are documented in [Projects and Tasks](/docs/concepts/projects-and-tasks).
+
+That is the whole shape. Three commands you could type yourself, wrapped in a daemon that decides when to run them.
+
+## What this buys you
+
+The reason worktrees are the load-bearing primitive — and not just an implementation detail — comes down to five concrete properties that fall out of the choice.
+
+**Parallelism without fights.** Five tasks means five worktrees on five branches. Each agent sees only its own working tree. There is no shared file the writer needs to lock and no branch the reader needs to check out. Concurrency stops being a coordination problem and becomes a directory listing.
+
+**Your `main` stays clean.** You can keep coding on the default branch the entire time agents are running. They cannot touch your working tree because they are not in it. Their commits land on `watchfire/<n>` branches that you will never have checked out unless you go looking. When you save a file, you do not race the agent. When the agent saves a file, it does not race you.
+
+**Reviewable diffs.** Every task is a branch with a single, scoped purpose and a single, scoped diff. The merge-back step is the artifact a human reviews: one branch, one merge commit, one logical change. You get the pull-request shape for free, even when you are not using pull requests, because the unit of work is already a branch by construction.
+
+**Safe failure.** A broken task is a discardable branch and a discardable directory. The agent hallucinated a refactor that does not compile? Delete `watchfire/<n>`, delete `.watchfire/worktrees/<n>/`, the project is in exactly the state it was before the task ran. There is no rollback to plan, no commits to revert on `main`, no "wait, did this touch the lockfile?" panic. Failure is a directory you `rm -rf` and a branch you `git branch -D`.
+
+**Composable with sandboxing.** Worktrees give you isolation at the Git layer: separate working tree, separate branch, separate index. The macOS sandbox profile gives you isolation at the OS layer: no writes outside the project, no access to `~/.ssh` or `~/.aws`, restricted network. The two compose. A misbehaving agent inside a worktree cannot escape into the developer's source tree, and a misbehaving agent inside the sandbox cannot escape onto the developer's machine. Two cheap layers stacked on top of each other beats one expensive one. We cover the second layer in the [sandboxing concepts page](/docs/concepts/sandboxing).
+
+## The lifecycle, step by step
+
+Here is what the daemon actually does for a single task, from the moment it picks it up to the moment its directory is gone.
+
+1. The daemon scans `.watchfire/tasks/`, finds task `0042` with `status: ready`, and decides it is next in line.
+2. It runs `git worktree add .watchfire/worktrees/0042 -b watchfire/0042` against the project's default branch. The new branch is cut from the current `HEAD` of whatever branch the developer has checked out.
+3. It spawns the agent — by default Claude Code, but any supported backend works — with its working directory set to `.watchfire/worktrees/0042/`. The agent inherits a sandbox profile that scopes filesystem access to that directory plus a handful of read-only paths.
+4. The agent reads `.watchfire/tasks/0042.yaml`, follows the prompt, edits files inside the worktree, and commits as it goes. Every commit lands on `watchfire/0042`. None of them touch the default branch.
+5. When the agent finishes, it writes `status: done` and `success: true` back into the task YAML and exits.
+6. The daemon's file watcher detects the change to the task file. If `auto_merge` is `true`, it runs `git merge watchfire/0042` against the currently checked-out branch.
+7. If the merge succeeds and `auto_delete_branch` is `true`, the branch is deleted with `git branch -d watchfire/0042`. The worktree directory is removed with `git worktree remove`.
+8. The daemon goes back to scanning. The cycle repeats for the next ready task.
+
+If anything in steps 6 or 7 fails — a merge conflict, a non-fast-forward push, a leftover lock — the daemon stops. It does not force-push, it does not abort the merge silently, it does not retry until something else breaks. The branch and the worktree stay where they are so a human can look. That is the same posture the [agent modes documentation](/docs/concepts/agent-modes) describes for the Execute phase in Wildfire.
+
+## The alternative we considered and rejected
+
+The other obvious design is to skip worktrees entirely and just have the daemon flip the main checkout onto a new branch for each task. Cut `watchfire/<n>` from the default branch in the existing working tree, let the agent commit, switch back when done, merge.
+
+This is simpler to implement. It falls apart immediately under any of the following:
+
+- **Parallel tasks.** There is one working tree. You cannot have two branches checked out at once. The moment you want a second agent, you have a queue, not a system.
+- **The developer.** The agent's `git checkout` will fight whatever the developer was editing. The developer's uncommitted changes will leak into the agent's branch. Both halves of this are bad.
+- **File watchers.** Every editor and test runner that watches the file tree will see the entire repo change every time the daemon switches branches. Caches invalidate. Dev servers reload. Hot-module-reload thrashes. The repo behaves like it has multiple personality disorder.
+- **Recovery.** A crashed agent leaves the main checkout on `watchfire/<n>`, mid-edit, with half-written files. The recovery story is "ask the developer to fix it." That is not a recovery story.
+
+Branch-only isolation works for one agent at a time in a repo nobody else is using. We are not in that world. Worktrees turn every one of these failure modes into a non-issue because every agent is operating on its own working tree from the start.
+
+## The picture
+
+Here is the same lifecycle as a diagram.
+
+<Mermaid chart={`
+flowchart LR
+    M([main]) -->|worktree add| W1[watchfire/0001<br/>.watchfire/worktrees/0001]
+    M -->|worktree add| W2[watchfire/0002<br/>.watchfire/worktrees/0002]
+    M -->|worktree add| W3[watchfire/0003<br/>.watchfire/worktrees/0003]
+    W1 -->|merge + remove| M
+    W2 -->|merge + remove| M
+    W3 -->|merge + remove| M
+`} />
+
+The main repository fans out into N worktrees, each on its own branch, each merging back when its task completes. The developer's checkout of the default branch sits underneath the whole picture, untouched, until a merge lands.
+
+## Closing
+
+Worktrees are the reason Wildfire mode is safe to leave running. The [Wildfire loop](/blog/2026-05-18-inside-wildfire-mode) we described in the previous post — Execute, Refine, Generate, repeat — is only sound because every Execute phase runs in its own worktree. The daemon can pick the next ready task, spin up an agent, watch it work, and merge the result, all without ever putting your default branch in a state you would have to recover from. The agent does its job, the worktree disappears, and the project moves forward by exactly one commit at a time.
+
+That is the trade we like: pick the right primitive once, and you stop having to think about a class of problems forever. `git worktree` is that primitive for multi-agent work. If you want to see it in action, the [installation guide](/docs/installation) gets you to a daemon and a TUI in under five minutes; from there, `watchfire task add` and `watchfire wildfire` are the only two commands you need to start watching this loop run on a project of your own.
