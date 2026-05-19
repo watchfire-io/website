@@ -1,0 +1,214 @@
+---
+title: "Anatomy of a great task: how to write prompts coding agents actually finish"
+date: "2026-05-19"
+summary: "Most failed agent runs aren't model failures — they're prompt failures. After a year of running Watchfire on itself, here's what we've learned about writing tasks an agent can actually complete on the first try."
+tags: ["how-to", "tasks", "prompting"]
+image: "/banner-dark.png"
+author: "Nuno Coração"
+---
+
+You queued a task this morning called _Improve error handling in the API_. You set it to `ready`, walked off for coffee, came back ninety minutes later. The agent had spawned, the worktree was full of files, the branch had eleven commits, the diff touched twenty-three files across four directories. None of it merged. The agent had set `success: false` and a `failure_reason` that said something polite about scope creep, and you spent the rest of the morning reading those eleven commits to figure out what — if anything — was salvageable.
+
+That is not a model failure. The model did exactly what the prompt asked. _Improve error handling in the API_ means a thousand things, and the agent picked one, then another, then another, until it had committed too much to back out of. Most agents that abandon a Watchfire run are not failing because the model is weak; they are failing because the task was shaped wrong before the agent ever saw it. A great task is short, scoped, and verifiable.
+
+## What a Watchfire task actually is
+
+A Watchfire task is a YAML file on disk. The three fields the agent actually reads are `title`, `prompt`, and `acceptance_criteria`. There are other fields — `status`, `position`, `agent`, `task_number` — but those are bookkeeping that belongs to the daemon. The three text fields are the whole brief.
+
+`title` is one line. It is the string that lands in the TUI queue, the GUI sidebar, and the merge commit subject. Treat it as a one-sentence summary of the diff that should result. If you cannot title a task in one line, you have not scoped it yet.
+
+`prompt` is the body of the brief. It is what the agent reads alongside its system prompt. It is the only place the agent learns about the file path, the framework version, the existing convention it should follow, the alternative it should not pick.
+
+`acceptance_criteria` is the contract. It is what the agent uses to decide it is done and what every reviewer — human or otherwise — will use to decide whether the resulting branch earns a merge. The formal schema for every field is documented at [`/docs/concepts/projects-and-tasks`](/docs/concepts/projects-and-tasks); the rest of this post is about what to write inside those three text fields when you are sitting down at an empty one.
+
+## The four properties of a great task
+
+The argument of this post is that the *shape* of a task — not the model that runs it — is the dominant variable in whether the agent finishes it cleanly. A great task has four properties. Each of them earns its keep in the failure mode it prevents.
+
+### Scoped to one outcome
+
+One task should produce one PR-sized diff. If you cannot describe that diff in a single sentence — _"adds a CSV export button to the analytics page"_, _"moves `parseInput` from `lib/parse.ts` to `lib/input/parse.ts` and updates its callers"_ — the task is too big.
+
+Two outcomes squeezed into one prompt is the most common failure I see. The agent picks one, drifts into the other, produces a branch that does both jobs badly, and the right code-review move is to reject the work — which means re-running the task from scratch. As covered in [Why we run every task in its own git worktree](/blog/2026-05-18-isolated-worktrees-per-task), every task lands as its own branch with its own merge commit; the unit of work *is* the unit of review. Two outcomes per task breaks that invariant on the way in.
+
+A bad prompt:
+
+```yaml
+title: "Fix the dashboard"
+prompt: |
+  The dashboard is slow and the chart colors
+  are wrong. Fix both. Also the loading
+  spinner is from a different design system.
+acceptance_criteria: |
+  - Dashboard feels faster
+  - Charts look on-brand
+status: ready
+```
+
+A better prompt — this one, then the next, then the next:
+
+```yaml
+title: "Apply brand palette to dashboard charts"
+prompt: |
+  Charts on `/dashboard` (rendered by
+  `components/Dashboard.tsx` via Recharts)
+  currently use the Recharts default palette.
+  Replace with the brand colors exported from
+  `lib/brand/colors.ts`: fire-orange (#e07040)
+  for primary series, ember-gold (#e29020) for
+  secondary, flame-white (#fff5e6) for
+  highlights. Apply across all five chart
+  components under `components/charts/`. Do
+  not change layout, data wiring, or the
+  Recharts version.
+acceptance_criteria: |
+  - All five chart components in
+    `components/charts/` source their colors
+    from `lib/brand/colors.ts`, not from
+    inline literals.
+  - `npm run test` passes.
+  - `npm run build` passes.
+  - No changes outside `components/charts/`
+    and `lib/brand/colors.ts`.
+status: ready
+```
+
+The performance work and the loading-spinner work become their own tasks. Three tasks, three branches, three merges, three rollback surfaces. The agent finishes each one cleanly because each one fits in a head.
+
+### Anchored in concrete files and commands
+
+Agents are great at filling in details. They are bad at guessing your stack. _"Add a test"_ is a prompt the agent will guess at — vitest or jest, colocated or `tests/`, snapshot or assertion. You will get a test, but you will get the agent's best guess about your conventions, and "the agent's best guess about your conventions" is not where you want to spend a review cycle.
+
+Name the files. Name the test runner. Name the framework version. If there is an existing pattern in the repo the new code should mirror, point at it directly. _"Follow the same pattern as `components/SignupCTA.tsx`"_ is one line that saves the agent a whole exploration phase, and saves you the cleanup pass when the agent invents something new instead.
+
+The other half of "anchored" is anchoring in commands. Agents need to know how to verify their own work, and _"verify it works"_ is not a command. _"`npm run lint` and `npm run build` pass cleanly"_ is. The agent will run those commands, read the output, and iterate against the exact tool the CI pipeline will eventually run.
+
+A bad prompt:
+
+```yaml
+title: "Add tests for the parser"
+prompt: |
+  Add unit tests for the parser. Use a
+  modern testing framework.
+acceptance_criteria: |
+  - Tests exist
+  - Tests pass
+status: ready
+```
+
+A better prompt:
+
+```yaml
+title: "Add vitest unit tests for parseInput"
+prompt: |
+  Add unit tests for `parseInput` in
+  `src/lib/parse.ts`. Use vitest 1.x (the
+  project's existing test runner — see
+  `vitest.config.ts`). Place the new file
+  at `src/lib/parse.test.ts` to match the
+  colocation pattern used by every other
+  test file in the repo. Cover the three
+  cases documented in the function's JSDoc:
+  empty input, malformed input, valid input.
+  Use `expect(...)` assertions, not
+  snapshots. Do not refactor `parseInput`
+  itself.
+acceptance_criteria: |
+  - New file `src/lib/parse.test.ts` exists
+    with at least three test cases.
+  - `npm run test -- src/lib/parse.test.ts`
+    passes.
+  - `npm run test` (the full suite) still
+    passes.
+  - No new dependencies in `package.json`.
+  - No changes to `src/lib/parse.ts`.
+status: ready
+```
+
+The good version is longer. That is the point. The bad version is short because it offloads a dozen small decisions onto the agent; the good version makes those decisions in advance, where you have a five-minute budget for them, instead of after the agent commits, where you have a thirty-minute review.
+
+### Verifiable acceptance criteria
+
+A criterion is verifiable if a CI pipeline could check it. _"Looks clean"_ is not. _"Feels fast"_ is not. _"Handles errors properly"_ is not. _"`npm run test` passes and adds at least one new test for `parseInput`"_ is — a script can confirm or deny it, and so can the agent halfway through, before it commits.
+
+This is where the `acceptance_criteria` field stops being a wish list and becomes a contract. The agent reads it as the definition of done. If a criterion is too soft to be a contract, the agent will declare itself done at a point that does not match what you wanted — the task lands `completed`, the branch merges, and you find the gap two days later when the bug report rolls in.
+
+Every criterion should be one of these four shapes:
+
+- **A command's exit code.** `npm run test`, `npm run lint`, `cargo test`, `pytest`. Either it returns zero or it does not.
+- **A file's existence or shape.** _"File `X` exists with the frontmatter pattern used by other posts."_ _"Function `Y` is exported from `lib/Z.ts`."_
+- **A specific text or behavior in rendered output.** _"The `/blog` index renders the new post first."_ _"`GET /api/og?title=...` responds with `200 OK` and `Content-Type: image/png`."_
+- **A negation about the repo.** _"No new dependencies in `package.json`."_ _"No changes to `app/layout.tsx`."_
+
+If a criterion does not fit one of those four shapes, it is not yet a criterion — it is an aspiration, and the agent will treat it like one.
+
+The Insights subsystem makes the cost concrete. As described in [What we measure when we measure an agent](/blog/2026-05-19-what-we-measure-when-we-measure-an-agent), every completed task gets an `exit_reason` recorded — `completed`, `failed`, `stopped`, `timeout`. A task with vague acceptance criteria lands in `completed` even when a human would have called it `failed`, because the agent is making the call against the contract you wrote. Soft criteria do not just produce soft work; they corrupt the numbers you would otherwise use to notice.
+
+### Sized to one session
+
+If you cannot imagine the agent finishing this in an hour, it is too big. Cut it.
+
+Operators resist this property most, because the natural unit of work in their heads is the feature, not the diff. _"Add user authentication"_ feels like one job. As a Watchfire task it is six: the schema migration, the password hashing primitive, the session middleware, the login endpoint, the logout endpoint, and the frontend form. Each one is an hour. The bundle is a week. Running the bundle as a single task is how you get the kind of branch-from-hell that opened this post.
+
+A failed hour-long task is a worktree you `rm -rf` and a branch you `git branch -D` — the project is exactly where it was. A failed week-long task is a branch with thirty commits and a partial implementation of six things, and nobody, including the agent, knows which two are working. The same arithmetic governs [Wildfire mode](/blog/2026-05-18-inside-wildfire-mode): session-sized tasks drain cleanly under an autonomous loop; week-sized tasks stall it on the first failure.
+
+A bad prompt:
+
+```yaml
+title: "Build the analytics dashboard"
+prompt: |
+  Build a complete analytics dashboard with
+  charts, filters, date pickers, exports,
+  and shareable links.
+acceptance_criteria: |
+  - The dashboard works
+  - Users can filter and export
+status: ready
+```
+
+A better prompt — the first of six:
+
+```yaml
+title: "Add /analytics route with empty page shell"
+prompt: |
+  Add a new route at `app/analytics/page.tsx`
+  rendering an empty page shell: a page title
+  "Analytics", a one-line description matching
+  the rest of the site's voice, and a
+  placeholder `<div data-testid="analytics-root" />`
+  where the dashboard contents will mount in
+  later tasks. Mirror the page shell pattern
+  used by `app/blog/page.tsx` for typography,
+  spacing, and the breadcrumb header.
+acceptance_criteria: |
+  - New file `app/analytics/page.tsx` exists.
+  - `GET /analytics` returns 200 with the
+    page title rendered.
+  - `<div data-testid="analytics-root" />` is
+    present in the rendered HTML.
+  - `npm run lint` and `npm run build` pass.
+  - No changes outside `app/analytics/`.
+status: ready
+```
+
+The remaining five tasks are the charts, the filters, the date picker, the export, and the share-link. Each fits in a session. Each merges as a single diff. Each is reviewable in five minutes.
+
+## What not to do
+
+The same anti-patterns show up across every project I have watched run on Watchfire. In rough order of severity:
+
+- **Stuffing five outcomes into one task.** Easy to spot, hard to resist. If your prompt contains the word _"and"_ between two verbs, you have two tasks. _"Refactor the auth module and add tests"_ is two tasks. So is _"clean up the styling and migrate to v2 of the design system."_
+- **_"Refactor the codebase"_ without a target.** Refactor what, towards what shape, in which files? _"Refactor"_ is to an agent what _"clean up the kitchen"_ is to a teenager — the response will be technically responsive and entirely unsatisfying.
+- **Acceptance criteria that read like a hope rather than a check.** _"The code is clean and idiomatic."_ _"Performance is acceptable."_ _"The UX is improved."_ These are aspirations dressed as criteria. Re-write each one as a command or an assertion that can pass or fail.
+- **Re-typing the project definition in every prompt.** Your `project.yaml` has a `definition` field, and the agent gets it for free at every session. If half your prompt is _"this is a Next.js app using Tailwind and Fumadocs"_, move that half into the definition where it lives once. Tasks should describe what is new about *this* task, not what is true about every task.
+- **_"Use best practices"_ without saying which ones.** Best practices for whom, in which framework, in 2026? Every paragraph of _"use best practices"_ should be replaced by one naming the practice — _"use the existing `lib/result.ts` Result type instead of throwing"_ is a real instruction; _"handle errors properly"_ is not.
+- **Mixing _"do"_ and _"decide."_** If you are asking the agent to pick between two architectures *and* build the chosen one, you have two tasks. The first is a planning task that produces a decision; the second is an execution task that builds it. Conflating them produces a branch that argues with itself for an hour before committing nothing useful.
+- **Forgetting that the task is a contract.** The agent's PR satisfies the acceptance criteria you wrote. If those criteria miss a requirement that lives only in your head, the PR can be technically correct and substantively wrong. Re-read your `acceptance_criteria` from the perspective of a stranger who has never met you: if a stranger could check every bullet and still not deliver what you wanted, the bullets are incomplete.
+
+## Closing
+
+Most of the leverage in running coding agents at scale is not in the model picker. It is not in the prompt-engineering library you found on a Tuesday. It is in learning to write a task whose shape fits what an agent can actually finish — one session, one branch, one verifiable contract.
+
+The four properties compound. Scoping makes anchoring possible — you cannot point at the right files until you know which diff you are producing. Anchoring makes verification meaningful — a check needs a file and a command before it can mean anything. Verification makes sizing honest — a criterion you can actually run tells you, halfway through, whether the task you wrote is the task the agent is now living inside. Get the shape right and the model becomes the variable it should be: an engine you can swap, not a lottery ticket you keep buying.
+
+For worked examples, see [`/docs/recipes`](/docs/recipes). For the formal task schema, [`/docs/concepts/projects-and-tasks`](/docs/concepts/projects-and-tasks). And once you have a queue of tasks shaped this way — small, anchored, verifiable, one outcome each — [Wildfire mode](/blog/2026-05-18-inside-wildfire-mode) is the next step. The loop drains the queue while you do something else, and the shape of the loop is the shape of the queue you handed it.
