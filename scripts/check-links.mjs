@@ -69,6 +69,8 @@ const STATIC_ROUTES = new Set([
   "/llms-full.txt",
   "/sitemap.xml",
   "/robots.txt",
+  "/security.txt",
+  "/.well-known/security.txt",
 ]);
 
 // Mirror lib/blog-tags.ts slugify rule for tag URL detection.

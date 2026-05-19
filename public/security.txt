@@ -1,0 +1,5 @@
+Contact: mailto:security@watchfire.io
+Expires: 2027-05-19T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://watchfire.io/.well-known/security.txt
+Policy: https://watchfire.io/docs/security
