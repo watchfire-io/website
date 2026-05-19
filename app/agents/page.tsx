@@ -97,6 +97,17 @@ export default function AgentsIndexPage() {
                 wraps it in per-task git worktrees, a platform sandbox,
                 and clean transcripts. One task model, every backend.
               </p>
+              <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400 sm:text-base">
+                Watchfire works with more than just agents &mdash; see the
+                full{" "}
+                <Link
+                  href="/integrations"
+                  className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+                >
+                  integrations list
+                </Link>
+                .
+              </p>
             </div>
           </div>
         </section>
