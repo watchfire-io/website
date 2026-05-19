@@ -148,6 +148,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.5,
     },
     {
+      url: `${siteUrl}/badge`,
+      lastModified: maxLastModified([
+        "app/badge/page.tsx",
+        "components/CodeCopyButton.tsx",
+      ]),
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
       url: `${siteUrl}/privacy`,
       lastModified: privacyLastMod,
       changeFrequency: "monthly",

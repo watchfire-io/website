@@ -190,7 +190,14 @@ export default function BrandPage() {
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400 sm:text-base">
               The flame on dark and light surfaces. Download the source SVG, app
-              banners, and OG image.
+              banners, and OG image. Built something with Watchfire? Grab a{" "}
+              <Link
+                href="/badge"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                README badge
+              </Link>
+              .
             </p>
 
             <div className="mt-8 grid gap-5 md:grid-cols-2">
