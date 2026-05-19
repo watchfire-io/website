@@ -1,0 +1,128 @@
+---
+title: "Anatomy of a great project definition: the field every Watchfire agent reads first"
+date: "2026-05-21"
+summary: "Wildfire only stays on the rails when the project definition does the bounding. After a year of running Watchfire on its own marketing site, here is what a definition needs to contain so the loop produces work you actually want to merge."
+tags: ["how-to", "project-definition", "wildfire"]
+author: "Nuno Coração"
+---
+
+You spent an hour writing three good tasks for a brand-new project, set them to `ready`, kicked off [Wildfire mode](/blog/2026-05-18-inside-wildfire-mode), and went away for the weekend. When you came back, the queue had drained, the loop had generated nine more tasks of its own, and twelve branches had merged. You opened the site and four of them were wrong. One had built a feature the project does not need. One had migrated half a page to a styling library the project does not use. One had introduced a purple gradient on the landing hero. One had written marketing copy in a voice the rest of the site never uses. None of them broke the build, all of them passed their own acceptance criteria, and each one will take you longer to back out than the agent spent writing it.
+
+None of those four are model failures. The model did what a competent contractor would do given the brief in front of it — it picked a default. It picked the default styling library because nothing told it which one the project used. It picked purple because the brand colors lived in a file the agent never read. It picked the marketing voice it had been trained on most because the definition did not specify a different one. The task brief told the agent _what to do_; the project definition was supposed to tell the agent _what kind of thing this is_. That second half was thin, and the loop spent a weekend interpolating across the gap. This post is about the field that closes that gap.
+
+## What the definition actually is
+
+Open any `project.yaml` and you will find a multi-line `definition` field. It is a free-form Markdown block that every Watchfire agent receives before it touches the codebase — chat sessions, task executors, the Refine and Generate phases of Wildfire. The schema for the surrounding fields is in [the projects and tasks reference](/docs/concepts/projects-and-tasks); this post is about what to write inside that single text field.
+
+The definition is doing two jobs. The first is obvious: it briefs the agent on a session-by-session basis, so individual tasks do not have to re-type the same stack notes. The second only becomes visible once you turn on [Wildfire mode](/blog/2026-05-18-inside-wildfire-mode): the Refine and Generate phases read the definition to decide _what task to write next_. There is no human in that loop. If the definition does not constrain the kind of work the project should accept, the loop will pick its own constraints — and the four off-brand merges from the cold open are what that looks like.
+
+## The four properties of a great definition
+
+Like a task, a definition has a small set of properties that decide whether the agent reading it produces work you want to merge. The four below are the ones we keep coming back to after a year of running Watchfire on this site and on the daemon itself.
+
+### Specific about stack and conventions
+
+A definition that says "this is a Next.js website" leaves a dozen decisions on the floor. Pages Router or App Router? Server components by default or client? Tailwind or a component library? Aliased imports through `@/` or relative paths? Plain JavaScript or strict TypeScript? Each question has a wrong answer the model might pick, because each one has a wrong answer that is more common in the training data than the right one for _your_ project.
+
+The failure this prevents is the agent reaching for the convention it has seen most often rather than the one your repo uses. It is also the most expensive failure to unwind, because a single wrong choice — Pages Router instead of App Router, say — propagates through every file the agent touches that session.
+
+A bad fragment:
+
+```yaml
+definition: |
+  This is a Next.js website for our product.
+  Use modern best practices.
+```
+
+A better fragment, lifted from this project's `.watchfire/project.yaml`:
+
+```yaml
+definition: |
+  ## Conventions
+
+  - Use Next.js App Router (`app/` directory)
+  - Components in `components/` directory
+  - SVG illustrations in `public/` or as React components
+  - MDX for documentation pages (using Fumadocs)
+  - Semantic HTML, accessible markup
+  - Server components by default, client components only when needed
+```
+
+The rule of thumb: if a competent contributor from a different project could pick the wrong tool here, name the right one in the definition.
+
+### Names what is in and what is out
+
+A definition that says "marketing and documentation website" is technically correct and operationally useless. _Marketing_ and _documentation_ are two of the broadest categories the agent could be asked to work inside. Without a fence around them, Wildfire will happily generate a task to add a customer dashboard, a sign-up flow, a chatbot widget — every one of which is plausibly "marketing" if you squint.
+
+The failure this prevents is scope drift, and Wildfire mode is where it bites hardest. Every generated task uses the definition to decide what is in-bounds; every merged task changes the codebase the next pass reads. A definition that does not bound the project bounds nothing — the loop drifts one task at a time until what the loop is running on is no longer the project you started with.
+
+The fix is to write the negative space as explicitly as the positive space. _"The site is marketing pages and MDX documentation. It does not handle user accounts, payments, or any authenticated state."_ Twenty words, one whole category of off-bounds task removed.
+
+The rule of thumb: if your definition has a paragraph about what the project _is_, it needs a sentence about what the project _is not_.
+
+### Carries the brand and the voice
+
+If your project has a brand guide, the load-bearing parts of it have to live in the definition itself — not behind a link, not behind a file path, not behind "see `BRAND.md`." The agent receives the definition on every session; it does not always read every file the definition mentions, and it certainly does not always read external links. Anything you only reference is something the agent might or might not see.
+
+The failure this prevents is the most embarrassing of the four: the brand-violating diff. A landing page in cool blue gradients because the brand colors were "documented elsewhere." Marketing copy in a generic SaaS voice because the tone guide was a separate file. A component using a typeface from a previous identity because the typography rule was three links away.
+
+The fix is to inline the load-bearing parts. The exact hex values of the brand colors, the names of the webfonts, one short paragraph of voice, and a one-sentence rule of thumb the agent can apply when generating new pages. This project's definition inlines Fire Orange `#e07040`, Ember Gold `#e29020`, and Flame White `#fff5e6`, and it names "Outfit" and "JetBrains Mono" — the loop has never picked a purple gradient on its own.
+
+The rule of thumb: if violating it would be visible in a screenshot, inline it. Linking is not inlining.
+
+### References ground truth
+
+The last property is the smallest and the easiest to skip. A great definition tells the agent where the authoritative information lives — paths to the source repo, the brand assets, the changelog, the architecture document. Not in place of inlining the load-bearing bits, in addition to it.
+
+The failure this prevents is the inverse of the brand failure: the agent inventing capabilities that do not exist, or contradicting documentation it could have read. If the marketing site claims the daemon supports a feature the daemon does not have, the source of truth was one file path away — but only if the definition named the path.
+
+The fix is a short, named list of pointers. Five lines at the bottom of the definition:
+
+```yaml
+definition: |
+  ## Reference Material
+
+  The Watchfire source code is at `~/source/watchfire`. Key files:
+  - `README.md` — overview, quick start, project structure
+  - `architecture.md` — full architecture document
+  - `CHANGELOG.md` — release history
+  - `assets/brand/WATCHFIRE_BRAND.md` — full brand guidelines
+```
+
+The rule of thumb: every claim the agent might be asked to make about the product needs at least one file path in the definition where the agent can go check.
+
+## What a great definition is NOT
+
+The temptations on this field are different from the temptations on a task. Three to watch for:
+
+- **Not a marketing pitch.** The agent does not need to be sold on the project. It needs to know how to build it. "Watchfire is the world's leading remote control for AI coding agents" is the opening line of a brochure; it is not load-bearing content for the executor. Cut it. Whatever it would have said, the agent can read in the README.
+- **Not a sprawling history document.** A great definition is read by every agent on every session. If yours is ten pages long, the model is going to compress it for itself, and you will not get to choose which paragraphs survive that compression. Keep the definition the length you would actually re-read at the start of a session. Anything historical — old design choices, prior architectures, deprecated APIs — belongs in the changelog, not in the definition.
+- **Not a substitute for the task brief.** Definition tells the agent what kind of project this is; tasks tell the agent what specific outcome to produce in this session. Putting "add a CSV export to the analytics page" into the definition makes every agent on every task carry that detail. Putting "we are a TypeScript project on the App Router" into the task makes every task longer for no reason. Definition gives constraints; tasks give outcomes. Cross-link to the sibling — [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task) — for the other side of that line.
+
+## A worked example
+
+The clearest worked example we have is the one running on this site. The `definition` field inside this repo's `.watchfire/project.yaml` is the brief every agent that ever touched this site has read. Five excerpts earn their keep.
+
+The first is the stack line: _"Framework: Next.js (App Router) — Styling: Tailwind CSS — Language: TypeScript."_ Eight words, all four conventions named, nothing for the model to guess at. That is property one.
+
+The second is the scope line: _"Marketing and documentation website for Watchfire."_ Followed, two paragraphs later, by an enumerated site map — landing page, docs sections, components reference, commands reference. Two paragraphs of positive scope, and the next sentence picks up the implicit out-of-scope: no user authentication, no checkout, no app shell. That is property two, doing its work by being explicit about the surface area.
+
+The third is the colors block: _"Fire Orange `#e07040` — Primary brand color, CTAs, links, gradients. Ember Gold `#e29020` — Secondary accent. Flame White `#fff5e6` — Highlights, light accents."_ Three exact hex values, inlined, no link. Property three. A generated marketing card in this project has not been purple a single time since we put those values in the definition.
+
+The fourth is the conventions block: _"Use Next.js App Router (`app/` directory). Components in `components/` directory. MDX for documentation pages (using Fumadocs)."_ Property one at a finer grain — the agent does not have to grep the repo to discover what a page or a doc should look like.
+
+The fifth is the reference block: _"The Watchfire source code is at `~/source/watchfire`. Key files: `README.md`, `architecture.md`, `CHANGELOG.md`, `assets/brand/WATCHFIRE_BRAND.md`."_ Property four. The agent knows where to go when the definition is silent — the difference between a defensible "I do not know" and a confidently invented feature.
+
+The full file is at `.watchfire/project.yaml` in this repo. Read it, then read this post again; the mapping is the point.
+
+## The maintenance loop
+
+A definition is not write-once. It is the surface that picks up every off-brand thing the agent ever does, and the right reaction to an off-brand merge is rarely _just_ to fix the task — it is to fix the definition the agent was reading when it generated the task. If Wildfire produced a purple gradient on Tuesday, the patch is two lines added to the brand section by Wednesday. If Wildfire wrote a chatty paragraph in a SaaS voice, the patch is a one-paragraph voice section added before the next run.
+
+This is the feedback loop [Wildfire mode](/blog/2026-05-18-inside-wildfire-mode) is built on. A definition refined three times after three near-misses produces a fourth Wildfire run that stays on the rails, because the definition the loop now reads is the codified version of the three things you had to fix by hand. We refine our task templates the same way; see the sibling [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task) for the task-shaped version of the same discipline.
+
+## Closing
+
+A great task tells the agent what to do. A great definition tells the agent what kind of thing this is. The first one is unique per session; the second one is read by every session, every refine, every generate, every chat. Spend ten times as long on the definition as on any single task, and the next ten tasks will be cheaper, smaller, and closer to the merge button.
+
+Start with one of the seeds in [`/templates`](/templates), shape your first three tasks in the interactive builder at [`/playground`](/playground), and consult [`/docs/concepts/projects-and-tasks`](/docs/concepts/projects-and-tasks) for the schema underneath it all. Then turn on Wildfire and see what shape your definition really has.
