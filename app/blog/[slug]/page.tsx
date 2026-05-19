@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Callout } from "fumadocs-ui/components/callout";
 import Mermaid from "@/components/Mermaid";
 import BlogArticleJsonLd from "@/components/BlogArticleJsonLd";
+import EditOnGithub from "@/components/EditOnGithub";
 import RelatedPosts from "@/components/RelatedPosts";
 import {
   getBlogPage,
@@ -160,6 +161,13 @@ export default async function BlogPostPage(props: PageProps) {
       <div className="blog-prose space-y-5 text-base leading-relaxed text-zinc-700 dark:text-zinc-300">
         <MDX components={{ Callout, Mermaid }} />
       </div>
+
+      <EditOnGithub
+        filePath={`content/blog/${slug}.mdx`}
+        title={page.data.title}
+        slug={slug}
+        section="blog"
+      />
 
       <RelatedPosts currentSlug={slug} />
 

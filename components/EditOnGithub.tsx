@@ -1,9 +1,17 @@
 import { editBranch, editRepoUrl, siteUrl } from "@/lib/site";
 
+type EditOnGithubSection = "docs" | "blog";
+
 type EditOnGithubProps = {
   filePath: string;
   title: string;
   slug: string;
+  section?: EditOnGithubSection;
+};
+
+const SECTION_LABEL: Record<EditOnGithubSection, string> = {
+  docs: "docs",
+  blog: "blog",
 };
 
 function PencilIcon() {
@@ -65,10 +73,12 @@ export default function EditOnGithub({
   filePath,
   title,
   slug,
+  section = "docs",
 }: EditOnGithubProps) {
+  const sectionLabel = SECTION_LABEL[section];
   const editUrl = `${editRepoUrl}/edit/${editBranch}/${filePath}`;
-  const pageUrl = `${siteUrl}/docs${slug ? `/${slug}` : ""}`;
-  const issueTitle = `Docs feedback: ${title}`;
+  const pageUrl = `${siteUrl}/${section}${slug ? `/${slug}` : ""}`;
+  const issueTitle = `${sectionLabel === "blog" ? "Blog" : "Docs"} feedback: ${title}`;
   const issueBody = [
     `Page: ${pageUrl}`,
     `Source: ${filePath}`,
@@ -103,7 +113,7 @@ export default function EditOnGithub({
         className="inline-flex items-center gap-1.5 text-fd-muted-foreground transition-colors hover:text-fire-500 dark:hover:text-fire-400"
       >
         <MessageIcon />
-        <span>Report a docs issue</span>
+        <span>Report a {sectionLabel} issue</span>
       </a>
     </div>
   );
