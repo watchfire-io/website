@@ -1,0 +1,87 @@
+---
+title: "Bring your own agent: why Watchfire supports six backends"
+date: "2026-05-18"
+summary: "Watchfire runs Claude Code, Codex, opencode, Gemini CLI, GitHub Copilot CLI, and Cursor on the same task contract. Here is why the agent is the swappable part and the orchestration is the part worth building."
+tags: ["positioning", "agents"]
+image: "/banner-dark.png"
+---
+
+Frontier coding agents are commoditising faster than any other category in this stack. The leader at the start of a quarter is rarely the leader at the end. A new model lands, the rankings reshuffle, half the tooling that picked a winner six months ago now has to retrofit, deprecate, or pretend the change did not happen. Tooling that bets on a single agent is a depreciating asset by construction.
+
+Watchfire bets the other way. The agent is the swappable part. The durable part is the layer underneath it: the task contract, the worktree-per-task discipline, the sandbox profile, the Wildfire loop. Those choices do not get cheaper or smarter every six weeks the way a frontier model does. They are the part worth building once and getting right. Today, you can run six different coding agents on top of that layer — Claude Code, Codex, opencode, Gemini CLI, GitHub Copilot CLI, and Cursor — and the project shape is identical across all of them. This post is the long-form answer to "do I have to switch agents to use this?" The answer is no, and the reasons matter.
+
+## The six backends, at a glance
+
+Each of these is a real CLI you install separately, authenticate separately, and keep updated separately. Watchfire does not ship the agent; it orchestrates whichever one you already trust.
+
+- **Claude Code** (Anthropic). The `claude` binary. Anthropic's first-party coding agent and the Watchfire default when nothing else is configured. Watchfire reuses your normal Claude install directly — same `~/.claude/` config and auth — and only appends its project and task system prompt at launch.
+- **Codex** (OpenAI). The `codex` binary. OpenAI's coding CLI, focused on tight tool-use loops. Each Watchfire session gets its own `CODEX_HOME` under `~/.watchfire/codex-home/<session>/` so per-session prompts and logs stay isolated, while your normal `~/.codex/auth.json` and config carry over for login.
+- **opencode**. The `opencode` binary. The open-source option in the lineup — provider-agnostic, with config under `~/.config/opencode/`. Watchfire links your existing auth into a per-session `OPENCODE_CONFIG_DIR` so transcripts and prompts do not contaminate your personal opencode state.
+- **Gemini CLI** (Google). The `gemini` binary. Google's CLI agent. Watchfire writes a dedicated system prompt per session and points `GEMINI_SYSTEM_MD` at it, while auth and other shared settings continue to live in `~/.gemini/`.
+- **GitHub Copilot CLI** (GitHub). The `copilot` binary, from `github/copilot-cli`. Watchfire gives each session its own `COPILOT_HOME`, symlinks your real `~/.copilot/{config.json,mcp-config.json,session-store.db}` in, and runs sessions in yolo mode because the Watchfire sandbox is the boundary, not Copilot's prompt gate.
+- **Cursor** (Anysphere). The `cursor-agent` binary from the Cursor CLI — the headless backend, distinct from the interactive in-editor agent. Watchfire spawns it with `cursor-agent --workspace <worktree> --print`, symlinks `~/.cursor/` files into a per-session home, and again leans on the sandbox as the trust boundary.
+
+These are the six the daemon ships support for today. The fuller install and auth notes for each live in [Supported Agents](/docs/concepts/supported-agents).
+
+## What the abstraction looks like
+
+From the daemon's perspective, all six are the same thing: a process to launch.
+
+Each agent is a CLI binary. The daemon picks the binary based on the project's `default_agent` (or a task-level override, see below). It resolves the path — first from Watchfire settings, then `PATH`, then a few common install locations — execs the binary inside a PTY, points it at the worktree at `.watchfire/worktrees/<task_number>/`, and feeds it the same task contract: the prompt and the acceptance criteria from `<task_number>.yaml`. The agent works. The daemon watches the task file. When the agent sets `status: done` and `success: true` and exits, the daemon merges `watchfire/<task_number>` back into the default branch and tears the worktree down.
+
+There is exactly one signal that means "I am finished": the YAML field flipping to `done`. Every backend gets that contract. The agent does not need to know about the daemon, the daemon does not need to know about the agent's internals, and the only thing that changes when you swap backends is which binary the daemon execs. Everything around it — the worktree, the branch, the sandbox profile, the merge step, the file watcher — is unchanged.
+
+The per-session isolation differs by backend, because each CLI stores its own state differently. Codex needs an isolated `CODEX_HOME`; opencode needs an isolated `OPENCODE_CONFIG_DIR`; Gemini just needs a per-session `GEMINI_SYSTEM_MD`; Copilot needs a `COPILOT_HOME` with the real config symlinked in; Cursor needs a per-session home with `~/.cursor/` files linked through. Claude Code is the simplest case — it uses your normal local install directly and Watchfire just appends a system prompt at launch. None of that is your problem as a user. You install the CLI you want, log into it once, and Watchfire handles the per-session plumbing each time it spawns a process.
+
+## Why we don't pick a winner
+
+Each of the six is doing something that the others are not. The honest read on the lineup is not "Claude is best, the rest are fallbacks" — it is that the right agent depends on the shape of the task and the constraints of the team.
+
+- **Claude Code** is the strong default for breadth and judgement on ambiguous work. When the task description is long, the codebase is unfamiliar, and the right move is not obvious from the file tree, Claude tends to make the kind of grounded choices a human reviewer would also make.
+- **Codex** has tight tool-call discipline on well-scoped work. When the task is clear and the agent's job is mostly "make this small, well-defined change and stop," Codex is hard to beat on rounds-to-done.
+- **opencode** is the option for fully local, fully private runs. Open source, provider-agnostic, no dependency on any one vendor's API. If a regulated environment or a strong "no code leaves the network" rule is in play, this is the backend that fits.
+- **Gemini CLI** is the cost-sensitive choice for bulk work. When the queue is long and the per-task value is modest — small refactors, lint fixes, doc passes, test scaffolding — Gemini's pricing changes the calculus.
+- **GitHub Copilot CLI** is the path of least resistance for shops already living in the GitHub stack. The auth is the same `gh` login you already have, MCP config carries over, and session history continues to work unchanged.
+- **Cursor** is for the user who has already standardised on Cursor in the editor and wants the same provider driving the unattended task queue. The headless `cursor-agent` runs the queue; the editor agent still drives interactive work. The orchestration layer is shared.
+
+Reasonable engineers will disagree about which of these matters most. That is the point. Picking a single winner on the user's behalf forces a position that ages badly; supporting all six lets the user pick the one that fits this project, this team, this quarter — and switch when the trade-off shifts.
+
+## Switching costs are the moat that isn't
+
+The agent vendors would, of course, prefer that switching off them be expensive. The shape of the lock-in is usually some combination of bespoke project metadata, a proprietary task format, a UI that knows about exactly one model, or a workflow that assumes a particular CLI's flags and exit codes.
+
+Watchfire's project shape is the same on all six backends. The same `project.yaml`. The same per-task YAML with the same fields — `prompt`, `acceptance_criteria`, `status`, `success`. The same `.watchfire/worktrees/<n>/` layout. The same sandbox profile. The same merge contract. Switching backends does not mean rewriting tasks, restructuring the repo, or learning a different orchestration model. It means changing one string in `project.yaml`.
+
+```yaml
+project_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+name: my-project
+default_agent: codex      # was: claude-code
+sandbox: auto
+auto_merge: true
+auto_delete_branch: true
+auto_start_tasks: true
+```
+
+The next `ready` task the daemon picks up runs on the new backend. Same worktree path, same merge step, same `success: true` signal. The agent changes; the workflow does not.
+
+If you want the change to be per-task rather than project-wide — for example, you have a long queue you want to run on Gemini for cost reasons, but one task that needs Claude's judgement — every task YAML supports an optional `agent` field that overrides the project default:
+
+```yaml
+title: "Refactor docs search"
+agent: gemini
+status: ready
+```
+
+The resolution order is `task.agent` → `project.default_agent` → the global Watchfire setting → `claude-code`. You only need to set the override where the override actually matters. The detail is documented in [Projects and Tasks](/docs/concepts/projects-and-tasks).
+
+That is the whole switching cost: one field. The tasks, the history, the worktree layout, the sandbox profile, the Wildfire loop are unchanged.
+
+## What is coming
+
+The six backends supported today are the start of the lineup, not the end. The abstraction is deliberately narrow — a binary, a working directory, a system prompt, a task YAML to watch for `status: done` — and that narrowness is what makes new backends pluggable. When a new frontier coding CLI ships and the team wants to try it on a real queue, the work to add it is mostly: resolve the binary, decide how per-session isolation is done for that CLI, append a system prompt, exec. The rest of Watchfire — the worktree, the sandbox, the merge, the loop — does not change.
+
+If you want to help land a new backend, [Contributing](/docs/contributing) is the place to start. The supported-agents page is the canonical reference for what is in tree today.
+
+## Closing
+
+The orchestration is the durable layer. Tasks, worktrees, sandboxing, the Wildfire loop — those choices are still right when the agent leaderboard has reshuffled twice. The agent itself is the part that will be different in six months, and the right tool stance is to make that swap free. Pick the backend that fits this quarter, run your queue, and when the next model leapfrogs, change `default_agent` and run the same queue on the new one. The work stays. The agent moves.
