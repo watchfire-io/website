@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
 import { GitHubStarsClient } from "./GitHubStarsClient";
 import FlameLogo from "./FlameLogo";
+import { SearchTrigger } from "./SearchTrigger";
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -38,6 +39,9 @@ export function Header() {
           >
             Blog
           </Link>
+          <div className="ml-1">
+            <SearchTrigger variant="desktop" />
+          </div>
           <a
             href="https://github.com/watchfire-io/watchfire"
             target="_blank"
@@ -77,6 +81,7 @@ export function Header() {
 
         {/* Mobile controls */}
         <div className="flex items-center gap-1 md:hidden">
+          <SearchTrigger variant="mobile-icon" />
           <ThemeToggle />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -103,6 +108,12 @@ export function Header() {
       {mobileOpen && (
         <div className="border-t border-zinc-200 bg-white px-6 py-4 dark:border-zinc-800 dark:bg-zinc-950 md:hidden">
           <nav className="flex flex-col gap-1">
+            <div className="pb-1">
+              <SearchTrigger
+                variant="mobile-menu"
+                onActivate={() => setMobileOpen(false)}
+              />
+            </div>
             <Link
               href="/docs"
               onClick={() => setMobileOpen(false)}
