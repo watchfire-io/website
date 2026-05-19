@@ -1,0 +1,82 @@
+---
+title: "What we measure when we measure an agent"
+date: "2026-05-19"
+summary: "Counting agent sessions is easy. Deciding what survives the session is harder. Watchfire's Insights subsystem keeps a fixed, tiny record per task on disk — and the choice of what not to record is most of the design."
+tags: ["deep-dive", "insights", "architecture"]
+image: "/banner-dark.png"
+author: "Nuno Coração"
+---
+
+If you are running a hundred coding-agent sessions a week across half a dozen projects, what should you actually keep about each one? The instinct, when the dashboards are empty and the screenshots are not, is to keep everything — prompts, responses, diffs, traces, every tool call with its arguments and its return — and figure out what to look at later. That instinct ends in one of two failure modes: a metrics pipeline that no developer wants to run on their laptop, or a database of agent transcripts that no developer wants to share. Either way the loop stops being something an operator can casually reason about, and starts being something the operator has to operate.
+
+Watchfire's Insights subsystem is the other answer. It shipped in v4.0.0 as part of [Beacon](/blog/2026-05-19-beacon-two-way-integrations), and it is the missing piece of the architecture series — after [Wildfire](/blog/2026-05-18-inside-wildfire-mode), [worktrees](/blog/2026-05-18-isolated-worktrees-per-task), [the sandbox](/blog/2026-05-19-how-watchfire-sandboxes-every-agent), [the agent abstraction](/blog/2026-05-18-bring-your-own-agent), [Beacon itself](/blog/2026-05-19-beacon-two-way-integrations), and [secrets](/blog/2026-05-19-where-watchfire-keeps-your-secrets). It is the layer that answers "is this loop earning its keep?" — and it does so with a record narrow enough to fit on a postcard, written to a flat YAML file on disk, with no database in the picture.
+
+The full reference for the record shape lives at [`/docs/concepts/insights`](/docs/concepts/insights). This post is about why the shape is what it is.
+
+## The record, one task at a time
+
+Every completed task gets a sibling `<n>.metrics.yaml` file alongside its `<n>.yaml` task file under `.watchfire/tasks/`. So task `0123.yaml` gets `0123.metrics.yaml` next to it, and the daemon writes nothing else about that session. The record carries a fixed set of fields, and the list is short enough to read in one breath:
+
+- `task_number` — the integer the task is known by.
+- `project_id` — the project it belonged to.
+- `agent` — the backend that ran the session: `claude-code`, `codex`, `opencode`, `gemini`, or `copilot`.
+- `duration_ms` — wall-clock time from session start to session end.
+- `tokens_in` — prompt tokens consumed, nullable when the backend does not report them.
+- `tokens_out` — completion tokens produced, nullable when the backend does not report them.
+- `cost_usd` — estimated cost, nullable when the backend does not report it.
+- `exit_reason` — one of `completed`, `failed`, `stopped`, or `timeout`.
+- `captured_at` — when the record itself was written.
+
+That is the entire record. There is no transcript. There is no prompt. There is no tool-call ledger. The struct in `internal/models/metrics.go` is nine fields, three of them pointers, one of them a typed enum, and the rest scalars. An operator can open `0123.metrics.yaml` in any editor and see the whole story of what was kept.
+
+The nullability story matters more than it looks. `tokens_in`, `tokens_out`, and `cost_usd` are pointers in the underlying `TaskMetrics` struct because not every backend reports them yet. Claude Code, Codex, opencode, and Gemini all surface duration plus tokens plus cost. GitHub Copilot CLI is explicitly a stub in `internal/daemon/metrics/copilot.go` — duration only, tokens and cost stay nil — because Copilot does not yet expose a transcript schema we can parse. The worst possible move would be to report zero: zero would average into the rollups, flatten the cost-per-token chart, and tell the operator that an eighty-minute Copilot session ran for free. Nil tells the aggregator to skip the row, which is the only correct thing to do with data we do not have. The `tasks_missing_cost` caveat in the global rollup makes this explicit at the dashboard level — fleet-level cost is presented as "what we could measure," never as a total. This is the same restraint that lets the [agent abstraction](/blog/2026-05-18-bring-your-own-agent) carry six backends with different reporting depths on the same record shape.
+
+`exit_reason` is the most under-rated field. The other eight tell you what happened; `exit_reason` tells you whether it worked. The four values — `completed`, `failed`, `stopped`, `timeout` — are the difference between a "tasks per day" chart that is meaningless and one that is honest about how much of the volume actually shipped. The classification logic in `internal/daemon/metrics/capture.go` is brutally simple: if the task is not done, it is `stopped`; if `task.Success` is explicitly false, it is `failed`; otherwise it is `completed`.
+
+## Why YAML files, not a database
+
+This is the choice the post is named after. Every completed task gets a `<n>.metrics.yaml` file alongside its `<n>.yaml`, and `internal/daemon/insights/project.go` reads those files on demand when the GUI asks for an Insights view. There is no SQLite. There is no embedded database. There is no separate "metrics daemon" to keep alive. The record format is YAML, the storage is the filesystem, and the index is a directory listing.
+
+This is the kind of choice that looks lazy until you sit with it.
+
+What it gives up is real-time SQL. There is no `SELECT AVG(duration_ms) FROM tasks WHERE agent = 'claude-code'` that the daemon runs in a millisecond. But the workload does not need that. A busy project has a few hundred completed tasks; a busy fleet has a few thousand. Scanning a directory of a few thousand YAML files when an operator opens the Insights tab is genuinely fast on any laptop that can also run a coding agent — and the result is cached at `~/.watchfire/insights-cache/_global.json` so subsequent loads do not re-walk the filesystem. The query layer a database would buy us is ceremony for a workload that does not need it.
+
+What it gives up is small. What it buys is larger.
+
+There are no schema migrations to ship when the record changes. A new field arrives in `TaskMetrics`, the old files are missing it, and the YAML unmarshaller fills it with the zero value or nil. There is no `ALTER TABLE`, no migration tool, no version field, no rollback story for the moment someone runs an old daemon against a new file. The record evolves; the storage does not need to know.
+
+There is no separate process to keep alive. The metrics path is just code inside the daemon. There is no Prometheus to scrape, no PostgreSQL to babysit, no DuckDB file to corrupt during a force-quit. Backups are `cp -r .watchfire`. If the operator wants to commit the metrics into the project repo so the team can see the same numbers, they can — `.watchfire/` is gitignored by default, but the operator owns that gitignore.
+
+And — least quantifiable but the one that matters most — an operator can open a single metrics file in their editor and see exactly what was recorded. The file is the schema. The schema is small. That is the entire pitch.
+
+## Capture is non-blocking, by design
+
+The metrics file is written from a goroutine. The site is `handleTaskChanged` in `internal/daemon/server/server.go` — the function the task-file watcher invokes whenever a task YAML changes — and the relevant line is `go metrics.CaptureFromTask(projectPath, event.ProjectID, t)`. The goroutine waits briefly (six seconds, in 250 ms increments) for the agent's session log to appear on disk, parses it with the per-backend parser, and persists the result through `config.WriteMetrics` in `internal/config/metrics.go`. If the session log never lands, the capture path falls back to duration-only metrics. If the parser fails, it logs a WARN and writes duration-only metrics. If the disk write itself fails, the failure is logged and the goroutine returns.
+
+None of that is on the hot path. The operator's experience of "task done" stays instant — the watcher sees the task hit `status: done`, the agent stops, the next task in the queue picks up, and the metrics capture happens out of band. Capture is allowed to lose the occasional record; it is not allowed to slow the loop down or wedge the next task. The integration tests in `internal/daemon/server/metrics_integration_test.go` exercise this exact path — they invoke `srv.handleTaskChanged(...)` with a real watcher event and assert that the metrics file lands without delaying the task lifecycle.
+
+## Aggregation, and what comes out
+
+Once the per-task files exist on disk, two layers on top of them do the actual visible work. `internal/daemon/insights/project.go` aggregates one project's records into a window-scoped summary — `7d`, `30d`, `90d`, or all-time — and produces the KPI strip, the stacked-bar tasks-per-day chart, the agent-share donut, and the duration histogram that the GUI renders on the Project View Insights tab. `internal/daemon/insights/global.go` does the same thing across every registered project, scoped to the same windows, producing the cross-project rollup the Dashboard surfaces. The TUI binds the same overlays — `i` for the project view, `Ctrl+f` for the fleet view — so the same numbers are reachable from either client without re-implementing the aggregation.
+
+The exports are the second visible artifact. The `InsightsService.ExportReport` RPC takes a scope (a `project_id`, `global`, or a single task) and a format (`CSV` or `MARKDOWN`) and returns the bytes. CSV exists for the spreadsheet user — a single file with `# section: <name>` header lines delimiting the sub-tables (KPIs, per-day, per-agent, per-task). Markdown exists for the user who wants to paste a status block into a weekly write-up. The templates live in `internal/daemon/insights/templates/`. There is no third format and no live JSON API; the two formats cover the two consumers.
+
+The weekly digest is the recurring artifact. A re-armable timer in `internal/daemon/server/digest.go` arms from `models.DigestSchedule.NextFire`, fires on the configured cadence, and renders the cross-project rollup into a Markdown file under `~/.watchfire/digests/<YYYY-MM-DD>.md`. The same render is published to the notify bus as a `WEEKLY_DIGEST` notification, which means every [Beacon](/blog/2026-05-19-beacon-two-way-integrations) adapter wired into the daemon — Slack, Discord, webhook — gets a copy. The metrics files on disk are the source of truth; the digest file is the local artifact; the outbound notification is the render that goes wherever the operator has asked to be reached.
+
+## What we deliberately don't measure
+
+This is the section that earns the title.
+
+The metrics file does not contain the prompt the agent received. It does not contain the response the agent generated. It does not contain the tool calls the agent made, the arguments it passed, the return values it consumed, or the intermediate reasoning the model wrote on its way to the final answer. It does not contain a diff of the code the agent wrote, the files the agent touched, or the commit messages it produced. It does not contain a per-tool-call breakdown of token spend. None of that is in the record. None of it is on disk in the `<n>.metrics.yaml` file. The only thing the file knows about the session is the nine fields above.
+
+The reason is straightforward. The metrics file should be safe to email a colleague. Safe to commit to the project repo. Safe to share with a procurement team that wants to see "is this thing worth the seat price." Safe to attach to a weekly status doc that goes to a manager who is not allowed to see the contents of the code that was written. Anything that would leak the **content** of an agent session — anything that would let a reader reconstruct what the agent was told, what the agent said back, or what code the agent produced — stays in the [worktree](/blog/2026-05-18-isolated-worktrees-per-task) where the operator can review it and choose what to share. The worktree is already the place where an operator who wants to read what an agent did goes to read it. The metrics file does not duplicate that surface; it complements it.
+
+This is also why the field list is fixed. A configurable schema would let an operator add fields, and one of the fields some operator would inevitably add is "the first hundred characters of the final response." That field would then ride along in every export, every digest, every CSV, every Markdown paste. The schema being fixed is the safety rail. The operator does not have to remember to disable a feature; the feature is not there.
+
+The same restraint holds on the rollup side. The cross-project view aggregates across every registered project, but only by counts, durations, tokens, costs, and exit reasons. A project with sensitive task titles is still safe to surface at the fleet level, because the rollup is over numbers, not over text.
+
+## Closing
+
+Three subsystems, one loop. Wildfire makes the unattended loop run. Beacon makes it visible from outside the laptop. Insights makes it answerable to a human asking "is this thing earning its keep?" — and it does so without making the loop answerable to a database the operator did not ask for, or a transcript store the operator did not consent to.
+
+The shape of the answer is the shape of the file: nine fields, on disk, next to the task it describes. An operator can read it. An operator can grep it. An operator can `cp -r` it to a backup, commit it to a repo, paste it into a status doc, or delete the entire `.watchfire/` directory and start over. The subsystem does not know more than is in those files, and there is no second place where it secretly knows more. That is the part worth defending. Measuring agents is easy. Deciding what survives the session is the design.
