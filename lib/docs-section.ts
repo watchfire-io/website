@@ -5,6 +5,7 @@ const SECTION_LABELS: Record<string, string> = {
   changelog: "Changelog",
   installation: "Getting started",
   quickstart: "Getting started",
+  showcase: "Showcase",
 };
 
 export function sectionLabel(slug?: string[]): string {
