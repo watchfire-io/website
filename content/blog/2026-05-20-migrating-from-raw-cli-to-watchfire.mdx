@@ -1,0 +1,192 @@
+---
+title: "Migrating from raw Claude Code (or Codex, or opencode) to Watchfire — what changes, what doesn't, what you get back"
+date: "2026-05-20"
+summary: "A practical migration guide for developers already using a coding agent CLI directly. What stays the same, the four real shifts, and the first hour of using Watchfire on a project you already know."
+tags: ["migration", "adoption", "claude-code", "codex"]
+author: "Nuno Coração"
+---
+
+You are already running Claude Code in a terminal. The agent works. Sometimes it writes great code; sometimes it blows past the bug, edits twelve unrelated files, and leaves you with a working tree you spend twenty minutes triaging. You have heard about Watchfire. The question is not _"is it better?"_ — the [comparison page](/docs/compare) has the side-by-side. The honest question is _"what do I actually have to change about how I work?"_
+
+This post is the answer. It is a migration guide, not a sales pitch. We walk through the four real shifts, what stays the same, and the concrete first hour of moving a project you already know from raw CLI to Watchfire. Watchfire is not a replacement for [Claude Code](/agents/claude-code), [Codex](/agents/codex), or opencode. It is a steering wheel and a set of seatbelts around the agent you already trust.
+
+## What stays exactly the same
+
+The agent does. The model does. The prompts do.
+
+Watchfire is an orchestrator, not an agent. The intelligence still comes from your CLI of choice — Claude Code, Codex, opencode, Gemini CLI, GitHub Copilot CLI, or the Cursor Agent CLI. Watchfire spawns those binaries in a PTY, feeds them a prompt, and watches them work. Anything that was true about the agent on the command line is still true inside Watchfire. Your `~/.claude/CLAUDE.md` is still read. Your slash commands still resolve. Your skills, your hooks, your `.claude/` project config, your `AGENTS.md` for Codex, your opencode plugins — all of it keeps working. The daemon symlinks the relevant per-user config into a per-session home so the agent feels at home; see [supported agents](/docs/concepts/supported-agents) for the exact bridges.
+
+The model picker is the same. The API costs are the same. The agent's failure modes are the same. Watchfire does not save you from a model that hallucinates a function name; it saves you from the _consequences_ of that hallucination touching your working tree.
+
+## What changes — the four real shifts
+
+There are four. Each one is a real change in habit, not a UI difference. We will be explicit about which is the biggest.
+
+### 1. You write a task, not a prompt
+
+This is the biggest cognitive shift. Make peace with it now and the rest of the migration is mechanical.
+
+In the raw CLI you sit at a REPL, type a long prompt, hit enter, and watch the agent stream output. The prompt evaporates into scrollback as soon as the session ends.
+
+In Watchfire you write a YAML file. The file lives in `.watchfire/tasks/` alongside the rest of the queue. It has a `title`, a `prompt`, and an `acceptance_criteria` block — the contract the agent reads as the definition of done. You can put it in `status: draft` while you work on the wording, then flip it to `ready` when it is good. If `auto_start_tasks: true` is set in `project.yaml` (the default), the daemon picks the task up and spawns an agent the moment you save the file.
+
+**Before — a raw Claude Code session:**
+
+```bash
+$ claude
+> Add the v0.6.0 release notes to content/docs/changelog.mdx.
+> Copy the v0.6.0 section from ~/source/watchfire/CHANGELOG.md
+> and format it consistently with existing entries. Place
+> v0.6.0 at the top, above existing entries. Codename is
+> "Ember". Include the chat command, the cross-platform
+> sandbox abstraction, Windows build support, Windows
+> notifications via beeep, --sandbox / --no-sandbox flags,
+> sandbox config in project.yaml and settings.yaml, Linux
+> system tray icon support, and the agent chaining and Linux
+> notification double-close fixes.
+[agent starts streaming. you watch. file lands directly in
+your working tree. you check `git status` and read the diff.]
+```
+
+**After — `.watchfire/tasks/0035.yaml`:**
+
+```yaml
+version: 0
+task_id: wf35clog
+task_number: 35
+title: Update changelog page with v0.6.0 release notes
+prompt: |
+    Add the v0.6.0 release notes to `content/docs/changelog.mdx`.
+
+    Copy the v0.6.0 section from `~/source/watchfire/CHANGELOG.md`
+    and format it consistently with existing entries on the page.
+    The release codename is "Ember".
+
+    Key items in v0.6.0:
+    - `watchfire chat` CLI command
+    - Cross-platform sandbox abstraction (macOS Seatbelt, Linux
+      Landlock/Bubblewrap)
+    - Windows build support (unsandboxed)
+    - Windows notifications via beeep
+    - Platform-aware updater asset names
+    - `--sandbox` and `--no-sandbox` CLI flags
+    - Sandbox config in project.yaml and settings.yaml
+    - Linux system tray icon support
+    - Bug fixes: agent chaining error handling, Linux
+      notification double-close
+
+    Place v0.6.0 at the top of the changelog, above existing
+    entries.
+acceptance_criteria: |
+    - v0.6.0 entry added at top of changelog page
+    - All Added, Fixed, and Changed items from the source
+      CHANGELOG are included
+    - Formatting matches existing changelog entries
+    - Page renders correctly
+status: ready
+```
+
+That is a real task from this site's own `.watchfire/tasks/` directory. It is the task that shipped the v0.6.0 changelog entry. Two things to notice: the prompt is roughly the same words you would have typed at the REPL, and the `acceptance_criteria` block is the addition. The agent reads those bullets as the contract. When it thinks it is done, it checks itself against the bullets; when it cannot satisfy them, it reports `failure_reason` and `success: false` instead of guessing.
+
+Writing a task feels slower at first. It is. You are doing in five minutes — once, before the agent starts — the same scoping you used to do in a thirty-minute review pass after the agent committed. The fully-shaped task is the artifact your future self thanks you for. We have a whole post on the four properties of [a task an agent can actually finish](/blog/2026-05-19-anatomy-of-a-great-task).
+
+### 2. The agent runs in a worktree, not in your working tree
+
+Before: every edit lands in `git status`, mixed with your own changes. You watch the file change live in your editor.
+
+After: the daemon creates a dedicated git worktree at `.watchfire/worktrees/<n>/` on its own branch `watchfire/<n>`. The agent runs inside that worktree. Your `main` is untouched. You keep editing on your own branch while one, two, or three agents work in their own branches.
+
+This is freeing once you adjust to it. You can fire a refactor, walk over to a different file, and keep working — the agent's changes never touch your line in your editor. A failed run is a directory you can `rm -rf` and a branch you can `git branch -D`. The cost of a bad agent run drops from "twenty minutes triaging the working tree" to "zero."
+
+It also forces one habit shift: you can no longer watch the file change live in your IDE. The file is in a different worktree. To see progress you watch the TUI, the GUI, or the per-session transcript. To inspect the diff mid-flight, you `cd .watchfire/worktrees/<n>/` and run `git diff`. To open the agent's branch in your editor, you point it at the worktree directory directly. The full architectural argument lives in [why we run every task in its own git worktree](/blog/2026-05-18-isolated-worktrees-per-task), but the muscle memory you have to build is one line: _the agent does not work in the same tree I do anymore._
+
+### 3. The agent is sandboxed
+
+Before: the agent inherits your shell. `~/.ssh` is readable. `~/.aws` is readable. `~/Documents` is readable. Anything in your `$PATH` is executable. Your `.git/hooks` fire. A misbehaving prompt could, in principle, exfiltrate anything your user account can read.
+
+After: the agent runs through a platform-native sandbox — Seatbelt on macOS, Landlock or Bubblewrap on Linux. The [sandboxing docs](/docs/concepts/sandboxing) have the exact deny rules; the short version is that `~/.ssh`, `~/.aws`, `~/.gnupg`, `~/Desktop`, `~/Documents`, `~/Downloads`, and the host's `.git/hooks` are all blocked by default. Network access is allowed (so the agent can hit your model API), but the host filesystem is not yours-to-loan anymore.
+
+Two practical changes this forces. First: anything that worked _because_ the agent could read `~/.aws/credentials` no longer works. If your prompt assumed the agent could `aws s3 ls` or `gh auth status`, it will need a different path. Secrets that used to be free-for-the-taking now come through `.watchfire/secrets/instructions.md`, which the daemon stages into the worktree on session start. The pattern is documented in [where Watchfire keeps your secrets](/blog/2026-05-19-where-watchfire-keeps-your-secrets) — it is the place to put the credential, the API key, the staging-host SSH config, when an agent legitimately needs one.
+
+Second: you can say _yes_ to riskier prompts. _"Refactor the file system layer to use a new path library"_ feels different when the worst the agent can do is mess up its own branch. The sandbox is what lets you stop reading every diff with one hand on the kill switch.
+
+### 4. You review diffs, not running state
+
+Before: the agent types in front of you. You intervene mid-run. You stop it when it goes the wrong way. You answer a clarifying question. The unit of attention is the live stream.
+
+After: tasks complete or fail. The agent produces a branch, the daemon (optionally) merges it, you review the diff at the end. The unit of attention is the queue of completed work.
+
+This is the change that makes parallelism real. Three tasks running concurrently across three worktrees means three streams you cannot meaningfully watch live anyway. So the model shifts: you do the up-front work to write a task whose `acceptance_criteria` is a contract you actually trust, the agent runs against that contract, and the review happens against the diff after the merge attempt.
+
+What you give up is live intervention. You cannot stop the agent halfway and re-steer it the way you can at a REPL. If a task goes wrong you cancel it, fix the task brief, and re-run. What you gain is a queue of completed reviews waiting for you at your own pace — and the ability to read the full session transcript a week later, because Watchfire writes a clean JSONL transcript next to every session ([architecture docs](/docs/concepts/architecture#jsonl-transcript-logging)).
+
+The escape valve is still there. If you want a free-form session — exploration, _"explain this file to me,"_ a quick edit that does not deserve a task — drop into [`watchfire chat`](/docs/commands/chat). It is an interactive session at the project root, no task, no worktree, the same agent you already use. The two surfaces live next to each other.
+
+## What you get back — the wins
+
+Five concrete things, each one a real change in how a workday feels.
+
+**Parallelism.** Three tasks across three projects at once, instead of one terminal at a time. The daemon manages one agent per project but coordinates many projects concurrently, and within a project a queue of `ready` tasks drains one after another.
+
+**Cleaner diffs.** Each task becomes one branch becomes one merge commit becomes one review unit. The unit of work and the unit of review are finally the same thing — no more reviewing a forty-file diff that wants to be six PRs.
+
+**Audit trail.** Every session writes a JSONL transcript next to the task. A week later you can re-read the agent's reasoning, search for "why did it choose `useEffect` over `useLayoutEffect`," and find the answer. Scrollback is the only record of a raw CLI session; Watchfire's record is structured and persistent.
+
+**Safer experiments.** The sandbox lets you say _yes_ to prompts you would have rephrased to be conservative at the REPL. _"Try the migration on the whole codebase"_ is a reasonable Saturday-night task when the worst case is a branch you delete. _"Try the migration on the whole codebase"_ at the raw REPL is a Sunday morning you spend running `git reset`.
+
+**The flywheel.** Once the queue is a directory of YAML files and the agent runs against contracts, you can hand the queue to a loop. [Wildfire mode](/blog/2026-05-18-inside-wildfire-mode) drains `ready` tasks, refines `draft` tasks against the project definition, generates new tasks when the queue runs dry, and keeps going. The first time you walk away from your laptop on a Friday and come back to twelve completed merges on Saturday morning, the value proposition stops being abstract.
+
+## The first hour — a concrete playbook
+
+You have a project where you have been running raw Claude Code (or Codex, or opencode). Here is the path from there to a Watchfire workflow you trust, in five steps.
+
+```bash
+# 1. Install — see /docs/installation for platform specifics.
+brew install watchfire-io/tap/watchfire
+
+# 2. Initialize the project. Run this from the same repo you
+#    have been running the raw CLI in. It creates .watchfire/
+#    and appends a line to .gitignore.
+cd ~/code/my-project
+watchfire init
+
+# 3. Write your first task. Pick a small bug — the kind you
+#    would have typed at the REPL on a Tuesday.
+watchfire task add
+
+# 4. Watch the queue drain.
+watchfire task list
+
+# 5. Or open the TUI for live progress.
+watchfire
+```
+
+Five steps, in order:
+
+1. **`watchfire init`** in the existing project. It creates `.watchfire/project.yaml`, `.watchfire/tasks/`, appends `.watchfire/` to `.gitignore`, and asks which agent backend you want as the project default. Pick the one you have been using at the raw CLI.
+
+2. **Write your first task.** `watchfire task add` walks through the title, prompt, acceptance criteria, and status interactively, and writes the YAML. The shape that works is the one we covered in [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task): one outcome, anchored in concrete files, verifiable. If you want a starter to paste from, the [`/templates`](/templates) page has ready-to-edit YAML for common shapes.
+
+3. **Set the task to `ready`.** With `auto_start_tasks: true` (the default), the daemon spawns the agent immediately. With auto-start off, run `watchfire` to open the TUI and start it manually.
+
+4. **Watch via the TUI or the GUI** while it runs; or do something else. The transcript writes to disk regardless. When the task completes and merges, review the diff on `main`.
+
+5. **If you liked the result, try Wildfire mode on a Saturday.** Queue a few drafts, flip the loop on, come back later. The page on [Wildfire mode](/blog/2026-05-18-inside-wildfire-mode) walks through the loop in detail.
+
+The full walk-through with screenshots is at [`/docs/quickstart`](/docs/quickstart). The starter task YAMLs are at [`/templates`](/templates). The brand new project's first `project.yaml` keeps the same agent you have been using at the raw REPL, so step 2 is the only place new habits are required.
+
+## What this guide does not cover
+
+Three things, on purpose.
+
+**Other agent CLIs.** Gemini CLI, GitHub Copilot CLI, and the Cursor Agent CLI are first-class Watchfire backends and the migration shape is identical, but the examples above are Claude-Code- and Codex-flavoured because those are the two largest raw-CLI populations. The per-backend nuance is in [supported agents](/docs/concepts/supported-agents) and on each agent's landing page under `/agents/`.
+
+**Team workflows.** This post is one-developer-shaped. The shift from one developer to a team — reviewing each other's task briefs as code, draining shared queues, reading shared metrics — is its own piece: [Watchfire for teams](/blog/2026-05-20-watchfire-for-teams).
+
+**Beacon integrations.** The two-way integration layer that lets external services (Discord, GitHub, Slack) call into the daemon is a separate adoption surface from the raw-CLI migration, and the [Beacon post](/blog/2026-05-19-beacon-two-way-integrations) covers it end-to-end.
+
+## Close
+
+Migrating from a raw agent CLI to Watchfire is not abandoning the agent you already trust. It is putting a steering wheel and seatbelts around the engine you already drive. The model is the same. The prompts are the same. The agent is the same. What changes is that the work is a contract, the workspace is isolated, and the queue is a directory of YAML files your future self can read.
+
+If you want to start: copy a starter from [`/templates`](/templates), install via [`/docs/installation`](/docs/installation), and run `watchfire init` in the repo you have been running the raw CLI in. The first hour is the whole migration.
