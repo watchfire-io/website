@@ -270,6 +270,16 @@ export default function AboutPage() {
               </Link>
               .
             </p>
+            <p className="mt-3 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              Writing about Watchfire? Grab logos and boilerplate on the{" "}
+              <Link
+                href="/press"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                press kit
+              </Link>
+              .
+            </p>
           </div>
         </section>
 

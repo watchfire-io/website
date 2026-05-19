@@ -179,6 +179,16 @@ export default function BrandPage() {
               Logos, palette, and typography. Use them respectfully &mdash; don&apos;t
               recolor the flame or run the wordmark in Outfit.
             </p>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              Need a packaged set for an article? See the{" "}
+              <Link
+                href="/press"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                press kit
+              </Link>
+              .
+            </p>
           </div>
         </section>
 
