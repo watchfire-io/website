@@ -47,8 +47,8 @@ export default function BlogArticleJsonLd({
 
   const resolvedImage =
     image ??
-    (post.data.image
-      ? resolveAbsoluteImageUrl(post.data.image)
+    (post.data.ogImage
+      ? resolveAbsoluteImageUrl(post.data.ogImage)
       : buildAbsoluteBlogOgUrl({
           title: post.data.title,
           description: post.data.summary,
