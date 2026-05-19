@@ -11,6 +11,7 @@ import DownloadButton from "@/components/DownloadButton";
 import EditOnGithub from "@/components/EditOnGithub";
 import Mermaid from "@/components/Mermaid";
 import ChangelogJsonLd from "@/components/ChangelogJsonLd";
+import ComparisonMatrix from "@/components/ComparisonMatrix";
 import { sectionLabel } from "@/lib/docs-section";
 import { siteUrl } from "@/lib/site";
 import { buildOgUrl, buildAbsoluteOgUrl } from "@/lib/og-url";
@@ -168,7 +169,13 @@ export default async function Page(props: {
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>
         <MDXContent
-          components={{ Callout, DownloadButton, Mermaid, ChangelogJsonLd }}
+          components={{
+            Callout,
+            DownloadButton,
+            Mermaid,
+            ChangelogJsonLd,
+            ComparisonMatrix,
+          }}
         />
       </DocsBody>
       <EditOnGithub
