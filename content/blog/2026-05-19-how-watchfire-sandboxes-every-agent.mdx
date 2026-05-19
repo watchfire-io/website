@@ -1,0 +1,117 @@
+---
+title: "How Watchfire sandboxes every agent run"
+date: "2026-05-19"
+summary: "Worktrees stop an agent from stomping on your branch, but they will not stop it from reading your SSH key. Here is the OS-level sandbox layer that does, and how Watchfire picks the right backend on each host."
+tags: ["deep-dive", "architecture", "security"]
+image: "/banner-dark.png"
+---
+
+You have just told an agent to refactor your auth middleware. You closed the laptop lid for ten minutes to grab a coffee. The agent is running unattended, working through the diff. While you are gone, what stops it from `cat ~/.ssh/id_ed25519`? What stops it from copying `~/.aws/credentials` into a file inside the repo that gets committed to the worktree branch? What stops it from reaching into a sibling project two directories over and overwriting a file it has no business knowing about?
+
+These are not paranoid questions. Worktrees — [which we wrote about in the previous post](/blog/2026-05-18-isolated-worktrees-per-task) — give us isolation at the git layer: separate working tree, separate branch, separate index. They do not give us filesystem isolation. An agent inside a worktree can still `cat` your SSH key. The worktree only stops it from rewriting your colleague's branch; it does not stop it from reading the contents of your home directory.
+
+The post that follows is the answer to the second half of the question. It is the third pillar of the Watchfire trilogy — after Wildfire (the autonomous loop) and worktrees (git-layer isolation) — and the one that makes the other two safe to leave running.
+
+## Why OS-level sandboxing is the right layer
+
+We could have built the protection at the agent layer. Most coding agents already ship with a permissions system: "ask before running shell commands," "ask before writing files," and so on. We make use of that system, but we do not trust it on its own. Three reasons.
+
+The first is **enforcement**. Permission prompts are something the agent decides to honor. An OS sandbox is a contract with the kernel. If the agent tries to read `~/.ssh/id_ed25519` under a kernel-enforced policy that denies it, the read fails with `EACCES` regardless of what the agent thinks should be allowed. The agent does not get to opt out. Neither does any subprocess it spawns.
+
+The second is **trust shape**. We do not want to assume the agent is well-behaved, well-tested, or even uncompromised. A future agent we have not vetted yet, an agent in beta, a chain of tool calls that ends in `bash -c "$VARIABLE"` — all of these are reasons to refuse to depend on the agent following its own rules. Sandboxing is a posture that does not have to be revisited every time the agent updates.
+
+The third is **composition**. The sandbox is one layer, the worktree is another, the agent's own permission system is a third. Each layer is cheap and partial; stacked, they are surprisingly hard to defeat all at once. The worktree contains git-layer mistakes — an agent cannot stomp on the developer's working copy. The sandbox contains filesystem-layer mistakes — an agent cannot exfiltrate credentials. The agent's tool layer contains the obvious accidents — the prompt to confirm `rm -rf`. Defense in depth is the goal, and OS-level fencing is the load-bearing piece. Without it, the other two layers are walls without a roof.
+
+## Auto-detection in three layers
+
+The default sandbox setting in a `project.yaml` is `auto`. That means: pick the strongest available backend for the host. The resolution chain inside the daemon goes like this.
+
+On macOS, `auto` resolves to Seatbelt — Apple's built-in mandatory access control, accessed through the `sandbox-exec` binary. On Linux 5.13 or newer, `auto` resolves to Landlock — the kernel's unprivileged LSM for filesystem restrictions. On older Linux kernels, `auto` falls back to Bubblewrap — the `bwrap` binary that ships in most distributions and that Flatpak uses under the hood. On Windows, `auto` resolves to unsandboxed today. We are honest about that in the docs and in the daemon's startup log; it is a known gap.
+
+The user-facing knobs follow a strict priority order. A CLI flag — `--sandbox <backend>` or `--no-sandbox` — wins over everything. If no flag is passed, the project's `project.yaml` `sandbox` field is used. If the project does not set one, the global default in `~/.watchfire/settings.yaml` applies. If none of those are set, the default is `auto`. Reading order: flag, project, global, default. The full reference is in [the sandboxing concept doc](/docs/concepts/sandboxing); the part worth knowing for everyday use is that you can pass `--no-sandbox` once to debug something without editing a config file.
+
+## macOS: Seatbelt
+
+On macOS the sandbox is `sandbox-exec`, the front-end to Apple's Seatbelt framework. Seatbelt has been in macOS for over a decade and is what Apple uses internally to confine its own daemons and store-distributed apps. It takes a profile written in a Lisp-like syntax and asks the kernel to deny anything not explicitly allowed.
+
+Watchfire generates the profile at runtime from an internal policy struct — it is not user-editable, and that is deliberate. We want the policy to be a property of the daemon version, not something a project can quietly weaken. When a task starts on macOS, the daemon writes a fresh profile to a temp file and execs the agent under it:
+
+```bash
+sandbox-exec -f /tmp/watchfire-profile-XXXX.sb claude ...
+```
+
+The agent inherits the profile. Any subprocess the agent spawns inherits it too, which matters because real coding work shells out constantly — `git`, `npm`, `pytest`, `tsc`, `make`. The profile follows the spawn tree.
+
+What the profile allows is the smallest set of paths the agent actually needs: the project directory with full read and write, the temp directory, the package manager caches under `~/.npm`, `~/.yarn`, `~/.pnpm-store`, `~/.cache`, and `~/Library/Caches`, the dev-tool state under `~/.cargo`, `~/go`, and `~/.rustup`, and the agent's own configuration directory at `~/.claude`. What it denies is the part you would worry about: `~/.ssh`, `~/.aws`, `~/.gnupg`, `~/.netrc`, `~/.npmrc`, the personal directories (`~/Desktop`, `~/Documents`, `~/Downloads`, `~/Music`, `~/Movies`, `~/Pictures`), and — using Seatbelt's regex support — `.env` files anywhere on disk and `.git/hooks` directories. The last two are blocked by pattern because we cannot enumerate every project on the machine ahead of time.
+
+One subtlety worth calling out: if your project happens to live inside a protected directory — say, `~/Documents/my-project` — the profile detects the overlap at generation time and drops the deny rule for that path. The project is always allowed; only the *unrelated* contents of `~/Documents` are not.
+
+## Linux: Landlock first
+
+Landlock is the newer Linux LSM, available since kernel 5.13. We prefer it on Linux for three reasons. It is in-process, so we do not need a helper binary or a setuid hop. It is unprivileged, so it works without root. And its restrictions are scoped per process and inherited across `exec`, which is the property we need when an agent spawns `git` and `make` and `pytest` to do its job.
+
+The daemon implements Landlock by re-invoking itself as a tiny helper. The helper reads a JSON config describing the allowed paths, applies the Landlock restrictions to its own process, and then `exec`s the agent:
+
+```bash
+watchfired --sandbox-exec /tmp/watchfire-sandbox-XXXX.json
+# applies Landlock rules, then execs the agent
+```
+
+By the time the agent is running, the restrictions are already in place, and there is no way to take them back. The allowed and blocked paths are derived from the same policy struct as the macOS profile, with two differences. Landlock operates on paths, not regex patterns, so we cannot use the `.env`-blocking trick that Seatbelt supports — that one is macOS-only. And the personal-directory blocks (`~/Documents`, `~/Pictures`, and so on) do not apply on Linux because those paths are not standard there.
+
+## Linux: Bubblewrap as a fallback
+
+When the host kernel is too old for Landlock, or when Landlock is unavailable for any reason the binding reports, the daemon falls back to Bubblewrap. `bwrap` is the same primitive Flatpak uses to confine desktop apps; it predates Landlock by years and works on almost any Linux you would care to run a daemon on.
+
+The mechanism is mount namespaces. `bwrap` constructs a new mount namespace where the root filesystem is bind-mounted read-only, the project directory is bind-mounted read-write, and the directories we want to hide — `~/.ssh`, `~/.aws`, `~/.gnupg`, and the rest — are replaced with empty `tmpfs` mounts. The agent sees an entire filesystem, but the credential paths it might reach for show up as empty directories, not as the real ones with the real files. From the agent's perspective, there is nothing there to read.
+
+Bubblewrap is heavier than Landlock — it requires the `bwrap` package, it requires user-namespace support, and the per-process setup cost is a little higher. We use it as the broad-compatibility option, not the preferred one. If neither Landlock nor Bubblewrap is usable, the daemon logs a loud warning and runs the agent unsandboxed. We tell you when that has happened; we do not silently downgrade.
+
+## What the sandbox deliberately allows
+
+This is the section that matters most, because the sandbox is not designed to stop an adversary with a foothold and a goal. It is designed to keep an unattended agent from doing something stupid by accident. A determined attacker who fully controls the agent process has a much harder job than the same attacker against an unsandboxed agent — but the sandbox is not the only line of defense, and we are not selling it as one.
+
+What the agent legitimately needs:
+
+- **Read and write inside the project directory.** That is the whole point. The agent is editing your code; the sandbox cannot pretend otherwise.
+- **Read access across the bulk of the system.** Compilers, tool config, system libraries, `node_modules`, `~/.bashrc` — agents read all of these in the normal course of doing real work. We block the credential directories, not "everything that is not the project."
+- **Write access to caches.** `npm install`, `cargo build`, `go mod download`, and `pip install` all write to user caches. Blocking those would not improve security; it would just break every Node, Rust, Go, and Python project on the machine.
+- **Write access to its own config.** `~/.claude` is where Claude Code keeps its state. The agent needs to update it.
+- **Network access.** The agent talks to the vendor's API, downloads packages, and sometimes hits internal services your code depends on. The sandbox does not block this.
+
+The honest framing is that the sandbox is a blast-radius limiter. Inside the box, the agent has the same authority you would give it on the command line. Outside the box — specifically, the credential directories, the personal directories on macOS, and the `.env` files and `.git/hooks` Seatbelt regexes out — the agent does not get to play. That is the trade. We could lock it down further and end up with agents that cannot run `npm install`. We could open it up and lose the protection. The shape above is the one we landed on after running it against real projects, and we keep tightening it as we find paths nothing important needs.
+
+## Network policy
+
+A note on network, because it is the question we get most often after "does it block the SSH key." The short answer: Watchfire's sandbox is filesystem-focused. It does not, today, block the agent from making outbound HTTPS calls — the agent vendor's API, package registries, and any service your test suite depends on are all reachable.
+
+We chose filesystem-first for a practical reason. Filesystem isolation has clean primitives on all three OS families and breaks almost nothing the agent needs to do. Network isolation has messier primitives, breaks more legitimate workflows — because `npm install` and `pip install` both reach the internet — and offers a smaller relative win, because the bigger network risks (pulling a malicious package, calling a compromised internal service) are not actually stopped by blocking outbound traffic. If you want stricter network policy, host firewalls and per-project proxies are the right place to put it. The sandbox composes with both.
+
+We are not promising "no network access, ever." We are promising "the agent cannot read your SSH key, even to send it over the network, because it cannot read it at all."
+
+## The resolution chain, drawn
+
+<Mermaid chart={`
+flowchart TD
+    S([Task starts]) --> F{--sandbox or<br/>--no-sandbox flag?}
+    F -->|set| Use[Use that backend]
+    F -->|unset| P{project.yaml<br/>sandbox: ...?}
+    P -->|set| Use
+    P -->|unset| G{settings.yaml<br/>default_sandbox?}
+    G -->|set| Use
+    G -->|unset| A[auto]
+    Use --> R{Resolved backend}
+    A --> R
+    R -->|macOS| SB[Seatbelt<br/>sandbox-exec]
+    R -->|Linux 5.13+| LL[Landlock<br/>in-process]
+    R -->|Older Linux| BW[Bubblewrap<br/>bwrap namespace]
+    R -->|Windows| NS[Unsandboxed<br/>warning logged]
+`} />
+
+Read it top to bottom. The flag wins if set; otherwise the project config; otherwise the global default; otherwise `auto`. Whatever falls out the bottom is the backend the daemon spawns the agent under.
+
+## Closing
+
+The trilogy is complete. Wildfire gives us the autonomous loop — the daemon picking the next task, running it, refining drafts, generating new work, repeating. Worktrees give us git-layer isolation — every task on its own branch in its own directory, with safe failure and clean merge-backs. Sandboxing gives us OS-layer isolation — the kernel enforcing what the agent can read and write, regardless of what the agent thinks. The three together are what make Watchfire safe to leave running while you go get lunch.
+
+If you want the full reference — the exact allow-lists, the regex rules, the policy struct, the platform comparison table — [the sandboxing concept doc](/docs/concepts/sandboxing) is the canonical writeup. If you want to try it on a project of your own, [the installation guide](/docs/installation) gets you to a daemon, a worktree, and a sandboxed agent in a handful of minutes. Set `sandbox: "auto"` in your `project.yaml` and the rest is the kernel's problem.
