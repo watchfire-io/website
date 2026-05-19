@@ -210,6 +210,16 @@ export default function ShowcasePage() {
         {/* Closer / CTA */}
         <section className="px-6 pb-24">
           <div className="mx-auto max-w-3xl text-center">
+            <p className="mx-auto mb-10 max-w-2xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 sm:text-base">
+              The clearest case study is this very site &mdash;{" "}
+              <Link
+                href="/built-with-watchfire"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                see the receipts
+              </Link>
+              .
+            </p>
             <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
               Built something with Watchfire?
             </h2>

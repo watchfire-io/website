@@ -190,6 +190,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
+      url: `${siteUrl}/built-with-watchfire`,
+      lastModified: maxLastModified([
+        "app/built-with-watchfire/page.tsx",
+        "lib/dogfood.ts",
+      ]),
+      changeFrequency: "weekly",
+      priority: 0.6,
+    },
+    {
       url: `${siteUrl}/templates`,
       lastModified: maxLastModified([
         "app/templates/page.tsx",
