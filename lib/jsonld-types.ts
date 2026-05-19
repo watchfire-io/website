@@ -5,6 +5,12 @@ export interface OrganizationRef {
   logo?: { "@type": "ImageObject"; url: string };
 }
 
+export interface PersonRef {
+  "@type": "Person";
+  name: string;
+  url?: string;
+}
+
 export interface BreadcrumbListItem {
   "@type": "ListItem";
   position: number;
@@ -73,7 +79,7 @@ export interface Article {
   description: string;
   datePublished: string;
   dateModified: string;
-  author: OrganizationRef;
+  author: OrganizationRef | PersonRef;
   publisher: OrganizationRef;
   image: string;
   mainEntityOfPage: ArticleMainEntityOfPage;

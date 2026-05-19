@@ -1,5 +1,6 @@
 import type { BlogPage } from "@/lib/blog-source";
-import type { Article } from "@/lib/jsonld-types";
+import type { Article, PersonRef } from "@/lib/jsonld-types";
+import { normalizeBlogAuthor } from "@/lib/blog-author";
 import { fileLastModified } from "@/lib/sitemap-dates";
 import { siteUrl } from "@/lib/site";
 import {
@@ -54,6 +55,15 @@ export default function BlogArticleJsonLd({
           section: "Blog",
         }));
 
+  const author = normalizeBlogAuthor(post.data.author);
+  const articleAuthor: PersonRef | typeof WATCHFIRE_AUTHOR = author
+    ? {
+        "@type": "Person",
+        name: author.name,
+        ...(author.url ? { url: author.url } : {}),
+      }
+    : WATCHFIRE_AUTHOR;
+
   const article: Article = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -61,7 +71,7 @@ export default function BlogArticleJsonLd({
     description: post.data.summary,
     datePublished,
     dateModified,
-    author: WATCHFIRE_AUTHOR,
+    author: articleAuthor,
     publisher: WATCHFIRE_PUBLISHER,
     image: resolvedImage,
     mainEntityOfPage: {

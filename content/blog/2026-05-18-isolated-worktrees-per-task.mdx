@@ -4,6 +4,7 @@ date: "2026-05-18"
 summary: "Every Watchfire task runs in its own git worktree on a dedicated branch, not in a fresh checkout of the main tree. Here is why that choice carries more weight than it looks."
 tags: ["deep-dive", "architecture"]
 image: "/banner-dark.png"
+author: "Nuno Coração"
 ---
 
 Picture three agents you want to run in parallel against the same repository. One is refactoring the auth middleware. One is filling in a missing test suite for a billing module that nobody fully trusts. One is rewriting the README so it stops lying about how installation actually works. All three start in the next thirty seconds.

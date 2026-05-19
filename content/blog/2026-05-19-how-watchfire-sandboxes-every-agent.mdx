@@ -4,6 +4,7 @@ date: "2026-05-19"
 summary: "Worktrees stop an agent from stomping on your branch, but they will not stop it from reading your SSH key. Here is the OS-level sandbox layer that does, and how Watchfire picks the right backend on each host."
 tags: ["deep-dive", "architecture", "security"]
 image: "/banner-dark.png"
+author: "Nuno Coração"
 ---
 
 You have just told an agent to refactor your auth middleware. You closed the laptop lid for ten minutes to grab a coffee. The agent is running unattended, working through the diff. While you are gone, what stops it from `cat ~/.ssh/id_ed25519`? What stops it from copying `~/.aws/credentials` into a file inside the repo that gets committed to the worktree branch? What stops it from reaching into a sibling project two directories over and overwriting a file it has no business knowing about?
