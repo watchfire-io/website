@@ -172,6 +172,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
+      url: `${siteUrl}/showcase`,
+      lastModified: maxLastModified([
+        "app/showcase/page.tsx",
+        "lib/showcase.ts",
+      ]),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
       url: `${siteUrl}/agents`,
       lastModified: new Date(),
       changeFrequency: "monthly",
