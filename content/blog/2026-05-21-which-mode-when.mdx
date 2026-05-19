@@ -1,0 +1,115 @@
+---
+title: "Which mode when? A practical guide to Chat, Task, Start-all, and Wildfire"
+date: "2026-05-21"
+summary: "Six agent modes is one more than you can hold in your head when you are staring at the GUI for the first time. Here is a practical, opinionated decision tree for picking the right one without burning a session."
+tags: ["how-to", "agent-modes", "wildfire", "workflow"]
+author: "Nuno Coração"
+---
+
+You finished `watchfire init` ten minutes ago. You wrote two tasks while the coffee brewed. You opened the GUI and the project view shows four big buttons — _Chat_, _Task_, _Start All_, _Wildfire_ — with two more in a dropdown. You do not know which to press. The model is the same under all of them. The agent is the same. The only thing that changes is how much of the next hour you spend driving it.
+
+The wrong choice always costs about the same: one session. **Wildfire** on a single focused bug fix burns thirty minutes generating draft tasks the project never needed. **Chat** on a backlog of forty queued tasks means two hours at the keyboard when you could have left for lunch. **Task** when the spec in your head is still vague gets you a clean merge of the wrong feature.
+
+This post is the cheat sheet we wish the GUI shipped with. Mode selection is a _time-and-trust_ axis, and once you see it the choice gets boring.
+
+## The two-axis model
+
+Two questions decide the mode. Both are about you, not about the agent.
+
+The first question is **how much do you trust the spec**. By spec we mean whatever brief the agent will read — a task's `prompt` and `acceptance_criteria`, the project definition, or the sentence you are about to type. A trusted spec is one another engineer could implement without coming back for clarification. Everything else is vague. If you cannot yet write down what _done_ looks like, you are not at the execution stage yet.
+
+The second question is **how much time you want to spend at the keyboard**. Sitting down for a focused half-hour, or walking into a meeting and hoping the agent makes progress without you? Supervised work assumes you are present and ready to redirect; unattended work assumes you have left the room.
+
+Those two axes give a 2x2:
+
+```
+                  ┌────────────────────┬────────────────────┐
+                  │  Trusted spec      │  Vague spec        │
+┌─────────────────┼────────────────────┼────────────────────┤
+│  Supervised     │      Task          │      Chat          │
+│  (you stay)     │                    │                    │
+├─────────────────┼────────────────────┼────────────────────┤
+│  Unattended     │      Start All     │      Wildfire      │
+│  (you leave)    │                    │                    │
+└─────────────────┴────────────────────┴────────────────────┘
+```
+
+Read it as a decision tree. Spec written _and_ staying at the keyboard: Task. Spec solid but walking away: Start All. Spec fuzzy and thinking out loud: Chat. Spec fuzzy and walking away anyway: Wildfire — and you are asking the loop to do the spec work for you.
+
+## Mode by mode
+
+The [agent modes reference](/docs/concepts/agent-modes) covers _what each mode does_; this section is about _when_ each earns its keep.
+
+### 1. Chat
+
+**What it actually does.** Chat opens an interactive session with the agent in the project root, with no task context attached. You type, the agent responds, edits land directly on whichever branch you are sitting on. No worktree, no merge, no acceptance criteria — it is the raw agent on the raw repo. Mechanics in the [reference doc](/docs/concepts/agent-modes#chat).
+
+**The two situations it is perfect for.** First, investigation: _"why is the analytics page rendering twice on first load?"_ You do not yet know what the diff should look like — you need the agent to read code, run a probe, and report back before any code gets written. Second, one-off changes too small to deserve a task file: _"rename `parseInput` to `parseUserInput` and update the callers."_ Five-minute jobs do not need five minutes of YAML.
+
+**The situation where it is the wrong choice.** Anything you want to leave unattended. Chat has no exit condition — the agent waits for your next message. Walk away mid-session and nothing happens until you come back.
+
+**The one thing people get wrong about it.** That chat is the _easy_ mode. Every other mode runs against an acceptance contract; in chat, _you_ are the contract, in real time. It is the highest-attention mode, not the lowest.
+
+### 2. Task
+
+**What it actually does.** Task executes a single task by ID. The daemon spawns the agent in an isolated git worktree, hands it the task's `prompt` and `acceptance_criteria`, and merges when the agent flips the task to `done`. Run it via [`watchfire run <task_id>`](/docs/commands/run). Mechanics in the [reference doc](/docs/concepts/agent-modes#task).
+
+**The two situations it is perfect for.** First, a well-scoped ticket you can describe in a paragraph of YAML: _"add a CSV export button to the analytics page, wired to the existing `/api/export` endpoint."_ Second, anything you want to merge cleanly as a single reviewable diff — Task gives you one branch, one merge commit, one rollback surface.
+
+**The situation where it is the wrong choice.** Vague requests. If the prompt reads _"improve error handling in the API,"_ Task will produce a thirty-file diff that does some plausible interpretation of _improve_ — and you will spend the afternoon reading commits.
+
+**The one thing people get wrong about it.** Forgetting the agent reads `acceptance_criteria`, not just the prompt. People pour the brief into `prompt` and leave `acceptance_criteria` as a one-liner like _"the feature works."_ The agent then ships against that one-liner. For the full pattern, see [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task).
+
+### 3. Start All
+
+**What it actually does.** Start All runs every `ready` task sequentially, one worktree per task, merging each branch before the next starts. Same isolation guarantees as Task, just chained. Launch it from the GUI or with [`watchfire run all`](/docs/commands/run). Mechanics — including stop conditions — in the [reference doc](/docs/concepts/agent-modes#start-all).
+
+**The two situations it is perfect for.** First, a queue you wrote the night before: six small, well-scoped tasks that you want to drain while you are in standups. Second, a milestone push where the spec is locked but the work is mechanical — porting a directory of components, adding identical telemetry to twelve endpoints, migrating a batch of tests. Walk away, review the merges when you are back.
+
+**The situation where it is the wrong choice.** Tasks with merge conflicts in flight. Start All stops on the first merge conflict by design — the chain halts so a failing task cannot poison the rest of the queue. If two queued tasks touch the same file, the second lands you back in your chair sooner than you wanted.
+
+**The one thing people get wrong about it.** Thinking the queue will skip failed tasks and keep going. It will not. A merge conflict halts the chain; that is the explicit safety rail, not a bug. The chain also stops on three consecutive restarts of the same task — see _Restart Protection_ in the [reference doc](/docs/concepts/agent-modes#restart-protection). Plan your queue so the tasks do not fight each other for files.
+
+### 4. Wildfire
+
+**What it actually does.** Wildfire is the autonomous three-phase loop: _Execute_ ready tasks, _Refine_ drafts into ready, _Generate_ new tasks when the queue is empty, then repeat. The only mode that writes its own work. Full walkthrough in [Inside Wildfire mode](/blog/2026-05-18-inside-wildfire-mode); state machine in the [reference doc](/docs/concepts/agent-modes#wildfire).
+
+**The two situations it is perfect for.** First, maturing a project that already has shape: twenty tasks done, a written definition, half the surface area complete, and you want the loop to chip away at the long tail. Second, a Friday-evening _"work on this over the weekend"_ moment where the project definition is solid and you trust the loop to pick reasonable next tasks against it.
+
+**The situation where it is the wrong choice.** Greenfield projects with no definition. Wildfire's Refine and Generate phases read your definition to decide what work the project should accept; with no definition, the loop generates plausible work that has nothing to do with what you actually want. Write the definition first — see [Anatomy of a great project definition](/blog/2026-05-21-anatomy-of-a-great-project-definition) — then turn the loop on.
+
+**The one thing people get wrong about it.** That Wildfire is _AGI mode_. It is not. It is a fixed three-phase loop with documented stop conditions, and it inherits the same quality bar as Task — bad task prompts produce bad merges whether a human or the Generate phase wrote them. Wildfire amplifies the shape your project is in; it does not invent one.
+
+## The 'sometimes' modes
+
+Two more modes exist, and both are worth knowing — neither tends to be a daily driver.
+
+**Generate Definition** is for brand-new projects. You point Watchfire at a repo that has code in it, the agent reads the codebase and writes a draft `definition` field for your `project.yaml`. Useful exactly once per project, when you are bootstrapping. After that the definition lives on disk and you maintain it by hand. Command shape in the [reference doc](/docs/concepts/agent-modes#generate-definition).
+
+**Generate Tasks** is for the in-between moments — good definition but an empty queue, or a finished milestone and you want a sensible next batch of work to review rather than typing tasks one by one. The agent proposes a set of draft tasks. Always review them before moving them to `ready`; this is the one mode whose output is meant to be edited, not merged. See [the docs](/docs/concepts/agent-modes#generate-tasks).
+
+## A real day
+
+Mode choice is _contextual_. Nobody uses one mode for everything.
+
+A Tuesday for a developer running Watchfire on one project. Standup ends at 9:15 with an action item — _"figure out why the dashboard double-renders on first load."_ The right move is **Chat**: no diff to ship yet, just a question. Twenty minutes of back-and-forth and the agent has pinpointed a stale `useEffect`.
+
+By 10:30 they have written three small, scoped tasks: the `useEffect` fix, a test that locks the bug down, an unrelated copy tweak in the footer. **Task** mode, one at a time, reviewing each diff before the next.
+
+Noon. Two meetings back-to-back, then lunch. Six more small tasks are queued from yesterday, all independent, all touching different files. They press **Start All** and walk out:
+
+```bash
+watchfire run all
+```
+
+By 14:30 the chain has merged five of the six. The sixth halted on a merge conflict with the morning's `useEffect` fix. They open **Chat** to resolve the conflict by hand — Chat is the right tool when the work is genuinely interactive — then re-queue the task.
+
+Friday evening, before logging off, they review the project definition, seed a few drafts, and launch **Wildfire**. Over the weekend the loop drains the queue, refines drafts, and generates two new tasks. Monday morning is a review session, not a typing session.
+
+The fluency is in knowing which dial to turn, not in finding one mode that fits every job.
+
+## Closing
+
+The mode is the dial between _I am driving_ and _the agent is driving_. The right setting changes through the week, sometimes through the hour. Pick the mode that matches the spec you trust and the time you have — not the one that sounds the most impressive.
+
+For ready-to-paste task YAMLs, see [`/templates`](/templates). For an interactive builder that helps you write the spec before you commit it to a file, try [`/playground`](/playground). And for the full mechanical reference — every flag, every state transition, every stop condition — keep [the agent modes doc](/docs/concepts/agent-modes) open in the other tab.
