@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { faqItems } from "@/lib/faq-data";
 
 export default function FAQ() {
@@ -49,6 +51,16 @@ export default function FAQ() {
               </div>
             </details>
           ))}
+        </div>
+
+        <div className="mt-8 text-center">
+          <Link
+            href="/faq"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-fire-600 transition-colors hover:text-fire-500 dark:text-fire-400 dark:hover:text-fire-300"
+          >
+            See all FAQs
+            <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
+          </Link>
         </div>
       </div>
     </section>
