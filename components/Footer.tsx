@@ -86,6 +86,11 @@ export function Footer() {
               </Link>
             </li>
             <li>
+              <Link href="/security" className="text-zinc-500 transition-colors hover:text-fire-600 dark:text-zinc-400 dark:hover:text-fire-400">
+                Security
+              </Link>
+            </li>
+            <li>
               <Link href="/privacy" className="text-zinc-500 transition-colors hover:text-fire-600 dark:text-zinc-400 dark:hover:text-fire-400">
                 Privacy
               </Link>

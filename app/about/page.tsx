@@ -216,6 +216,16 @@ export default function AboutPage() {
                 </li>
               ))}
             </ul>
+            <p className="mt-8 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              Read more on the{" "}
+              <Link
+                href="/security"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                security
+              </Link>{" "}
+              page.
+            </p>
           </div>
         </section>
 
