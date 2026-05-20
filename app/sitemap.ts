@@ -245,6 +245,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
+      url: `${siteUrl}/faq`,
+      lastModified: maxLastModified([
+        "app/faq/page.tsx",
+        "components/FaqFilter.tsx",
+        "components/FaqAnchor.tsx",
+        "lib/faq-page-data.tsx",
+      ]),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
       url: `${siteUrl}/agents`,
       lastModified: new Date(),
       changeFrequency: "monthly",

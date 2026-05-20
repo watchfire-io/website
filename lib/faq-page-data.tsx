@@ -155,7 +155,7 @@ export const faqCategories: FaqCategory[] = [
       {
         id: "daemon-vs-clients",
         question:
-          "What&rsquo;s the difference between the daemon, the CLI, the TUI, and the GUI?",
+          "What’s the difference between the daemon, the CLI, the TUI, and the GUI?",
         answer: (
           <>
             The daemon (<code className={codeClass}>watchfired</code>) is the
@@ -273,7 +273,7 @@ export const faqCategories: FaqCategory[] = [
   },
   {
     id: "tasks-and-projects",
-    title: "Tasks &amp; projects",
+    title: "Tasks & projects",
     description:
       "How task files, project definitions, and generated tasks fit together.",
     entries: [
@@ -375,7 +375,7 @@ export const faqCategories: FaqCategory[] = [
   },
   {
     id: "agents-and-models",
-    title: "Agents &amp; models",
+    title: "Agents & models",
     description:
       "Which CLIs Watchfire drives, how auth works, and how to mix and match.",
     entries: [
@@ -414,7 +414,7 @@ export const faqCategories: FaqCategory[] = [
       },
       {
         id: "api-keys",
-        question: "Where do my agent&rsquo;s API keys go?",
+        question: "Where do my agent’s API keys go?",
         answer: (
           <>
             Wherever that agent CLI normally keeps them &mdash; Watchfire
@@ -464,7 +464,7 @@ export const faqCategories: FaqCategory[] = [
   },
   {
     id: "security-and-privacy",
-    title: "Security &amp; privacy",
+    title: "Security & privacy",
     description: "What stays on your machine and what the sandbox actually does.",
     entries: [
       {
@@ -629,7 +629,7 @@ export const faqCategories: FaqCategory[] = [
       },
       {
         id: "vs-cursor",
-        question: "How does Watchfire compare to Cursor&rsquo;s agent mode?",
+        question: "How does Watchfire compare to Cursor’s agent mode?",
         answer: (
           <>
             Cursor&rsquo;s agent mode lives inside the editor &mdash; great
@@ -688,8 +688,8 @@ export const faqCategories: FaqCategory[] = [
   },
   {
     id: "pricing-and-licensing",
-    title: "Pricing &amp; licensing",
-    description: "Cost, license, and what &ldquo;open source&rdquo; means here.",
+    title: "Pricing & licensing",
+    description: "Cost, license, and what “open source” means here.",
     entries: [
       {
         id: "cost",
@@ -706,7 +706,7 @@ export const faqCategories: FaqCategory[] = [
       },
       {
         id: "license",
-        question: "What&rsquo;s the license?",
+        question: "What’s the license?",
         answer: (
           <>
             Apache License 2.0 for the daemon, CLI/TUI, and GUI. Full source
@@ -795,7 +795,7 @@ export const faqCategories: FaqCategory[] = [
       },
       {
         id: "gui-no-daemon",
-        question: "The GUI says &lsquo;no daemon&rsquo; &mdash; what now?",
+        question: "The GUI says ‘no daemon’ — what now?",
         answer: (
           <>
             The GUI launches <code className={codeClass}>watchfired</code>{" "}
@@ -844,7 +844,7 @@ export const faqCategories: FaqCategory[] = [
       },
       {
         id: "worktree-merge-failed",
-        question: "A worktree won&rsquo;t merge cleanly &mdash; what should I do?",
+        question: "A worktree won’t merge cleanly — what should I do?",
         answer: (
           <>
             Auto-merge intentionally bails on conflicts rather than guessing.
@@ -864,7 +864,7 @@ export const faqCategories: FaqCategory[] = [
       },
       {
         id: "wildfire-runs-forever",
-        question: "Wildfire mode never stops &mdash; how do I cap it?",
+        question: "Wildfire mode never stops — how do I cap it?",
         answer: (
           <>
             Wildfire keeps generating and executing while there are ready
