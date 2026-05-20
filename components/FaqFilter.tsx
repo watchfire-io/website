@@ -100,6 +100,51 @@ export function FaqFilter({ categories, renderedAnswers }: FaqFilterProps) {
     0,
   );
 
+  // Open/close <details> in response to filter activity. Uncontrolled otherwise
+  // so user clicks on the summary are preserved.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (isFiltering) {
+      for (const cat of visibleCategories) {
+        for (const entry of cat.entries) {
+          const el = document.getElementById(entry.id);
+          if (el instanceof HTMLDetailsElement) el.open = true;
+        }
+      }
+    } else {
+      for (const cat of categories) {
+        for (const entry of cat.entries) {
+          const el = document.getElementById(entry.id);
+          if (el instanceof HTMLDetailsElement) el.open = false;
+        }
+      }
+      const hash =
+        typeof window !== "undefined" ? window.location.hash.slice(1) : "";
+      if (hash) {
+        const el = document.getElementById(hash);
+        if (el instanceof HTMLDetailsElement) el.open = true;
+      }
+    }
+  }, [categories, isFiltering, visibleCategories]);
+
+  // Open + scroll to the entry referenced in the URL hash on mount and on
+  // subsequent hashchange events. Native <details> doesn't auto-open from #id.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const apply = () => {
+      const hash = window.location.hash.slice(1);
+      if (!hash) return;
+      const el = document.getElementById(hash);
+      if (el instanceof HTMLDetailsElement) {
+        el.open = true;
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+    apply();
+    window.addEventListener("hashchange", apply);
+    return () => window.removeEventListener("hashchange", apply);
+  }, []);
+
   const handleClear = useCallback(() => setFilter(""), []);
 
   return (
@@ -213,7 +258,6 @@ export function FaqFilter({ categories, renderedAnswers }: FaqFilterProps) {
                   <details
                     key={entry.id}
                     id={entry.id}
-                    open={isFiltering}
                     className="group/faq scroll-mt-24 overflow-hidden rounded-xl border border-zinc-200 bg-white/70 backdrop-blur-sm transition-colors hover:border-fire-500/30 open:border-fire-500/40 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-fire-400/30 dark:open:border-fire-400/40 dark:hover:shadow-[0_0_20px_rgba(224,112,64,0.15)] [&[open]>summary>svg.chevron]:rotate-180"
                   >
                     <summary className="flex cursor-pointer list-none items-start justify-between gap-3 px-5 py-4 text-left text-base font-semibold text-zinc-900 marker:hidden dark:text-white sm:text-lg [&::-webkit-details-marker]:hidden">
