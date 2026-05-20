@@ -1,0 +1,209 @@
+---
+title: "How file watching makes Watchfire feel alive"
+date: "2026-05-22"
+summary: "Watchfire's UI feels reactive because the daemon never sleeps on its files. The canonical state of every project lives on disk, agents 'complete' a task by saving a YAML, and a debounced watcher fans the change out to every connected client. Here is the architecture, the trade-offs, and the edge cases."
+tags: ["deep-dive", "architecture", "daemon", "reactivity"]
+author: "Nuno Coração"
+---
+
+You queued a task, started an agent, and walked off to make coffee. Halfway through the kettle's whistle the TUI on your second monitor flickers — the task has flipped to `done`, a branch has merged, and the next task is spawning its own worktree. The agent did nothing the daemon told it to do, in the sense of an API call. It just saved a file. The daemon noticed, and that observation rippled through every gRPC stream attached to the project until your TUI redrew.
+
+That ripple is the post. Watchfire feels alive because the canonical state of every project lives in plain files on disk, and the daemon watches those files patiently and continuously. There is no database. There is `.watchfire/tasks/0042.yaml` and a struct in memory that mirrors it, kept in sync by `fsnotify`, a 100-millisecond debounce, and a polling fallback.
+
+This piece walks through that design: why files over a database, what the daemon watches, the completion protocol (save a file), how the change reaches every client, and the edge cases that matter more than the happy path.
+
+## The "files as state" decision
+
+A reasonable person designing Watchfire would have reached for SQLite. State management is solved there, transactions are cheap, migrations are well-trodden, and the read/write API is a library call rather than a filesystem event. We made the other choice. The canonical state of a Watchfire project is the contents of its `.watchfire/` directory:
+
+```text
+my-project/
+├── .watchfire/
+│   ├── project.yaml             # project configuration
+│   ├── memory.md                # persistent project knowledge
+│   ├── tasks/
+│   │   ├── 0001.yaml            # task definition + status
+│   │   ├── 0001.metrics.yaml    # per-run metrics
+│   │   ├── 0002.yaml
+│   │   └── …
+│   ├── worktrees/
+│   │   └── 0001/                # agent's isolated copy of the repo
+│   └── secrets/
+│       └── instructions.md
+└── src/
+    └── …
+```
+
+Every byte of project state that survives a daemon restart lives in that tree. The daemon's in-memory model is a *cache* of those files, not the other way around.
+
+The reasons:
+
+- **Human-editable.** Open a task in vim, change the prompt, save, and the daemon picks up the new prompt. No synced UI state the editor edit might collide with — the file *is* the state.
+- **Git-diffable.** Tasks are plain text. To share a task list across a team, [`git add .watchfire/tasks` is the entire workflow](/blog/2026-05-20-watchfire-for-teams). To see what past-you queued last Tuesday, `git log .watchfire/tasks/0042.yaml` works.
+- **No migrations.** Adding a field is adding a field to the YAML and the loader. No schema version, no `ALTER TABLE`, no "your database is at v6 but the binary expects v7" startup error.
+- **Crash recovery is trivial.** The daemon comes back up, walks the directory, and reads. No WAL to replay.
+
+The trade-off is honest: you need a watcher, and you need to be careful about partial writes. A SQLite-backed daemon never reads a half-written row; a naive file-backed daemon will read half-written YAML the moment an agent saves a long task description in two `write()` syscalls. So we wrote the watcher carefully. The rest of the post is the careful bit.
+
+## What the daemon actually watches
+
+The daemon registers fsnotify watches on a small, explicit set of directories. It does *not* recursively watch the whole project — the noise floor of a real repository would either drown the daemon in events or force us to maintain a filter list of files we did not care about. We watch the parts of `.watchfire/` that matter and leave everything else alone.
+
+| Path | Watched? | Notes |
+| --- | --- | --- |
+| `~/.watchfire/projects.yaml` | Yes | Global project index. |
+| `~/.watchfire/settings.yaml` | Yes | Global daemon settings — picks up notification gates without a restart. |
+| `<project>/.watchfire/project.yaml` | Yes | Per-project config. |
+| `<project>/.watchfire/tasks/*.yaml` | Yes | The canonical task list. |
+| `<project>/.watchfire/tasks/*.metrics.yaml` | Yes | Per-run metrics — fires a separate event so [insights consumers](/blog/2026-05-19-what-we-measure-when-we-measure-an-agent) can invalidate their cache without conflating it with task edits. |
+| `<project>/.watchfire/secrets/` | Yes | Treated as a project change. |
+| `<project>/.watchfire/worktrees/*/` | **No** | The agent owns its worktree — see below. |
+| `src/`, `lib/`, the rest of the repo | **No** | Out of scope; the agent and your editor own the working tree. |
+
+The most interesting line is `worktrees/`. A worktree is an isolated git checkout the daemon hands to an agent for a task ([its own post](/blog/2026-05-18-isolated-worktrees-per-task)). Inside it, the agent reads and writes hundreds of files — every edit, every `npm install`, every cache write. None of that is daemon business. The worktree is the agent's room and the daemon does not knock. The contract is that the agent will eventually save the task YAML one directory up, *outside* the worktree, and that save is the signal.
+
+Underneath, fsnotify abstracts the platform-specific event APIs: inotify on Linux, FSEvents/kqueue on macOS, `ReadDirectoryChangesW` on Windows. The watcher does not care which mechanism delivered the event — only the path and operation type.
+
+One subtlety: we accept `Write`, `Create`, *and* `Rename` events. Most editors and many agents do not write in place — they write a temp file and rename it onto the target, producing a `Rename` event, not a `Write`. A watcher that only listened for writes would silently miss half the saves from `vim`, `helix`, Claude Code's own tool calls, and anything using `os.Rename` for atomicity. We learned this the hard way.
+
+## The completion protocol
+
+Imagine the alternative. To signal completion, an agent would have to know the daemon's gRPC endpoint, hold a session token, construct a `CompleteTask(task_id, success, failure_reason)` request, retry on transient failures, and surface the response. Every supported backend — Claude Code, Codex, opencode, Gemini, Copilot, Cursor — would have to learn that API, and every new backend would have to learn it again.
+
+We do none of that. The completion protocol in its entirety:
+
+```yaml
+version: 1
+task_id: a1b2c3d4
+task_number: 42
+title: "Wire up the FAQ page client filter"
+prompt: |
+  Add a client-side text filter…
+acceptance_criteria: |
+  …
+status: done       # <-- this line is the protocol
+success: true      # <-- and this one
+failure_reason: ""
+position: 12
+agent_sessions: 1
+```
+
+That is it. The agent saves the YAML with `status: done` and `success: true`, and the daemon takes it from there: validate the new state, merge the worktree to the target branch, delete the branch, fire the post-completion hooks, advance the queue. No API call. No token. Any tool that can write to a file can complete a task. A human typing in vim and an agent calling its `write_file` tool use the exact same protocol, byte for byte.
+
+For anyone designing similar systems: **if your source of truth is a file, your write API is whatever can save a file**. That is the entire surface area you have to support — and the entire surface area an attacker has to defeat, which is why [the sandbox](/blog/2026-05-19-how-watchfire-sandboxes-every-agent) restricts which files the agent can touch.
+
+## From file change to client redraw
+
+A save happens. What runs?
+
+```go
+// pseudocode for the watcher loop — the real version is
+// in internal/daemon/watcher/watcher.go.
+for event := range fsWatcher.Events {
+    if event.Op&(Write|Create|Rename) == 0 {
+        continue // ignore Chmod, Remove, etc.
+    }
+
+    // Debounce per-path. Editors and agents often emit several
+    // events for one logical save (write tmp, fsync, rename).
+    // We coalesce events for the same path into one callback
+    // 100ms after the last event lands.
+    debouncePerPath(event.Name, 100*time.Millisecond, func() {
+        bytes, err := os.ReadFile(event.Name)
+        if err != nil {
+            return // file may have been deleted; ignore.
+        }
+        parsed, err := yaml.Unmarshal(bytes)
+        if err != nil {
+            log.Warn("parse error, keeping last good snapshot")
+            return
+        }
+
+        evt := classify(event.Name, parsed) // TaskChanged, ProjectChanged, …
+        eventsChan <- evt                   // hand off to the dispatcher
+    })
+}
+```
+
+Two details matter more than they look:
+
+**The debounce is per-path, not global.** Two tasks saved at the same instant produce two callbacks 100ms later, not one batched callback. The debounce coalesces noise within a single logical save without conflating unrelated saves.
+
+**Parse errors do not corrupt state.** If the YAML is mid-flight — the agent has written half the file and the editor hasn't flushed yet — the unmarshal fails, we log it, and we return. The previous in-memory snapshot stays valid. The next clean event (usually the rename completing milliseconds later) re-reads the file successfully. The user never sees a "task disappeared" flash from an interleaved read.
+
+Once a clean event lands in `eventsChan`, the daemon's dispatcher fans it out. Internally it shapes roughly like this:
+
+```protobuf
+// Internal-only event shape consumed by the daemon's
+// reactive layer. Public gRPC clients see the effect of
+// these events through the higher-level Task and Project
+// services, not the raw stream.
+message FileChange {
+  enum Kind {
+    PROJECTS_INDEX_CHANGED = 0;
+    PROJECT_CHANGED        = 1;
+    TASK_CHANGED           = 2;
+    TASK_CREATED           = 3;
+    TASK_DELETED           = 4;
+    METRICS_CHANGED        = 5;
+    SETTINGS_CHANGED       = 6;
+    // …phase signal files (refine_done, generate_done, …)
+  }
+  Kind   kind        = 1;
+  string project_id  = 2;
+  int32  task_number = 3;   // 0 when not task-scoped
+  string path        = 4;
+}
+```
+
+The CLI, TUI, and GUI clients sit at the far end of that pipeline. The TUI re-renders the task list, the GUI sends an IPC message to its Electron renderer, any subscribed CLI command prints the new state. Because the source of truth is the file, a client that reconnects after a network blip does not need a replay log — it lists tasks and gets the current state.
+
+> The stream tells you to look. The files tell you what you'd see.
+
+That separation is why crash recovery is so cheap. The daemon can die, come back up, walk `.watchfire/`, and rebuild its world view in milliseconds. No event log to replay, no last-seen offset. The disk *is* the log.
+
+## Edge cases, and what we actually do about them
+
+Most of the watcher's complexity is here. The happy path is twenty lines. The list below is the next two hundred.
+
+**Atomic writes.** Handled by listening for `Rename` in addition to `Write` and `Create`. Without that, half the saves a real editor produces are silently dropped.
+
+**Partial writes.** The 100ms debounce gives the writer enough headroom to finish a multi-syscall save before we read. If a parse fails anyway, we keep the previous snapshot and wait for the next event. We do not retry on a timer; we retry on the next change.
+
+**External edits during an active task.** Supported by design. You can open `0042.yaml` in vim while an agent is working on task 42 and edit the prompt. The daemon picks up the new state. We warn — in the daemon log, surfaced in the TUI — if a transition looks suspicious, like flipping `status: done` back to `ready` while the agent is still running. Suspicious is not blocked; the user is the authority. We just make sure they can see the daemon saw it.
+
+**Watcher misses an event.** Rare, but it happens — kqueue overflows under sustained load, and directories created *after* the daemon started watching the parent may not get an event for their first file. We have a 5-second polling fallback for task-mode agents: every 5 seconds, the active task's YAML is re-read regardless of whether the watcher fired. The watcher is primary; the poll is the safety net. Polling every YAML would be wasteful, so we only poll the *active* task — the one whose `status` change is load-bearing for the queue.
+
+**YAML the agent typed wrong.** Agents occasionally write `status: complete` instead of `status: done`. The daemon's loader enforces the enum, logs the parse error, and leaves the task in its previous state. The agent's next session sees a still-`ready` task and tries again. No silent corruption.
+
+**Symlinks and exotic filesystems.** Out of scope. The watcher is tested on APFS, ext4, btrfs, and NTFS. Network filesystems, FUSE mounts, and symlinked task directories are not supported.
+
+## Why this matters for the user experience
+
+Three wins fall out of the design.
+
+**Edit anywhere, see it everywhere.** Save a YAML in vim, the GUI on your other monitor refreshes. Save a task in the GUI, the TUI in your terminal refreshes. Edit a task in your IDE because that is where your hands are, the agent picks it up. There is no privileged client, because there is no client-owned state — the files are the state, every client is a reader.
+
+**Crash recovery is free.** Kill the daemon mid-task. Restart it. The active worktree is still there, the task YAML still says `ready` (because the agent hasn't finished), and the daemon picks up where it left off. We did not have to write crash recovery; we got it as a side effect of not having state to lose.
+
+**Git-friendly.** Tasks are diffable, blameable, mergeable. Two engineers can each add tasks to `.watchfire/tasks/` and the result is a clean merge as long as task numbers do not collide. The [Watchfire-for-teams workflow](/blog/2026-05-20-watchfire-for-teams) is built on this. There is no central server to sync against; the repo *is* the sync.
+
+## What we'd do differently
+
+This is the section we wrote last, after a year of using the thing.
+
+**Directory scans get slower at scale.** A project with 4,000 tasks enumerates more slowly on startup than one with 40. The daemon caches aggressively after the first read, but the cold start is what it is. SQLite would have been faster, and we know it. For projects under a few hundred tasks it is not a problem in practice, but the design has a ceiling.
+
+**fsnotify behaves slightly differently per platform.** kqueue's coalescing is more aggressive than inotify's; FSEvents fires on directory changes at coarser granularity. The watcher has small platform-specific compensations, and we'd prefer it didn't. There is no way around this short of writing our own watcher per platform, which is firmly not worth it.
+
+**The polling fallback is a tell.** We added it after a kqueue overflow dropped a `done` event in a long Start All run and the queue stalled. The fallback is correct, but its existence is an admission that fsnotify is not a 100% reliable substrate. Plan for the safety net from day one, not after your first incident.
+
+**External writes are slightly dangerous.** Letting any tool that can write a file complete a task is great when the tool is a careful agent or a careful human. It is less great when a misconfigured CI job writes `status: done` to every task in the repo. We have no protection beyond the YAML loader's validation.
+
+## Closing
+
+Watchfire feels alive because the daemon never sleeps on its files. Every task is a YAML, every change is a save, every save is an fsnotify event, every event is a 100ms debounce away from a fan-out to every connected client. The agents do not call an API. The clients do not own state. The repo is the source of truth, the watcher is the heartbeat, the gRPC streams are the nerves.
+
+If this design appeals to you, the [architecture doc](/docs/concepts/architecture) has the full reference; [Inside Wildfire mode](/blog/2026-05-18-inside-wildfire-mode) covers what the autonomous loop builds on top of this substrate; [How Beacon turns the daemon two-way](/blog/2026-05-19-beacon-two-way-integrations) covers what happens when the events leave the laptop; and [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task) covers the part of the loop you actually write. The watcher itself lives in [`internal/daemon/watcher/`](https://github.com/watchfire-io/watchfire/tree/main/internal/daemon/watcher) — about four hundred lines, most of them the edge cases above.
+
+The daemon's job, in one sentence, is to notice. Everything else is plumbing.
