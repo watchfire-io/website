@@ -1,0 +1,252 @@
+---
+title: "The shape of a great acceptance_criteria block"
+date: "2026-05-23"
+summary: "The acceptance_criteria block is the single field the daemon, the agent, and the human reviewer all read the same way. It is also where most failed Watchfire runs are decided — long before the agent picks a file to edit. Here is how to write criteria that hold."
+tags: ["how-to", "tasks", "prompting", "workflow"]
+author: "Nuno Coração"
+---
+
+The agent finishes its run, prints a green `success: true` to the task file, and merges. You open the diff and the work is wrong. Not _broken_ — broken would be a build failure or a red test, and the daemon would have caught either. The work is _wrong_ in the way that only a senior reviewer notices: the new footer link points at `/about` instead of `/company`, the blog feed includes drafts, the email-capture form posts to a route that does not exist yet. Every line of the `acceptance_criteria` block was satisfied. The diff still has to be reverted.
+
+That gap — between "satisfied" and "right" — is where most botched Watchfire tasks live. It is not a model failure. It is not even a prompt failure, in the sense the [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task) post means it. The `prompt` field on that task probably read fine. The agent went off-target because the `acceptance_criteria` block did not actually pin the outcome the writer had in mind. It pinned something close to the outcome and the agent picked the cheaper interpretation. This is a post about the part of the task file most likely to do that to you, and how to shape it so it cannot.
+
+## Why this field deserves its own post
+
+The `prompt` is the brief. The `acceptance_criteria` is the contract. Three different readers consume it.
+
+The **agent** reads acceptance criteria as the only field that lets it decide when to stop. The system prompt tells it how to behave, the project [definition](/blog/2026-05-21-anatomy-of-a-great-project-definition) tells it what kind of project this is, the prompt tells it what to build — but the only thing that distinguishes a finished task from an unfinished one is whether each criterion has been met. If the criteria are loose, the agent stops too early. If they are over-prescribed, the agent stops too late, after dragging the diff in a direction the prompt never asked for.
+
+The **daemon** reads acceptance criteria as the implicit definition of `success: true`. The daemon does not parse the field — it cannot — but Wildfire's [Refine phase](/blog/2026-05-18-inside-wildfire-mode) does, and every retry the loop makes is gated on whether the next run is likely to satisfy what is written there.
+
+The **human reviewer** reads acceptance criteria as a punch list. When a branch lands in your queue with `success: true`, the criteria are what you skim before opening the diff. If they are vague, you read every file. If they are sharp, you check each line, then merge.
+
+Three readers, one field. That is the leverage and that is the risk. If you write criteria that the agent reads one way, the daemon reads another, and the reviewer reads a third, you have built a contract no one is bound to.
+
+## What acceptance criteria are _not_
+
+Before the positive form, the three shapes that show up over and over in runs that fail. We saw all three in the corpus described in [what 150 autonomous task runs taught us](/blog/2026-05-22-what-150-task-runs-taught-us), and removing them is the cheapest single win in task-writing.
+
+### The wishlist
+
+```yaml
+acceptance_criteria: |
+  - Code should be clean.
+  - UX should feel polished.
+  - Performance is acceptable.
+```
+
+Three aspirations, zero postconditions. The agent has no way to decide whether the diff is finished. The reviewer has no way to disagree. The daemon will merge whatever the agent calls done. Wishlists are not contracts; they are vibes.
+
+### The reimplementation spec
+
+```yaml
+acceptance_criteria: |
+  - Open `app/footer.tsx`.
+  - Add a `<Link>` to `/company` on line 42.
+  - Import `Link` from `next/link`.
+  - Use `text-sm` for the class name.
+  - Run `pnpm build` and confirm it succeeds.
+```
+
+This is the opposite trap. The criteria are no longer postconditions on the diff — they are line-by-line instructions for how to produce it. You have moved the implementation out of the agent's hands and into your own, and you are paying for an agent run to do typing you could have done yourself. Worse, when the file already has a `Link` import on line 7, the agent has to choose between satisfying the literal criterion ("import on line 42") or the obviously-intended outcome ("use a `Link`"). Whichever way it goes, the diff is now arguing with itself.
+
+### The hidden contract
+
+```yaml
+acceptance_criteria: |
+  - Page looks great on iOS Safari.
+  - New blog card matches the rest of the site's vibe.
+  - Animation feels smooth.
+```
+
+These read like sharper postconditions than the wishlist, but the agent cannot check any of them. It has no iOS Safari, no eye, no concept of "smooth." A hidden-contract criterion is one the agent must guess at, then declare satisfied. The reviewer then has to re-check by hand. The contract is hidden because the verification step is.
+
+Most failed runs we look back at fail on one of those three. Not all at once — usually one line of a five-line block is a wishlist, one is a hidden contract, the others are fine. The bad one is enough.
+
+## What acceptance criteria _are_
+
+A great `acceptance_criteria` block is a set of **testable postconditions on the state of the codebase after the task completes**. Each line answers a yes-or-no question that can be settled by reading the diff or running a single command. That is the whole bar.
+
+"Testable" does not mean "must be covered by a unit test." A criterion can be tested by:
+
+- reading a path and confirming a file exists,
+- grepping for a string,
+- running `next build` and looking at the exit code,
+- opening a page in the dev server and confirming a visible element,
+- comparing the diff against a list of files the task is allowed to touch.
+
+What the criterion cannot be tested by is "the reviewer's feel." If the only way to know whether a criterion is satisfied is for you to look at the result and decide, you have written a hidden contract, and the agent will satisfy it incorrectly.
+
+## The structure that works
+
+The shape we keep coming back to has five parts. Not every block needs every part — most blocks need three — but in the order below they form a checklist that catches every common omission. The full version sits in the [task templates](/templates) gallery, and a one-page version lives on the [cheatsheet](/cheatsheet).
+
+**1. Files and routes that must exist.** The most concrete postcondition possible: a path the reviewer can check with `ls` and the agent can produce with one tool call. If the task is "add a press page," then `app/press/page.tsx` exists and `/press` returns 200 are non-negotiable lines.
+
+**2. Behaviors that must hold.** Behaviors are postconditions that need a command to verify. `next build` succeeds. `pnpm lint` does not report new warnings. The press page appears in `/sitemap.xml`. The new blog tag renders on `/blog/tags/<tag>`. Each line names the verification.
+
+**3. Integrations with existing features.** These are the postconditions about the rest of the site. The page is linked from the footer. The post appears in `feed.xml`. The new icon is registered in the icon set used elsewhere. Most "satisfied but wrong" diffs we see are wrong because no one wrote a criterion in this category.
+
+**4. Negative constraints.** What the task must _not_ change. These criteria are how you keep an agent from over-reaching. `next.config.mjs` is not modified. No new dependencies are added to `package.json`. No file outside `content/blog/` changes. Negative criteria are the single best lever for keeping a one-page task from drifting into a four-page refactor.
+
+**5. Quality bar.** One or two ambient requirements that apply to every task in the project. The build is green. There are no new TypeScript errors. The brand colors are unchanged. You can move most of these to the [project definition](/docs/concepts/projects-and-tasks) so you do not retype them, and we will talk about that in a minute.
+
+That is the whole structure. Files, behaviors, integrations, negatives, quality. Five buckets, and you can omit any one of them when it does not apply, but you cannot omit categories one through four for a non-trivial change without leaving a hole in the contract.
+
+## Five before-and-after rewrites
+
+The single most useful thing in this post, if it is useful at all, is the five rewrites below. Each pair is a real failure mode reshaped into something the agent can actually check.
+
+### 1. "The page looks good"
+
+```yaml
+# Before
+acceptance_criteria: |
+  - New /pricing page looks good.
+  - Matches the rest of the site.
+```
+
+```yaml
+# After
+acceptance_criteria: |
+  - File `app/pricing/page.tsx` exists and `/pricing` returns 200.
+  - Page uses `<PageShell>` from `components/page-shell.tsx`.
+  - Page renders three `<PricingCard>` components imported from
+    `components/pricing-card.tsx`.
+  - `/pricing` is linked from the primary navigation in
+    `components/site-header.tsx`.
+  - `next build` succeeds with no new warnings.
+```
+
+_Why this is better:_ every line has a single command or file path that decides it. "Matches the site" is replaced by naming the actual shared components — the only way "matches" was ever going to be checkable.
+
+### 2. "Code should be clean"
+
+```yaml
+# Before
+acceptance_criteria: |
+  - Code should be clean and well-organized.
+  - Functions should be small.
+  - No magic numbers.
+```
+
+```yaml
+# After
+acceptance_criteria: |
+  - `pnpm lint` exits 0 with no new warnings.
+  - No file in the diff exceeds 250 lines.
+  - All new constants live in `lib/constants.ts` and are exported.
+  - No `// TODO` or `// FIXME` comments are added.
+```
+
+_Why this is better:_ "clean" was a wishlist; the new lines are postconditions a linter or a `wc -l` can answer. Whether the result is _actually_ clean is then a reviewer judgment about whether you picked the right lint rules — which is a one-time call, not a per-task one.
+
+### 3. "Add a way to subscribe"
+
+```yaml
+# Before
+acceptance_criteria: |
+  - Visitors can subscribe to the blog.
+  - Newsletter form works on mobile.
+```
+
+```yaml
+# After
+acceptance_criteria: |
+  - File `components/subscribe-form.tsx` exists and exports
+    `SubscribeForm`.
+  - `<SubscribeForm />` is rendered at the bottom of `/blog` and at
+    the bottom of every post in `content/blog/`.
+  - Submitting the form POSTs JSON `{ email: string }` to
+    `/api/subscribe`.
+  - The form shows the success state from
+    `components/form-states.tsx` after a 200 response.
+  - The form is usable at viewport width 360px (verified by
+    rendering `/blog` in the dev server and inspecting at 360px).
+  - `next build` succeeds.
+```
+
+_Why this is better:_ "subscribe" was ambiguous (email? RSS? an account?) and "works on mobile" was a hidden contract. The new block names the form, the endpoint, the payload, the placement, and a concrete viewport width.
+
+### 4. "Refactor the header"
+
+```yaml
+# Before
+acceptance_criteria: |
+  - Header is cleaner.
+  - Mobile menu is improved.
+  - Remove unused code.
+```
+
+```yaml
+# After
+acceptance_criteria: |
+  - `components/site-header.tsx` is split into
+    `components/site-header.tsx` (top-level shell only) and
+    `components/site-nav.tsx` (link list).
+  - No exported component or prop is renamed or removed.
+  - All existing imports of `<SiteHeader>` in `app/` still resolve.
+  - The mobile menu toggles open and closed on a `<button>` click
+    at viewport width 360px.
+  - No file outside `components/` or `app/layout.tsx` is modified.
+  - `next build` succeeds and the visual diff at `/` is limited to
+    the header region.
+```
+
+_Why this is better:_ a refactor that does not specify what stays the same is a refactor that can return anything. The negative constraints — no file outside `components/`, no renames — are doing as much work as the positive ones.
+
+### 5. "Write a blog post about X"
+
+```yaml
+# Before
+acceptance_criteria: |
+  - Post about X is published.
+  - Post is well-written.
+```
+
+```yaml
+# After
+acceptance_criteria: |
+  - File `content/blog/<date>-<slug>.mdx` exists with frontmatter
+    matching the shape used by other posts in `content/blog/`
+    (title, date, summary, tags, author).
+  - Post is 1,500–2,200 words.
+  - Tags reuse existing tags from `content/blog/` where possible.
+  - Post appears on `/blog`, in `/blog/feed.xml`, and on each tag
+    page after `next build`.
+  - At least 6 internal links to existing pages.
+  - No files outside `content/blog/` are modified.
+```
+
+_Why this is better:_ "well-written" was a hidden contract; word count and link count are not the same thing as good writing, but they are checkable proxies, and they prevent the two most common failures (a 600-word post and a post with no internal links). The negative constraint at the end is what stops the agent from "improving the blog index" while it is at it.
+
+A meta-note: the post you are reading right now was written against a block very close to that last one.
+
+## When to leave things out
+
+Not every acceptance criterion needs to be on every task. The whole point of a [project definition](/blog/2026-05-21-anatomy-of-a-great-project-definition) is to lift the criteria that apply to every diff up to the project level so you do not retype them. The definition for this site, for example, says brand colors are fire/ember/flame, the design system is Tailwind, and `next.config.mjs` is the canonical build config. None of those should appear in a per-task acceptance block — they are already a contract the agent is operating under.
+
+Leave out:
+
+- ambient build, lint, and brand constraints that every task in the project must satisfy,
+- stack notes ("uses Next.js App Router") that the [definition](/docs/concepts/projects-and-tasks) already supplies,
+- conventions documented in the [docs](/docs) or repeated in the [cheatsheet](/cheatsheet).
+
+Put in:
+
+- anything that distinguishes _this_ diff from a generic one in the same project,
+- anything that, if the agent ignored it, would result in a diff you would revert.
+
+If you find yourself writing the same five lines on every task, move them to the project definition once and delete them from every task file. The agent reads both. The reviewer reads neither in full, and either way they save themselves the re-reading.
+
+## How to use the playground to shape criteria
+
+The fastest way to feel the difference between a vague block and a sharp one is to write both in the [playground](/playground) and watch how the YAML preview changes. The playground is a task-file builder — type a prompt, type criteria, see the YAML on the right. It will not tell you that "looks good" is a wishlist, but it will let you paste a draft, refactor it line by line into the five categories above, and copy the result straight into `.watchfire/tasks/`.
+
+A practical workflow: write the prompt first in the playground, ignore the criteria field, then read the prompt back and ask yourself "what would I check before I merged this?" Write that list into the criteria field. Then read each line and ask "can a command answer this?" If not, rewrite or delete.
+
+## Closing
+
+Acceptance criteria are the only field on a Watchfire task that the agent, the daemon, and you all read the same way. Their job is to convert "looks done" into "is done," and they do it by being testable rather than aspirational. A great block has files and routes, behaviors, integrations, negatives, and a quality bar — in that order, in five categories, with anything ambient lifted to the project definition.
+
+If you want to go further, the [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task) post covers the whole task file and the [project definition](/blog/2026-05-21-anatomy-of-a-great-project-definition) post covers what sits above it. The [task templates](/templates) gallery has prefilled criteria for the cases that come up most often, the [cheatsheet](/cheatsheet) condenses the five-bucket structure to a single page, and the [playground](/playground) is where to draft your next one. Treat the block like a contract, because it is one.
