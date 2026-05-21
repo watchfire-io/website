@@ -1,6 +1,12 @@
 import fs from "node:fs";
 import { getOrderedDocEntries } from "@/lib/llms";
 import { siteUrl, socialLinks } from "@/lib/site";
+import {
+  categoryLabels,
+  inProgressItems,
+  onDeckItems,
+  type RoadmapItem,
+} from "@/lib/roadmap";
 
 export const dynamic = "force-static";
 export const revalidate = false;
@@ -61,6 +67,30 @@ function byteLength(s: string): number {
   return Buffer.byteLength(s, "utf8");
 }
 
+function renderRoadmapSection(): string {
+  const renderItem = (item: RoadmapItem): string => {
+    const issueLine = item.issue ? `\n  Tracking: ${item.issue}` : "";
+    return `- **${item.title}** _(${categoryLabels[item.category]})_ — ${item.summary}${issueLine}`;
+  };
+
+  const lines: string[] = [
+    "\n---\n",
+    "## Roadmap\n",
+    `Source: ${siteUrl}/roadmap\n`,
+    "Watchfire's public roadmap. What's shipped (mirrored from the changelog), what's actively in flight, and what's intended for the next quarter.\n",
+    "### In progress\n",
+    inProgressItems.map(renderItem).join("\n"),
+    "\n",
+    "### On deck\n",
+    onDeckItems.map(renderItem).join("\n"),
+    "\n",
+    "### How to help\n",
+    `Watchfire is Apache-2.0 open source. Browse open issues at ${socialLinks.github}/issues — entries tagged \`good-first-issue\` and \`help-wanted\` are the easiest entry points. See ${siteUrl}/community for the contributing guide.\n`,
+  ];
+
+  return lines.join("\n");
+}
+
 export function GET() {
   const entries = getOrderedDocEntries();
   const generated = new Date().toISOString().slice(0, 10);
@@ -74,8 +104,10 @@ Repository: ${socialLinks.github}
 Generated: ${generated}
 `;
 
-  const parts: string[] = [header];
-  let total = byteLength(header);
+  const roadmapSection = renderRoadmapSection();
+
+  const parts: string[] = [header, roadmapSection];
+  let total = byteLength(header) + byteLength(roadmapSection);
   let truncatedAt: string | null = null;
 
   for (const entry of entries) {
