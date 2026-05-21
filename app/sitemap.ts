@@ -259,6 +259,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
+      url: `${siteUrl}/roadmap`,
+      lastModified: maxLastModified([
+        "app/roadmap/page.tsx",
+        "lib/roadmap.ts",
+        "lib/changelog.ts",
+        "content/docs/changelog.mdx",
+      ]),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    {
       url: `${siteUrl}/faq`,
       lastModified: maxLastModified([
         "app/faq/page.tsx",
