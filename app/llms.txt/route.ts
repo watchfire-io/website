@@ -50,6 +50,7 @@ export function GET() {
     `- [Glossary](${siteUrl}/glossary): Plain-English definitions of every Watchfire term, mode, and concept.`,
     `- [Cheatsheet](${siteUrl}/cheatsheet): One-page printable reference — CLI, TUI keybindings, YAML schemas, agent modes, gotchas.`,
     `- [Tour](${siteUrl}/tour): Two-minute guided walkthrough of Watchfire — project, tasks, TUI, agent modes, worktrees, and the GUI.`,
+    `- [Interfaces](${siteUrl}/interfaces): Head-to-head comparison of the CLI, TUI, and GUI surfaces — decision matrix, personas, and how to mix them.`,
     `- [Task templates](${siteUrl}/templates): Copy-paste starter task YAMLs for the most common agent jobs.`,
     `- [Embed kit](${siteUrl}/embed): Copy-paste badges, stats, and widgets you can drop into any project.`,
     `- [Resources](${siteUrl}/resources): Curated external reading — papers, posts, agent CLIs, related OSS, talks.`,
