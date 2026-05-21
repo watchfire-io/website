@@ -180,6 +180,17 @@ export default function AboutPage() {
                 clients (CLI/TUI and GUI) that observe, and a task model
                 that&apos;s just a YAML file.
               </p>
+              <p>
+                For the longer version &mdash; six tenets on how agents
+                should run inside real codebases &mdash; read the{" "}
+                <Link
+                  href="/manifesto"
+                  className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+                >
+                  manifesto
+                </Link>
+                .
+              </p>
             </div>
           </div>
         </section>

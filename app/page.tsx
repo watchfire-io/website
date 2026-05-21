@@ -105,6 +105,14 @@ export default async function Home() {
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 sm:mt-6 sm:text-base md:mx-0 lg:text-lg">
             Watchfire turns clear specs into scoped tasks, then hands each one to an agent in its own git worktree and sandbox. Better context in, better code out&nbsp;&mdash; with clean transcripts and full control at every step.
           </p>
+          <p className="mx-auto mt-3 max-w-xl text-sm text-zinc-500 dark:text-zinc-500 md:mx-0">
+            <Link
+              href="/manifesto"
+              className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+            >
+              Read the manifesto &rarr;
+            </Link>
+          </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3 sm:mt-10 sm:gap-4 md:justify-start">
             <Link

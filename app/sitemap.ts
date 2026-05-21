@@ -193,6 +193,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.5,
     },
     {
+      url: `${siteUrl}/manifesto`,
+      lastModified: fileLastModified("app/manifesto/page.tsx"),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
       url: `${siteUrl}/press`,
       lastModified: maxLastModified([
         "app/press/page.tsx",

@@ -53,6 +53,7 @@ export function GET() {
     `- [Task templates](${siteUrl}/templates): Copy-paste starter task YAMLs for the most common agent jobs.`,
     `- [Embed kit](${siteUrl}/embed): Copy-paste badges, stats, and widgets you can drop into any project.`,
     `- [Resources](${siteUrl}/resources): Curated external reading — papers, posts, agent CLIs, related OSS, talks.`,
+    `- [Manifesto](${siteUrl}/manifesto): What Watchfire believes about how AI coding agents should run inside real codebases — six tenets, distilled.`,
   ];
 
   const templateLines = taskTemplates.map((template) =>
