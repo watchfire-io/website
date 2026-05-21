@@ -49,6 +49,7 @@ export function GET() {
     `- [Roadmap](${siteUrl}/roadmap): Public roadmap — shipped, in progress, on deck, and where to help.`,
     `- [Glossary](${siteUrl}/glossary): Plain-English definitions of every Watchfire term, mode, and concept.`,
     `- [Task templates](${siteUrl}/templates): Copy-paste starter task YAMLs for the most common agent jobs.`,
+    `- [Embed kit](${siteUrl}/embed): Copy-paste badges, stats, and widgets you can drop into any project.`,
   ];
 
   const templateLines = taskTemplates.map((template) =>

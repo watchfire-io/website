@@ -161,6 +161,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.5,
     },
     {
+      url: `${siteUrl}/embed`,
+      lastModified: maxLastModified([
+        "app/embed/page.tsx",
+        "components/EmbedSnippetTabs.tsx",
+        "components/CodeCopyButton.tsx",
+      ]),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${siteUrl}/embed/stats`,
+      lastModified: maxLastModified([
+        "app/embed/stats/page.tsx",
+        "app/embed/stats/layout.tsx",
+        "lib/dogfood.ts",
+      ]),
+      changeFrequency: "weekly",
+      priority: 0.4,
+    },
+    {
       url: `${siteUrl}/privacy`,
       lastModified: privacyLastMod,
       changeFrequency: "monthly",
