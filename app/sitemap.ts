@@ -12,6 +12,7 @@ import { getAllTags, getPostsByTagSlug } from "@/lib/blog-tags";
 import { agentBackends } from "@/lib/agent-backends";
 import { comparisons } from "@/lib/comparisons";
 import { integrations } from "@/lib/integrations";
+import { useCases } from "@/lib/use-cases";
 
 function feedLastModified(): Date {
   const entries = getChangelogEntries();
@@ -188,7 +189,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${siteUrl}/use-cases`,
-      lastModified: new Date(),
+      lastModified: maxLastModified([
+        "app/use-cases/page.tsx",
+        "lib/use-cases.ts",
+      ]),
       changeFrequency: "monthly",
       priority: 0.6,
     },
@@ -293,6 +297,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: maxLastModified([
         "app/compare/[slug]/page.tsx",
         "lib/comparisons.ts",
+      ]),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+    ...useCases.map((u) => ({
+      url: `${siteUrl}/use-cases/${u.slug}`,
+      lastModified: maxLastModified([
+        "app/use-cases/[slug]/page.tsx",
+        "lib/use-cases.ts",
       ]),
       changeFrequency: "monthly" as const,
       priority: 0.6,
