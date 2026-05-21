@@ -51,6 +51,7 @@ const footerColumns: FooterColumn[] = [
       { label: "Community", href: "/community" },
       { label: "Discussions", href: "/community#discussions" },
       { label: "Contributing", href: "/docs/contributing" },
+      { label: "Open source", href: "/open-source" },
     ],
   },
   {

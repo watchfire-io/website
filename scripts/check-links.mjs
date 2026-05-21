@@ -70,6 +70,7 @@ const STATIC_ROUTES = new Set([
   "/templates",
   "/playground",
   "/community",
+  "/open-source",
   "/changelog",
   "/agents",
   "/integrations",
