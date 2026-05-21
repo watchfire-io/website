@@ -273,7 +273,16 @@ export default async function OpenSourcePage() {
             </h1>
             <p className="mt-5 text-base leading-relaxed text-zinc-600 dark:text-zinc-400 sm:text-lg">
               Apache-2.0 licensed. One public monorepo. No paid tier, no
-              telemetry you didn&rsquo;t ask for, no closed roadmap.
+              telemetry you didn&rsquo;t ask for, no closed roadmap. For
+              why we think auditable source is the price of admission for
+              agent orchestration, read the{" "}
+              <Link
+                href="/manifesto"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                manifesto
+              </Link>
+              .
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <GitHubStars />
