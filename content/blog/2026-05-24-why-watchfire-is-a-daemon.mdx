@@ -1,0 +1,89 @@
+---
+title: "Why Watchfire is a daemon, not a library"
+date: "2026-05-24"
+summary: "There is a binary called watchfired, it runs in the background, it talks gRPC to three clients. The first reasonable question is: why does this need a daemon? Here is the long answer."
+tags: ["architecture", "design", "engineering", "daemon"]
+author: "Nuno Coração"
+---
+
+Spend ten minutes inside [Watchfire's architecture doc](/docs/concepts/architecture) and the question arrives in the same shape every time. A binary called `watchfired`. Running in the background. Tray icon. Talking gRPC. Three different clients attaching to it. The question — fair, and one I asked myself early — is: _why does this need a daemon?_
+
+The Watchfire-shaped tool you would reach for on a Friday night does not look like this. It looks like a Go binary you `go install` and run from inside a project. Or an editor extension that imports a package and calls a function. Or a hosted dashboard somewhere that pulls your repo and pushes diffs back. All three are reasonable first sketches. None of them are what Watchfire is. This post is the long answer to why.
+
+## The shape you would reach for first
+
+For a long time the design I had on a whiteboard was a CLI wrapper. The pitch was small: I wanted one command that drove Claude Code, Codex, or opencode against a task description on disk. That command writes itself in an afternoon. It looks like this:
+
+```bash
+# the version that does not exist
+watchfire run .watchfire/tasks/0001.yaml
+# → reads task YAML
+# → execs `claude --append-system-prompt "..." --prompt "..."`
+# → waits for child to exit
+# → reads task YAML again, looks for status: done
+```
+
+The first task does what you wanted. You watched the agent in your terminal, it edited some files, it printed `success: true`, the command returned.
+
+The second task is where the design breaks. You want it to run while the first one is still going. You want to see its output without losing the first task's. You want to queue both and walk away. You want to start a third in a different project, on a different branch, while the first two are still running. You want to close your terminal at the end of the day and pick the work up tomorrow from where you left it.
+
+Every one of those wants pushes you toward something that lives longer than the command. You start adding flags — `--background`, `--log-to-file`, `--queue` — and inventing places to store state. The state has to outlive the command, so it goes on disk. Multiple commands have to read and write it without trampling each other, so you reach for a lock file. Concurrent reads have to be coherent, so you reach for a watcher. By the time you have hand-built four of these you have hand-built a daemon. You just did not give it a name.
+
+## What only a long-lived process can own
+
+Once you accept that something has to live longer than a single CLI invocation, the responsibilities sort themselves into a pile that, in retrospect, was always one process.
+
+**A PTY has an owner.** A coding agent like Claude Code is a TUI program that reads from a pseudo-terminal: escape codes, cursor positions, the works. To drive it programmatically you spawn it under a PTY using [creack/pty](https://github.com/creack/pty), parse its output through a terminal emulator like [vt10x](https://github.com/hinshun/vt10x), and stream the screen buffer to whoever wants to look at it. That spawn-and-parse loop has to live somewhere. If it lives inside your CLI, your CLI cannot exit. The whole point of "queue a task and walk away" is that the agent is the daemon's child, not your TUI's. Close the TUI; the task keeps running.
+
+**The git worktree is a multi-step thing.** A task in Watchfire happens inside `.watchfire/worktrees/0042/` on a branch called `watchfire/0042`. The worktree gets created before the agent starts, merged into `main` when the agent finishes, and removed when the merge lands. If the merge conflicts, the daemon runs `git merge --abort` and stops the chain rather than cascading failures across the queue. None of that is hard individually. All of it is owned by someone who is around between "task starts" and "task ends" — which can be twenty minutes or two hours apart.
+
+**The completion signal is a file change.** Watchfire's task completion protocol is, as [the file-watching post](/blog/2026-05-22-how-file-watching-makes-watchfire-feel-alive) lays out, a single edit to a YAML on disk. The agent saves the file. The daemon notices. That noticing is `fsnotify` running on directories the daemon registered when the project was opened, with a five-second polling fallback for missed events. A library cannot watch a directory while the importing process is asleep; a process can.
+
+**Many clients, one source of truth.** There is a CLI for scripting, a TUI for interactive work, and an Electron GUI for the multi-project view. All three talk to the same state. If the daemon were a library, each client would embed its own copy of the state machine, and the moment two of them disagreed the user would be left with two task lists that said different things. With a daemon, there is one task list, in one process, served over one gRPC surface. The shape of that surface is exactly what you would expect:
+
+```protobuf
+service AgentService {
+  rpc StartAgent      (StartAgentRequest)      returns (AgentStatus);
+  rpc StopAgent       (ProjectId)              returns (AgentStatus);
+  rpc GetAgentStatus  (ProjectId)              returns (AgentStatus);
+  rpc SubscribeScreen (SubscribeScreenRequest) returns (stream ScreenBuffer);
+  rpc SendInput       (SendInputRequest)       returns (Empty);
+  rpc Resize          (ResizeRequest)          returns (Empty);
+}
+```
+
+`SubscribeScreen` streams the pre-rendered screen the daemon's terminal emulator produced from the agent's raw PTY output. The GUI on your second monitor and the TUI in your terminal can both subscribe, both see the same screen, both type into the same agent through `SendInput`. No privileged client. No client-owned state. The daemon is the brain; the clients are eyes and hands.
+
+**State survives client restarts.** Quit the GUI in the middle of a Wildfire run. Reattach with the TUI an hour later. The daemon kept running, the agent finished four more tasks, the worktrees got merged, the next task is on. No handoff to engineer; just a process that did not die. The daemon writes its port to `~/.watchfire/daemon.yaml` on startup, and any later-arriving client finds it by reading that file, checking the PID, and reconnecting.
+
+## Why not a hosted service
+
+The other shape this could have taken is a cloud service. You sign in, point us at a repo, we run the agent on our hardware, you review the diff. Some good companies have shipped exactly that, and they have my respect.
+
+It is not what Watchfire is, for reasons that are not subtle. **Your code stays on your machine.** The repo never leaves the disk it was already on; no upload, no clone-to-our-side, nothing in flight. **Your model keys stay where you put them.** A hosted service has to hold a credential of yours somewhere; the daemon reads the same `~/.claude` you already authenticated against, and the agent inherits it. **The sandbox is a property of the host OS.** On macOS the daemon runs each agent under `sandbox-exec -f <profile>` — Apple's Seatbelt — with `~/.ssh`, `~/.aws`, `~/.gnupg`, `~/.netrc`, and `.env` files denied by the profile, and the project directory and package-manager caches permitted. On Linux it is Landlock on 5.13+, with a bubblewrap fallback. That kind of fencing is something only a local process can install. A remote service cannot ask the macOS kernel for the same thing on your behalf; the closest it gets is "we promise we run it in a VM."
+
+Hosted is a real shape with real wins — zero-install, runs without your laptop being open, no tray icon. It also has the tradeoffs above, and they are the ones that decided this for me. Your code, your machine, your keys. The daemon is what makes "on your machine" structurally true rather than a marketing claim.
+
+## What the daemon costs
+
+It is fair to be annoyed by another background process. I am, when other tools do it to me, and I should be honest about it here.
+
+A daemon is an install step. It is a port that has to be allocated and written somewhere — in our case `~/.watchfire/daemon.yaml` — so the clients can find it. It is a tray icon with three menu items, two of which you will never click. It is a process you will, exactly once, have to debug because something hung; the answer will be `watchfire daemon stop` followed by starting it again, and the brief annoyance will be real. It is a gRPC layer that adds a wire format between code that could otherwise have made a function call. None of that is free.
+
+Watchfire absorbs the tax because everything in the previous section pays for it many times over. But the tax exists. If you are running one task, in one project, in one terminal, and you never close it — yes, an in-process design would have been simpler. The daemon is the price of running multiple tasks across multiple projects under multiple clients without losing state when any of them closes.
+
+## What this unlocks
+
+Once the daemon is there, things become possible that were not possible before.
+
+[Wildfire mode](/blog/2026-05-18-inside-wildfire-mode) — the autonomous three-phase loop that executes ready tasks, refines drafts, generates new ones, and goes again — only makes sense inside a process happy to run for forty minutes without anyone watching. A CLI invocation cannot do that, not without redefining itself into a daemon by the third phase. Wildfire feels uneventful in normal use because the thing running it is the same thing that ran the task before it; no startup cost, no reconnection, no "where were we."
+
+Multiple clients on the same agent is a daily ergonomic win. I edit a task in the GUI, watch it run in the TUI on another monitor, check status from a CLI in a third terminal. None of them duplicate work. None of them are the source of truth. All of them read what the daemon already knows.
+
+A remote attach surface is sitting right there. The gRPC server already multiplexes gRPC-Web on the same port for the Electron client; pointing a browser at a daemon running on a beefier machine elsewhere on your LAN would not take much. We have not built that, but the architecture does not need to be rewritten to support it — and the only reason it does not is that we made the daemon decision a year ago.
+
+## When this would be wrong
+
+The honest version, to close. A Watchfire-shaped tool that did one thing and exited would correctly not be a daemon. A linter that reviews a diff and prints findings should be a library. A CI job that asks a model to summarise a PR should be a serverless function. A read-only inspector that asks "is this branch ready to ship" should be a CLI command and nothing more.
+
+The day a coding agent finishes a real task in two seconds and never has to be watched, paused, resumed, or merged — the day "run an agent" is a single synchronous function call — Watchfire becomes a library. We are not in that world. Today an agent is a TUI program with a PTY, working for tens of minutes against a git worktree, on one of several projects you have queued, with a human glancing at it from one of three interfaces. _That_ world wants a daemon. So Watchfire is one.
