@@ -1,0 +1,219 @@
+---
+title: "What 150 autonomous task runs taught us"
+date: "2026-05-22"
+summary: "Every page on watchfire.io was shipped by a Watchfire task running in an isolated worktree, and the daemon kept a record of each one. After 155 tasks, the numbers say something we did not expect about prompt length, refine passes, and which kinds of work agents actually finish on the first try."
+tags: ["retrospective", "dogfood", "metrics"]
+author: "Nuno Coração"
+---
+
+Open `.watchfire/tasks/` in the root of this website's repository and you will find one hundred and fifty-five YAML files. One of them is this post — the task that is producing this paragraph is `0155.yaml`, sitting one directory level up at `status: ready` while the agent reading this prompt walks the same directory to compile its own headline. The other one hundred and fifty-four are `status: done, success: true`. The site you are reading is the diff of those merges, in order, with no human-written commits in between except for the merge subjects the daemon generates.
+
+A reasonable question at this size of corpus is: _what did the numbers actually say?_ Not "did we ship a website with agents" — yes, [we covered that](/blog/2026-05-19-eating-our-own-dogfood). The question is the one a thoughtful operator asks at the start of week six, when a hundred runs are already on disk: which of those tasks earned their keep, which were paid for twice, which crawled along for nineteen hours because someone wrote a prompt that the agent could not finish, and what should the next hundred look like?
+
+This is that retrospective. Every number cited below comes out of [`scripts/blog-retro-stats.mjs`](https://github.com/watchfire-io/watchfire-website/blob/main/scripts/blog-retro-stats.mjs) — a no-dependencies Node script that walks `.watchfire/tasks/*.yaml` and `.watchfire/tasks/*.metrics.yaml` and prints a Markdown summary. Re-run it any time the corpus grows and the next post writes itself. The live counter for the whole-of-time view is at [/built-with-watchfire](/built-with-watchfire).
+
+## The premise
+
+The premise of this site is uncomfortable to state out loud: we asked an agent to build the documentation for the tool that runs the agent, then asked another agent to write the blog post about that. The first task in `.watchfire/tasks/` is dated **2026-02-24** and reads _"Scaffold Next.js project with Tailwind CSS and base layout"_. The most recent task in the directory at the moment of writing — `0154.yaml` — was created on **2026-05-21** and merged a `/open-source` page. That arc, two hundred and eighty-six days end to end, is one hundred and fifty-five YAML files.
+
+The shape of the corpus, at a glance:
+
+- **155** task files on disk
+- **154** done, all with `success: true`
+- **0** tasks with `success: false`
+- **142** finished in a single agent session (91.6%)
+- **13** needed a second pass or more (8.4%)
+- **64** tasks were created in the last calendar month alone — a 3× jump over the cadence of the three months prior
+
+The single thing we found most surprising in this dataset is at the top of that list: every completed task is `success: true`. We have not yet had a task that the agent abandoned with a "this is impossible" verdict. That is not because the agent is omniscient. It is because, after the first dozen tasks, we got better at _writing_ them — and the data below is the story of how that happened.
+
+## The shape of an average task
+
+Forget duration for a moment (we will come back to it; the data there is incomplete). The richest signal in the corpus is the size of the `prompt` block — the body the agent reads alongside its system prompt to figure out what it is being asked to do. Across the 154 prompts on disk:
+
+<div className="my-8 rounded-xl border border-zinc-200 bg-white/50 p-6 text-sm dark:border-zinc-800 dark:bg-zinc-900/40">
+  <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
+    <div>
+      <div className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Median prompt</div>
+      <div className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-white">4,528 <span className="text-base font-normal text-zinc-500 dark:text-zinc-400">chars</span></div>
+    </div>
+    <div>
+      <div className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Average prompt</div>
+      <div className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-white">4,886 <span className="text-base font-normal text-zinc-500 dark:text-zinc-400">chars</span></div>
+    </div>
+    <div>
+      <div className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">p90 prompt</div>
+      <div className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-white">9,571 <span className="text-base font-normal text-zinc-500 dark:text-zinc-400">chars</span></div>
+    </div>
+    <div>
+      <div className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Shortest</div>
+      <div className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-white">451 <span className="text-base font-normal text-zinc-500 dark:text-zinc-400">chars</span></div>
+    </div>
+    <div>
+      <div className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Longest</div>
+      <div className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-white">20,754 <span className="text-base font-normal text-zinc-500 dark:text-zinc-400">chars</span></div>
+    </div>
+    <div>
+      <div className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Median ACs</div>
+      <div className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-white">777 <span className="text-base font-normal text-zinc-500 dark:text-zinc-400">chars</span></div>
+    </div>
+  </div>
+</div>
+
+The median prompt is about 4,500 characters — roughly 750 words, a page and a half of plain text. That is much longer than a typical commit message and considerably shorter than a design doc. The matching `acceptance_criteria` block is about a fifth of the size — 777 characters of median, six or seven bullet points. The shortest prompt in the corpus is 451 characters (`#0020`, _Update changelog with v0.1.1 through v0.3.0 releases_); the longest is 20,754 (`#0102`, _Blog section at /blog with MDX, RSS, and per-post Article JSON-LD_). The p90 is 9,571 — so 10% of tasks ask for two to four pages of brief, and 90% fit on less than three.
+
+The shape we have settled into is described in [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task) — title, scoped prompt, verifiable acceptance criteria — and the median numbers are what that shape looks like when it works. The outliers are the interesting part, and we will get to them below.
+
+## What worked first time, what didn't
+
+The blunt statistic is that 142 of 155 tasks finished in a single agent session. That is not "the agent got the answer right on the first attempt" — Wildfire mode and the underlying Claude Code session loop are happy to iterate on tooling, run lints, fix the same file twice, and self-correct without escalating. What it means is that the agent did not stop, ask the daemon to mark the task `ready` again, and request a second session against the same worktree.
+
+<Mermaid chart={`
+pie showData
+    title  Agent sessions per task
+    "1 session" : 142
+    "2 sessions" : 10
+    "3 sessions" : 2
+    "6 sessions" : 1
+`} />
+
+That leaves 13 multi-pass tasks — 8.4% of the corpus — and the interesting bit is which ones. The list, in full:
+
+- `#0020` (6 sessions) — _Update changelog with v0.1.1 through v0.3.0 releases_
+- `#0044` (3 sessions) — _Update landing page to celebrate v1.0.0 stable release_
+- `#0070` (3 sessions) — _Site-wide consistency pass after v4.0.0 Beacon updates_
+- `#0045` (2 sessions) — _Refresh landing page for Watchfire v2.0.0 multi-agent release_
+- `#0046` (2 sessions) — _Fix download UI and update install surfaces for v2.0.0_
+- `#0047` (2 sessions) — _Add Watchfire v2.0.0 Spark release notes to the docs changelog_
+- `#0048` (2 sessions) — _Add supported agents documentation and update installation/auth setup guides_
+- `#0049` (2 sessions) — _Update project, task, init, and settings docs for agent selection features_
+- `#0089` (2 sessions) — _Add a /docs/keyboard-shortcuts cheat sheet page for TUI and GUI_
+- `#0106` (2 sessions) — _Replace /demos Rick Roll placeholders with on-brand inline previews_
+- `#0108` (2 sessions) — _Blog tag archive pages and clickable tag chips_
+- `#0109` (2 sessions) — _Reading time and related-posts footer on blog post pages_
+- `#0110` (2 sessions) — _Surface recent blog posts on the homepage in a "From the blog" section_
+
+Two patterns jump out and they are both worth saying out loud, because both of them changed how we wrote the next hundred tasks.
+
+The first is that nine of the thirteen multi-pass tasks are clustered around a Watchfire release. v1.0.0, v2.0.0, v4.0.0. Those are the tasks where the brief was "update everything that mentions the old release", which sounds scoped — there is a list of files, the changelog tells you what changed — but in practice has a long tail of "and also the landing page hero, and also the press kit, and also the comparison matrix, and also the OG image". A release sweep is a task whose true scope is "I do not yet know everything I am asking for". It almost always needs a second pass.
+
+The second pattern is the blog cluster (`#0106`, `#0108`, `#0109`, `#0110`). These are infrastructure tasks for the very blog you are reading: tag pages, reading-time estimates, related-posts footers, the "From the blog" section on the homepage. They needed two passes because each one touched several files in `app/`, `components/`, and `content/` simultaneously, and the first pass missed a visual detail or a typecheck that only fired on the integration. The lesson here is the same one [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task) preaches: **two outcomes squeezed into one prompt is the most common failure mode**, even when both outcomes are tiny. We had been treating "blog infrastructure" as one feature; the data nudged us to slice each one into its own task.
+
+The single 6-session outlier — `#0020`, the v0.1.x changelog backfill — sits in its own category. Its prompt is the shortest in the entire corpus, 451 characters of "pull these five release notes from the source repo's CHANGELOG.md and add them above the existing v0.1.0 entry". That is exactly the kind of prompt a human would write to another human, and it is exactly the kind of prompt that makes an agent ping-pong: the source path is implicit, the formatting style is described by reference, and the agent has to keep re-deriving the answer because the prompt did not pre-derive it. After `#0020`, every changelog-style task in the corpus carries an explicit "the source file is at X, copy the formatting from the existing Y entry verbatim, do not paraphrase" — the prompt grew, the session count stopped growing.
+
+## Where the time went
+
+Duration is the metric the daemon ships in `<n>.metrics.yaml` files. It is also the metric the corpus has the least of — we have 94 metrics files on disk against 155 task files, and only **6 of the 94 metrics files carry a non-zero `duration_ms`**. The rest were written by an earlier daemon build that recorded the event but not the wall-clock, before the [Insights subsystem](/blog/2026-05-19-what-we-measure-when-we-measure-an-agent) shipped its capture goroutine in v4.0.0. We are going to be honest about that gap: 6 data points is not a histogram, it is anecdotes, and any "average duration" we cite from that pool would tell you more about which months had a working capture path than about how long an agent task takes.
+
+What the six points _do_ let us cite is a shape:
+
+| Task | Title | Recorded duration |
+| --- | --- | --- |
+| `#0109` | Reading time and related-posts footer on blog post pages | 10 m |
+| `#0110` | Surface recent blog posts on the homepage | 34 m |
+| `#0070` | Site-wide consistency pass after v4.0.0 Beacon updates | 34 m |
+| `#0106` | Replace /demos Rick Roll placeholders with on-brand previews | 2.0 h |
+| `#0108` | Blog tag archive pages and clickable tag chips | 6.3 h |
+| `#0089` | /docs/keyboard-shortcuts cheat sheet page | 19.8 h |
+
+The two-orders-of-magnitude spread is not a measurement artefact. `#0109` is a small UI tweak that needed one component and a regex. `#0089` is a single-file deliverable — _create `content/docs/keyboard-shortcuts.mdx`_ — but the agent had to read three source files in the main Watchfire repo, cross-check inconsistencies with the docs, decide which to trust on disagreement, and produce a printable cheat sheet. The wall-clock includes thinking, tool calls, re-reads, and the human walking away to make coffee twice. Twenty hours of wall-clock is not twenty hours of compute; it is "this task was on the queue for twenty hours of real-world time before its YAML flipped to `done`". When the duration capture path lands across the back-catalogue we will rewrite this section. For now the shape stands: cheap tasks are cheap, ambitious tasks are not, and the ratio is the difference between a one-line prompt and a multi-section brief.
+
+## The slowest task, and why
+
+`#0089` is worth opening end to end, because it is the most expensive task in the recorded data and the lessons from it are the ones we lean on most often.
+
+```yaml
+task_number: 89
+title: Add a /docs/keyboard-shortcuts cheat sheet page for TUI and GUI
+prompt: |
+    Create `content/docs/keyboard-shortcuts.mdx` — a single-page,
+    printable cheat sheet listing every TUI keybinding and the
+    relevant GUI keyboard shortcuts. Today the keybindings live
+    inline in `components/cli.mdx` ("TUI Mode" sections), making
+    them awkward to print out, search, or reference quickly.
+
+    ## Source of truth
+
+    Pull keybindings from these files (do NOT invent any):
+
+    - `content/docs/components/cli.mdx` — TUI navigation, task
+      actions, panel tabs, integrations overlay, task form, global
+      settings.
+    - `content/docs/components/gui.mdx` — GUI shortcuts (filter
+      chips, focus events, dashboard).
+    - `~/source/watchfire/cmd/watchfire/...` (TUI source) and the
+      Electron GUI's main / renderer code under
+      `~/source/watchfire/gui/...` if a binding is referenced in
+      the docs but the binding string itself isn't spelled out.
+
+    If the source disagrees with the existing docs, trust the
+    [...truncated]
+status: done
+success: true
+agent_sessions: 2
+```
+
+The prompt is one of the longer ones in the corpus (about 5,300 characters once you read the full body) and the acceptance criteria are correspondingly thorough — eight checkboxes, each verifiable. What made the task slow was not poor writing; the brief is, by every measure we apply to the data, _a good task_. What made it slow is that the source of truth was three documents across two repositories, and the agent had to reconcile them. It produced a correct, printable cheat sheet on the second session. It cost 19.8 hours of wall-clock and two agent sessions, and that price is what _consulting two upstream repositories_ costs.
+
+The lesson — which we wrote into the very next batch of cross-repo tasks — is that **research-heavy tasks should split**. A "read upstream and produce a doc" task is really two tasks: _extract the canonical list of X from the upstream repo into a markdown table at `path/to/extract.md`_, then _render the cheat-sheet at `content/docs/keyboard-shortcuts.mdx` from `path/to/extract.md`_. Two single-pass tasks are almost always faster than one two-pass task, and the diff is easier to review.
+
+## What we changed because of the data
+
+You can trace the change in our prompt style through the corpus.
+
+The first ten tasks all began with verbs and contained one or two paragraphs of "what to do". Compare `#0009.yaml` — _"Rebrand website from purple to fire orange color palette"_, the brand pivot, 4,300 characters of brief — to the same kind of task done a hundred tasks later, `#0146.yaml`, _"Write a deep-dive blog post — What it costs to run Watchfire"_, 16 KB on disk, including an explicit "out of scope" section and a verification list. Both succeeded in a single session. Only one of them is reusable as a template for the next contributor.
+
+Three concrete shifts came out of looking at the data:
+
+1. **Median prompt length crept up over time, and that was the right move.** February's tasks averaged shorter than May's — and February had the only single-pass refine outliers (`#0020`'s six sessions). The instinct to keep prompts terse is the right instinct for human readers, not for agents reading without a meeting to back them up. After `#0020` we stopped trying to write shorter prompts and started writing more _explicit_ ones.
+
+2. **Every task gained an explicit "Out of scope" section after the v2.0.0 release sweep.** Tasks `#0044` through `#0049` all needed second passes because the agent — quite reasonably — saw a tangentially related fix and made it. That is good behaviour in a colleague and bad behaviour in a worktree the daemon is about to merge. The fix is in the brief: an "Out of scope" section in the prompt is now standard, and it is cited in [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task) as one of the four properties of a great task for exactly this reason.
+
+3. **We started splitting blog-platform work into independent tasks.** `#0108`, `#0109`, and `#0110` shipped tag pages, reading time, and a homepage "From the blog" section across three separate tasks — and each needed two sessions. The same work would have needed five or six on a single megatask. The data here is unequivocal: the cost of an extra task file is one minute of typing; the cost of an over-scoped task is a refine pass that may take hours.
+
+## Cadence — and what it means
+
+The thing that surprised us most when we tabulated the corpus by month is the slope.
+
+<div className="my-8 rounded-xl border border-zinc-200 bg-white/50 p-6 dark:border-zinc-800 dark:bg-zinc-900/40">
+  <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Tasks per calendar month (by created_at)</p>
+  <ul className="space-y-3">
+    <li className="flex items-center gap-3">
+      <span className="w-16 shrink-0 font-mono text-xs text-zinc-500 dark:text-zinc-400">Feb 2026</span>
+      <span className="block h-3 rounded-sm bg-fire-500/70" style={{ width: "21%" }} />
+      <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300">14</span>
+    </li>
+    <li className="flex items-center gap-3">
+      <span className="w-16 shrink-0 font-mono text-xs text-zinc-500 dark:text-zinc-400">Mar 2026</span>
+      <span className="block h-3 rounded-sm bg-fire-500/70" style={{ width: "35%" }} />
+      <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300">23</span>
+    </li>
+    <li className="flex items-center gap-3">
+      <span className="w-16 shrink-0 font-mono text-xs text-zinc-500 dark:text-zinc-400">Apr 2026</span>
+      <span className="block h-3 rounded-sm bg-fire-500/70" style={{ width: "35%" }} />
+      <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300">23</span>
+    </li>
+    <li className="flex items-center gap-3">
+      <span className="w-16 shrink-0 font-mono text-xs text-zinc-500 dark:text-zinc-400">May 2026</span>
+      <span className="block h-3 rounded-sm bg-fire-500/70" style={{ width: "100%" }} />
+      <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300">64</span>
+    </li>
+  </ul>
+  <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Counts include only tasks with a real <code>created_at</code> stamp. 31 early tasks predate the daemon's creation-time capture.</p>
+</div>
+
+February through April sat around 20 tasks per month. May tripled that. The reason is not "more humans" — the contributor list is the same. The reason is that around the time the [Wildfire loop](/blog/2026-05-18-inside-wildfire-mode) and the [Insights subsystem](/blog/2026-05-19-what-we-measure-when-we-measure-an-agent) shipped in the main Watchfire repo, we stopped writing tasks one at a time and started writing them in batches. The site's content roadmap moved into a `draft` queue, Wildfire mode picked up tasks while we slept, and the cadence followed.
+
+The thing the numbers do _not_ show is what we expected them to show: a quality drop as throughput rose. The 100% success rate holds across May; the multi-pass rate did not climb. The thing that scales when an autonomous loop gets faster is throughput, not failure — provided the prompt quality holds up. The bound on a Watchfire fleet is the rate at which a human can review the merge commits, not the rate at which the agent can produce them.
+
+## The unfair advantage of dogfooding telemetry
+
+There is a sentence we have been editing out of every other post and we will let stand here, because the dataset earns it: **building Watchfire on Watchfire, with the metrics files Watchfire writes, is the reason we are confident the product earns its keep.** A team building an agent orchestrator without dogfooding can claim its product is fast, or cheap, or reliable. We can open `.watchfire/tasks/0089.metrics.yaml` and say "the most expensive task we have shipped took 19.8 hours of wall-clock and produced one MDX file." That is a cost we know. The Insights tab in the GUI surfaces the same numbers for any project an operator runs through Watchfire. The dataset is small at 150 tasks. It will not be small at 1,500.
+
+The other compounding effect is on prompt writing. Every multi-pass task in the corpus is a small lesson. The lessons stack: we now write "out of scope" sections by reflex, we split research-heavy tasks at the read/write seam, we put a `## Source of truth` heading in any prompt that involves cross-referencing upstream code. None of this is interesting on its own. The compound is the part that matters.
+
+## What's next
+
+The corpus is public. Every task file is in this repo's `.watchfire/tasks/` directory; every metrics file is in `<n>.metrics.yaml` next to it. The live counter for "what's the latest" is at [/built-with-watchfire](/built-with-watchfire), and if you want to start a project of your own, the [`/templates`](/templates) page has the starter brief that produced the first ten tasks above.
+
+The next post in this series will be about the first hundred metrics files with a populated duration field — once the v4.0.0 capture path has run against a fresh batch we can compute a real histogram, not just six anecdotes. Until then, the script that produced every number above lives at [`scripts/blog-retro-stats.mjs`](https://github.com/watchfire-io/watchfire-website/blob/main/scripts/blog-retro-stats.mjs), the per-record schema is documented at [`/docs/concepts/insights`](/docs/concepts/insights), and the CLI command that exports these numbers from any Watchfire project lives at [`/docs/commands/metrics`](/docs/commands/metrics). Re-run the script. Read the script. Argue with the numbers — that is what a dataset is for.
