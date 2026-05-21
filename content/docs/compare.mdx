@@ -1,6 +1,6 @@
 ---
 title: How Watchfire compares
-description: Honest comparison of Watchfire to Aider, Cursor agents, raw Claude Code, GitHub Copilot Workspace, and Devin-style autonomous agents — what each is for.
+description: Honest comparison of Watchfire to Aider, Cursor agents, raw Claude Code, GitHub Copilot Workspace, Devin-style cloud agents, Cline, Continue.dev, OpenHands, Sourcegraph Cody/Amp, and Goose — what each is for.
 ---
 
 If you are evaluating Watchfire, you are almost certainly weighing it
@@ -13,8 +13,13 @@ Looking for a head-to-head? Jump to the dedicated page for
 [Aider](/compare/aider),
 [Cursor agents](/compare/cursor-agents),
 [raw CLI](/compare/raw-cli),
-[Devin-style cloud agents](/compare/devin), or
-[Copilot Workspace](/compare/copilot-workspace).
+[Devin-style cloud agents](/compare/devin),
+[Copilot Workspace](/compare/copilot-workspace),
+[Cline](/compare/cline),
+[Continue.dev](/compare/continue-dev),
+[OpenHands](/compare/openhands),
+[Sourcegraph Cody / Amp](/compare/sourcegraph-cody), or
+[Goose](/compare/goose).
 
 ## Where Watchfire fits
 
@@ -258,6 +263,191 @@ you want to keep using the agent CLI you already trust rather than a
 vendor-bundled one. Use a cloud autonomous agent if you want
 end-to-end "give it a ticket, get a PR" with no local setup and are
 comfortable with a hosted runtime.
+
+## Cline
+
+[Read the full comparison &rarr;](/compare/cline)
+
+Cline (formerly Claude Dev) is an open-source VS Code extension that
+turns your editor into an autonomous coding agent: it reads files,
+runs commands, and proposes edits with diffs you approve inline.
+
+### Where it shines
+
+- **Lives in VS Code** — the file you're staring at, the diffs, and
+  the approval prompts are all in the same window.
+- **Per-step approval** is a real safety mechanism: nothing runs
+  without an explicit click (unless you opt into per-tool
+  auto-approval).
+- **Open source** under Apache-2.0, with bring-your-own keys for
+  most major model providers and strong MCP support.
+
+### Where Watchfire is different
+
+- Cline is **editor-embedded**. Watchfire is **terminal-first**: it
+  runs your chosen agent CLI in a per-task worktree on its own
+  branch, no editor required.
+- Cline runs in your VS Code workspace — there is no OS-level
+  sandbox. Watchfire wraps the agent in Seatbelt (macOS) or
+  Landlock / Bubblewrap (Linux) and blocks `~/.ssh`, credential
+  stores, and `.git/hooks` by default.
+- Cline is one active task per VS Code window. Watchfire runs one
+  agent per project but coordinates many projects concurrently from
+  one daemon, with optional autonomous loops via
+  [Wildfire mode](/docs/concepts/agent-modes).
+
+### Use Watchfire if…
+
+…you want the same task-shaped autonomy without anchoring it to an
+editor, and you want platform-level isolation between the agent and
+your credentials. Use Cline if your unit of work is best handled with
+the file you are looking at open and the diff right there.
+
+## Continue.dev
+
+[Read the full comparison &rarr;](/compare/continue-dev)
+
+Continue is an open-source IDE assistant for VS Code and JetBrains
+— chat, autocomplete, edit, and agent modes, all configured through
+a YAML file and any LLM provider you bring (including local models
+via Ollama or vLLM).
+
+### Where it shines
+
+- **Editor-native and highly configurable** — model routes, context
+  providers, slash commands, and tools are all declarative and
+  version-controllable.
+- **Strongest local-model story** in this category: pair with Ollama
+  or vLLM and the whole loop runs offline.
+- **Open source** under Apache-2.0 with VS Code and JetBrains
+  parity.
+
+### Where Watchfire is different
+
+- Continue lives **inside the IDE** and edits your working tree.
+  Watchfire lives in the terminal and writes to a per-task worktree
+  on its own branch.
+- Continue has no OS-level sandbox; agent-mode tool calls are
+  approved per use. Watchfire runs the agent under
+  [Seatbelt or Landlock](/docs/concepts/sandboxing).
+- Continue is one session per IDE window. Watchfire coordinates many
+  projects concurrently with optional autonomy via Wildfire.
+
+### Use Watchfire if…
+
+…the work is task-shaped — a written prompt, success criteria, you
+want to review the result later — and you want it to happen outside
+any single editor's process. Use Continue if your workflow is
+editor-centric and you want a fully open, deeply configurable
+assistant that follows you between projects.
+
+## OpenHands
+
+[Read the full comparison &rarr;](/compare/openhands)
+
+OpenHands (formerly OpenDevin) is an open-source autonomous coding
+agent. You point a browser at it, and it drives the agent inside a
+Docker container that mounts your project — with file editing,
+shell access, and a built-in browser.
+
+### Where it shines
+
+- **Container sandbox** — the agent runs inside Docker, mounting
+  your project as a workspace. A real process-level isolation
+  boundary.
+- **Browser-capable runtime** — tasks that need to fill forms,
+  scrape docs, or debug through a browser are first-class.
+- **Self-hostable Devin shape** — MIT-licensed, with an active
+  research team, and bring-your-own LLM via LiteLLM.
+
+### Where Watchfire is different
+
+- OpenHands is itself an agent with its own loop and UI. Watchfire
+  is intentionally not an agent — it runs **your chosen agent CLI**
+  inside a per-task worktree and a platform sandbox.
+- OpenHands isolates via Docker. Watchfire isolates via git worktree
+  + Seatbelt or Landlock — no Docker daemon required.
+- OpenHands runs one conversation per browser session. Watchfire
+  runs many projects concurrently from one daemon, terminal-first.
+
+### Use Watchfire if…
+
+…you want to keep the agent CLI you already use and add isolation
+around it, rather than adopting a new agent runtime. Use OpenHands
+if you want a self-hosted, Devin-style agent with a browser and a
+container at runtime.
+
+## Sourcegraph Cody / Amp
+
+[Read the full comparison &rarr;](/compare/sourcegraph-cody)
+
+Sourcegraph's Cody (chat with deep codebase context) and Amp (the
+agentic coding tier) are backed by Sourcegraph's code intelligence
+platform — indexed search, cross-repo retrieval, and enterprise
+controls layered on top.
+
+### Where they shine
+
+- **Cross-repo context** — Cody and Amp can pull a struct from one
+  repo, a caller from another, and a config from a third into the
+  same prompt. Hard to replicate without an index.
+- **Enterprise controls** — audit logs, SSO, admin policy, and
+  self-hosted Sourcegraph instances are first-class.
+- **Layered onto existing Sourcegraph** — if your team already pays
+  for Sourcegraph, Cody and Amp are a low-friction add-on.
+
+### Where Watchfire is different
+
+- Cody and Amp are **hybrid local + cloud** — the extension is
+  local, but retrieval and inference go through Sourcegraph's cloud
+  or your self-hosted Sourcegraph. Watchfire is **fully local**.
+- Cody and Amp are closed-source enterprise products on top of an
+  index you maintain or pay for. Watchfire is Apache-2.0 with no
+  central index — the agent CLI decides what context to pull from
+  the repo in front of it.
+- Cody and Amp are seat-priced. Watchfire has no service fee — you
+  pay only the model API costs of whichever CLI you use.
+
+### Use Watchfire if…
+
+…you want local-first, task-shaped work without a Sourcegraph
+dependency and without a vendor in the inference path. Use Cody or
+Amp if your team already runs Sourcegraph and you want every answer
+grounded in indexed, cross-repo context.
+
+## Goose
+
+[Read the full comparison &rarr;](/compare/goose)
+
+Goose is Block's open-source, MCP-native agent — a CLI and desktop
+app that hosts an LLM behind a tool-use loop and a growing catalogue
+of MCP extensions.
+
+### Where it shines
+
+- **MCP-native** — extensions are first-class, and adding a tool is
+  often as simple as installing an MCP server.
+- **Resumable sessions** — pause, resume, branch, and share
+  conversational sessions.
+- **Open source** under Apache-2.0, with a desktop app for users
+  who do not want to live in a terminal.
+
+### Where Watchfire is different
+
+- Goose is itself an agent. Watchfire is an orchestrator that drives
+  agent CLIs — you keep using whichever CLI you trust and add a
+  worktree, sandbox, and task contract around it.
+- Goose runs in your working tree. Watchfire runs in
+  `.watchfire/worktrees/` on a `watchfire/<n>` branch, with auto-merge
+  opt-in.
+- Goose is one session per terminal or window. Watchfire coordinates
+  many projects concurrently with optional autonomy via Wildfire.
+
+### Use Watchfire if…
+
+…you want to keep using whichever agent CLI suits the job and add
+isolation around it. Use Goose if you want one MCP-native runtime
+with a strong extension catalogue and a tight conversational loop.
 
 ## What Watchfire is not
 
