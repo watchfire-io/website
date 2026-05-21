@@ -1,0 +1,116 @@
+---
+title: "Why YAML for task files (and what we considered instead)"
+date: "2026-05-25"
+summary: "YAML in 2026 sounds like a punchline. We picked it anyway for project.yaml and every file under .watchfire/tasks/. Here is the honest accounting of what each contender got right, where YAML hurts, and why those tradeoffs were the right ones for a format that humans and agents both have to author."
+tags: ["deep-dive", "design", "architecture", "tasks"]
+author: "Nuno Coração"
+---
+
+Picking YAML in 2026 is the kind of thing you have to defend on sight. Significant whitespace. The "Norway problem," where `no` decodes to `false` because the country is unlucky enough to share an abbreviation with a boolean. Mixed tabs and spaces that silently change the meaning of a file. Multiple specs floating around — 1.1, 1.2, 1.2.2 — that parsers disagree about. None of that is a strawman. We have been bitten by every one of those over the past year of running Watchfire on itself.
+
+We picked YAML anyway. The `project.yaml` at the root of every Watchfire project and every task file under `.watchfire/tasks/` is YAML, and after a couple hundred real task runs we are more confident in that choice than we were when we made it. This post is the honest accounting: what we needed the format to do, what each contender got right, where YAML hurts, and why those particular tradeoffs were the right ones for our shape of problem.
+
+## What the task file actually has to do
+
+Before defending the format, it is worth being concrete about what we are asking it to carry. A task file in Watchfire is the contract between a human and an agent. It looks roughly like this:
+
+```yaml
+version: 1
+task_id: 62f84ab6
+task_number: 169
+title: Write a blog post — "Why YAML for task files (and what we considered instead)"
+prompt: |
+    Write a deep-dive design-rationale blog post explaining why Watchfire
+    uses YAML for `project.yaml` and per-task files in `.watchfire/tasks/`,
+    and what alternatives we considered.
+
+    ## Voice and style
+
+    - First-person plural ("we").
+    - No marketing language. This is a builder's post.
+    - 1200–1800 words.
+acceptance_criteria: |
+    - New file `content/blog/2026-05-25-why-yaml-for-task-files.mdx` exists
+      with correct frontmatter matching the project's existing convention.
+    - Post is 1200–1800 words.
+    - Tags exist in the project's existing tag vocabulary.
+    - `npm run lint` and `npm run build` both pass.
+status: ready
+position: 169
+agent_sessions: 1
+```
+
+Stripped of any one specific task's content, the constraints on that file are:
+
+- **Both humans and machines write it.** We open task YAMLs in an editor to draft them. Wildfire mode opens the same files and writes new ones. A round-trip through both must not lose anything.
+- **Multi-line prose is the main payload.** `prompt` and `acceptance_criteria` are the body of a task. They contain bullet lists, code references, links, blank lines. If the format treats long strings as an inconvenient edge case, we have already lost.
+- **Comments must survive.** We leave notes next to a `status:` line that explain why a task is on hold. Those notes have to outlive an automated edit.
+- **Git diffs have to read like prose.** Every task lands on a branch and gets reviewed. A diff with quoted-string explosions and `\n` escapes is unreviewable.
+- **No build step.** A task file should be `cat`-able. `grep status:` should work. `sed` should work. `find .watchfire/tasks -name '*.yaml' | xargs grep -l 'ready'` is a real command we run all the time.
+- **Universal toolchain.** Every editor, every language, every LLM already understands it. We are not training the agents we orchestrate; whatever we pick, they need to write it correctly on the first try.
+
+Those constraints decide a lot of the answer before any one format gets to plead its case.
+
+## The contenders
+
+We did not arrive at YAML by drift. Each of these was on the whiteboard, and each lost on something specific.
+
+**JSON.** The obvious safe choice in any other decade. Universally parsed, schema-validatable with the entire JSON Schema ecosystem, no Norway problem. The cost is that JSON has no multi-line strings and no comments. Every newline in a `prompt` becomes a `\n` in a quoted string. A 40-line prompt becomes one unreadable line in a diff. Reviewers cannot see what the agent was actually told. That is not a small ergonomic gripe — the whole reason tasks live in git is so the prompt is reviewable alongside the diff it produced. JSON breaks that on the first task.
+
+**TOML.** Wonderful for tool configuration. The triple-quoted multi-line string form (`"""..."""`) handles long text, and comments are first-class. We seriously considered it. Where it fell over was nesting and the way arrays-of-tables look in real files: `[[tasks.subtasks]]` reads fine in `Cargo.toml`, but a task file with even modest structure starts to feel like a Windows INI from a parallel universe. We also did not want to maintain a TOML schema next to a YAML schema for the `project.yaml`, which is unavoidably nested.
+
+**HCL, Pkl, Cue, Dhall.** These are the configuration languages that have type systems, imports, and computed values. They are genuinely powerful. They are also a language. A task file is supposed to be writable by a colleague who has never installed Watchfire — they are reading the README, they want to drop in a task, and "first install Pkl" is a non-starter. The same problem applies to agents: anything that compiles, has a runtime, or requires a CLI to render is one more thing a Claude or Codex session has to get right under time pressure. We wanted the format to be inert text on disk.
+
+**SQLite, or any database.** This was the version of the design where the task list was a table, the daemon was the only writer, and the GUI rendered rows. It is faster, it is transactionally safe, it is the obvious choice if you squint. It is also wrong for our shape. The killer is git-native review. Tasks are scoped commits. A teammate opening a pull request that adds three tasks should see three readable YAML files in the diff, not a binary `tasks.db` blob and a migration. The moment the task list moves into a database, the [worktree-per-task](/blog/2026-05-18-isolated-worktrees-per-task) flow loses its point: the unit of review stops being the unit of work.
+
+**Markdown with frontmatter.** Genuinely interesting, and the version we held onto longest. The body of the Markdown file would be the prompt. Frontmatter would carry `status`, `task_id`, the rest. We use exactly this shape for the blog you are reading. It fell over on a smaller point than we expected: `acceptance_criteria` is also long-form prose, and a single Markdown body cannot cleanly hold two distinct long-form fields without inventing section conventions that are not part of the format. We would have ended up with a `## Prompt` / `## Acceptance criteria` convention and a parser that splits on headings. At that point we had reinvented YAML's `|` block scalars, badly.
+
+## Why YAML won
+
+Four properties, in order of how often they earn their keep:
+
+**Block scalars.** The `|` form lets a `prompt:` or `acceptance_criteria:` value be a multi-paragraph blob, indented under the key, with newlines preserved and no escaping. The `prompt` block in a real Watchfire task file looks the same as it would in a Notion page. That is the property that no other contender matched cleanly. Every other format we looked at either required quoting (JSON), required a special string syntax (TOML's triple quotes), or invented its own (Markdown sections, HCL heredocs).
+
+**Comments survive round-trips.** Humans write notes next to lines. We needed those notes to stay where they were when an agent rewrote `status: ready` to `status: done`. We use `gopkg.in/yaml.v3` on the Go side specifically because its node-based API preserves comments and key order on round-trip. JSON cannot do this. TOML preserves comments. Markdown frontmatter does, but only inside the frontmatter block.
+
+**Universal toolchain.** Every editor highlights it. Every language has at least two parsers. Every model we have asked to write a task file has produced valid YAML on the first try. The cost of teaching the system a new format is not zero — it is paid by every agent and every human, every time.
+
+**Diffs read like prose.** A `git diff` of two task files looks like a redline on a document. Reviewers can read the prompt change inline. Compare the same task as JSON, the diff a teammate would actually see:
+
+```json
+{
+  "version": 1,
+  "task_id": "62f84ab6",
+  "task_number": 169,
+  "title": "Write a blog post — \"Why YAML for task files (and what we considered instead)\"",
+  "prompt": "Write a deep-dive design-rationale blog post explaining why Watchfire\nuses YAML for `project.yaml` and per-task files in `.watchfire/tasks/`,\nand what alternatives we considered.\n\n## Voice and style\n\n- First-person plural (\"we\").\n- No marketing language. This is a builder's post.\n- 1200–1800 words.\n",
+  "acceptance_criteria": "- New file `content/blog/2026-05-25-why-yaml-for-task-files.mdx` exists\n  with correct frontmatter matching the project's existing convention.\n- Post is 1200–1800 words.\n- Tags exist in the project's existing tag vocabulary.\n- `npm run lint` and `npm run build` both pass.\n",
+  "status": "ready",
+  "position": 169,
+  "agent_sessions": 1
+}
+```
+
+That is the same task, equivalently expressed. It is not the version we would want to read on a Sunday afternoon while reviewing a teammate's branch.
+
+## The tradeoffs we accepted
+
+This is where we have to be honest. YAML is not free, and pretending the warts away would be lying.
+
+**Strict timestamp parsing bit us.** The daemon's YAML library refuses to decode an empty-string timestamp into a `time.Time`. We have a documented convention — and a note in the system prompt every agent sees — that timestamp fields like `started_at` and `completed_at` are managed by the daemon and should never be set to `""` by hand. The first three times an agent wrote `started_at: ""` into a task file, the daemon rejected the file and the task stalled. The fix is a one-line YAML decoder tweak we have not yet shipped; the real fix is the convention and the instruction. We wear that.
+
+**Indentation errors happen.** Not often — once every few weeks across a few hundred runs — but when they do, the error is sometimes a tab/space mix that no editor flags. We have lost a couple of minutes per incident. Not enough to motivate switching formats; enough to mention.
+
+**Schema enforcement lives in code, not the file format.** YAML has no native concept of "this field is a string, this one is an enum, this one is required." We get those guarantees from a Go struct with `yaml` tags and from a manual schema documented next to the codebase. A typo in a field name silently becomes an unknown field that the parser ignores. We mitigate with `version: 1` at the top of every task file — when we eventually need to break the schema, we will have an honest hinge to do it on.
+
+## What we would do differently
+
+Two things, if we were starting over today.
+
+We would ship a generated JSON Schema for the task file format on day one. Modern editors will use it for autocomplete and inline validation against a YAML file, which closes most of the typo-shaped failure modes without changing the format itself. We have not done it yet; we should.
+
+And we would build `watchfire task validate` as a CLI subcommand from the start. Today the CLI has `task add`, `task list`, `task edit`, `task delete`, and `task restore` — but no `validate`. It is the kind of subcommand you only miss the third time an agent writes a malformed file. We will add it; this post is not it.
+
+## A real task file
+
+The closing invitation. Open `.watchfire/tasks/0169.yaml` in the repo where this blog lives. That is the task that produced this post. Every field that this post named — `prompt`, `acceptance_criteria`, `status`, `position`, `agent_sessions`, `version`, `task_id`, `title` — is on the page in front of you. The prompt is the brief I worked from. The acceptance criteria are the contract I had to hit. The status flipped from `ready` to `done` when I saved the file the agent had been editing. None of that needed a runtime, a database, or a build step to be true. It is text on disk. That is what we picked YAML for.
