@@ -12,6 +12,7 @@ import {
   glossaryCategories,
   type GlossaryCategory,
 } from "@/lib/glossary";
+import { taskTemplates } from "@/lib/task-templates";
 
 export const dynamic = "force-static";
 export const revalidate = false;
@@ -101,6 +102,24 @@ function renderGlossarySection(): string {
   return lines.join("\n");
 }
 
+function renderTemplatesSection(): string {
+  const lines: string[] = [
+    "\n---\n",
+    "## Task templates\n",
+    `Source: ${siteUrl}/templates\n`,
+    "Copy-paste starter task YAMLs for the most common things you'll ask a coding agent to do. Each template has its own detail page with a description, when-to-use bullets, and a category-specific pitfalls list.\n",
+  ];
+
+  for (const template of taskTemplates) {
+    lines.push(
+      `- **${template.title}** — ${template.tagline} (${siteUrl}/templates/${template.slug})`,
+    );
+  }
+  lines.push("");
+
+  return lines.join("\n");
+}
+
 function renderRoadmapSection(): string {
   const renderItem = (item: RoadmapItem): string => {
     const issueLine = item.issue ? `\n  Tracking: ${item.issue}` : "";
@@ -140,11 +159,18 @@ Generated: ${generated}
 
   const roadmapSection = renderRoadmapSection();
   const glossarySection = renderGlossarySection();
+  const templatesSection = renderTemplatesSection();
 
-  const parts: string[] = [header, glossarySection, roadmapSection];
+  const parts: string[] = [
+    header,
+    glossarySection,
+    templatesSection,
+    roadmapSection,
+  ];
   let total =
     byteLength(header) +
     byteLength(glossarySection) +
+    byteLength(templatesSection) +
     byteLength(roadmapSection);
   let truncatedAt: string | null = null;
 

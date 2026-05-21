@@ -137,8 +137,8 @@ export default function TemplatesPage() {
                 const Icon = template.icon;
                 return (
                   <article
-                    key={template.id}
-                    id={template.id}
+                    key={template.slug}
+                    id={template.slug}
                     className="card-hover scroll-mt-24 flex h-full flex-col rounded-2xl border border-zinc-200 bg-white/70 p-6 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:p-7"
                   >
                     <div className="flex items-start gap-4">
@@ -153,7 +153,12 @@ export default function TemplatesPage() {
                           Template
                         </span>
                         <h2 className="mt-1 text-lg font-semibold leading-snug tracking-tight text-zinc-900 dark:text-white sm:text-xl">
-                          {template.title}
+                          <Link
+                            href={`/templates/${template.slug}`}
+                            className="underline-offset-2 hover:text-fire-600 hover:underline dark:hover:text-fire-400"
+                          >
+                            {template.title}
+                          </Link>
                         </h2>
                       </div>
                     </div>
@@ -174,6 +179,28 @@ export default function TemplatesPage() {
                         Pitfall —
                       </span>{" "}
                       {template.pitfall}
+                    </p>
+                    <p className="mt-5 text-sm">
+                      <Link
+                        href={`/templates/${template.slug}`}
+                        className="inline-flex items-center gap-1 text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+                      >
+                        Read the full template
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                          className="transition-transform"
+                        >
+                          <path d="M5 12h14M13 5l7 7-7 7" />
+                        </svg>
+                      </Link>
                     </p>
                   </article>
                 );

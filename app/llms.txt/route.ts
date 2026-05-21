@@ -1,5 +1,6 @@
 import { getOrderedDocEntries } from "@/lib/llms";
 import { siteUrl, socialLinks } from "@/lib/site";
+import { taskTemplates } from "@/lib/task-templates";
 
 export const dynamic = "force-static";
 export const revalidate = false;
@@ -47,7 +48,16 @@ export function GET() {
     `- [Changelog](${siteUrl}${CHANGELOG_URL}): Release notes.`,
     `- [Roadmap](${siteUrl}/roadmap): Public roadmap — shipped, in progress, on deck, and where to help.`,
     `- [Glossary](${siteUrl}/glossary): Plain-English definitions of every Watchfire term, mode, and concept.`,
+    `- [Task templates](${siteUrl}/templates): Copy-paste starter task YAMLs for the most common agent jobs.`,
   ];
+
+  const templateLines = taskTemplates.map((template) =>
+    formatLine(
+      template.title,
+      `/templates/${template.slug}`,
+      template.tagline,
+    ),
+  );
 
   const body = [
     HEADER,
@@ -58,6 +68,10 @@ export function GET() {
     "## Components",
     "",
     componentsLines.join("\n"),
+    "",
+    "## Task templates",
+    "",
+    templateLines.join("\n"),
     "",
     "## Optional",
     "",
