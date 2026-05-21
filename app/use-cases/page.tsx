@@ -6,16 +6,18 @@ import {
   Eye,
   Hammer,
   Layers,
+  Terminal,
   TestTube,
   type LucideIcon,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { siteUrl } from "@/lib/site";
+import { useCases, type UseCaseIcon } from "@/lib/use-cases";
 import type { BreadcrumbList } from "@/lib/jsonld-types";
 
 const description =
-  "Concrete scenarios where Watchfire pays for itself — from tackling a refactor to shipping a docs sprint without babysitting your terminal.";
+  "Concrete scenarios where Watchfire pays for itself — refactors, migrations, test coverage, parallel features, docs sprints, review prep, and switching from raw CLI.";
 
 export const metadata: Metadata = {
   title: "Use cases",
@@ -38,89 +40,15 @@ export const metadata: Metadata = {
   },
 };
 
-type Scenario = {
-  id: string;
-  tag: string;
-  icon: LucideIcon;
-  headline: string;
-  body: string;
-  linkLabel: string;
-  linkHref: string;
+const iconMap: Record<UseCaseIcon, LucideIcon> = {
+  Hammer,
+  ArrowRightLeft,
+  TestTube,
+  Layers,
+  BookOpen,
+  Eye,
+  Terminal,
 };
-
-const scenarios: Scenario[] = [
-  {
-    id: "refactor",
-    tag: "Refactor",
-    icon: Hammer,
-    headline: "Take a tangled module from spaghetti to scoped diffs.",
-    body:
-      "Carve the work into focused tasks, each with its own acceptance criterion. Watchfire runs every subtask in an isolated worktree, so the agent never trips over its own half-finished changes — and you review one tight diff at a time instead of one sprawling branch.",
-    linkLabel: "See the refactor recipe",
-    linkHref: "/docs/recipes#refactor-a-module-across-multiple-tasks",
-  },
-  {
-    id: "migration",
-    tag: "Migration",
-    icon: ArrowRightLeft,
-    headline: "Drive mass codemods and framework upgrades in parallel.",
-    body:
-      "Slice a migration into per-package or per-module tasks and run them concurrently. Each task gets its own sandbox and worktree, so a flaky transform on one package never blocks the others — and you can re-run any single subtask without unwinding the rest.",
-    linkLabel: "How task scoping works",
-    linkHref: "/docs/concepts/projects-and-tasks",
-  },
-  {
-    id: "test-coverage",
-    tag: "Test coverage",
-    icon: TestTube,
-    headline: "Backfill tests on under-covered modules with a real bar to clear.",
-    body:
-      "Write the acceptance criterion as the failing test — coverage threshold, a missing case, a regression. The agent is on the hook to make it pass before the task is done, not just to produce something that looks like a test. You get coverage that holds up, not coverage that ticks a box.",
-    linkLabel: "See the test-coverage recipe",
-    linkHref: "/docs/recipes#add-tests-to-an-untested-module",
-  },
-  {
-    id: "parallel-work",
-    tag: "Parallel work",
-    icon: Layers,
-    headline: "Run several features in flight while you keep coding on main.",
-    body:
-      "Queue multiple tasks and Watchfire dispatches them across isolated worktrees. Wildfire mode keeps the queue moving on its own, so background features make progress while you stay heads-down on the thing that needs your attention.",
-    linkLabel: "Inside Wildfire mode",
-    linkHref: "/blog/2026-05-18-inside-wildfire-mode",
-  },
-  {
-    id: "docs-sprint",
-    tag: "Docs sprint",
-    icon: BookOpen,
-    headline: "Refresh docs from the source of truth without one giant PR.",
-    body:
-      "Point tasks at the README, code comments, and architecture notes that are already in the repo. Watchfire keeps each page or section in its own diff, so a docs sprint stays reviewable — and you can ship the ones that landed while the messy ones go back for another pass.",
-    linkLabel: "Agent modes explained",
-    linkHref: "/docs/concepts/agent-modes",
-  },
-  {
-    id: "review-prep",
-    tag: "Review prep",
-    icon: Eye,
-    headline: "Hand a branch the PR description it deserves.",
-    body:
-      "Open a Watchfire task pointing at a branch you already have and let the agent draft the PR description, changelog entry, or migration notes. The agent has the full diff and your task definition as context, so the write-up matches the work — and you stop writing “misc fixes” at 6pm on a Friday.",
-    linkLabel: "Tips for writing good tasks",
-    linkHref: "/docs/tips",
-  },
-  {
-    id: "switch-from-raw-cli",
-    tag: "Switching from raw CLI",
-    icon: ArrowRightLeft,
-    headline:
-      "Already driving Claude Code or Codex directly? Keep the agent, change the workspace.",
-    body:
-      "If you live at the raw CLI prompt today, Watchfire is not a rewrite of how you work — it is a steering wheel and seatbelts around the agent you already trust. The migration guide walks through the four real shifts (task instead of prompt, worktree instead of working tree, sandbox, diff-review instead of live intervention) and the first hour of using Watchfire on a project you already know.",
-    linkLabel: "Read the migration guide",
-    linkHref: "/blog/2026-05-20-migrating-from-raw-cli-to-watchfire",
-  },
-];
 
 const breadcrumbsLd: BreadcrumbList = {
   "@context": "https://schema.org",
@@ -140,57 +68,6 @@ const breadcrumbsLd: BreadcrumbList = {
     },
   ],
 };
-
-function ScenarioCard({ scenario }: { scenario: Scenario }) {
-  const Icon = scenario.icon;
-  return (
-    <article
-      id={scenario.id}
-      className="card-hover scroll-mt-24 rounded-2xl border border-zinc-200 bg-white/70 p-6 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:p-7"
-    >
-      <div className="flex items-start gap-4">
-        <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-fire-500/10 text-fire-500 dark:bg-fire-400/10 dark:text-fire-400"
-          aria-hidden="true"
-        >
-          <Icon className="h-5 w-5" strokeWidth={2} />
-        </div>
-        <div className="min-w-0">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-fire-600 dark:text-fire-400">
-            {scenario.tag}
-          </span>
-          <h2 className="mt-1 text-lg font-semibold leading-snug tracking-tight text-zinc-900 dark:text-white sm:text-xl">
-            {scenario.headline}
-          </h2>
-        </div>
-      </div>
-      <p className="mt-4 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 sm:text-base">
-        {scenario.body}
-      </p>
-      <p className="mt-5 text-sm">
-        <Link
-          href={scenario.linkHref}
-          className="inline-flex items-center gap-1 text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
-        >
-          {scenario.linkLabel}
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M5 12h14M13 5l7 7-7 7" />
-          </svg>
-        </Link>
-      </p>
-    </article>
-  );
-}
 
 export default function UseCasesPage() {
   return (
@@ -216,22 +93,66 @@ export default function UseCasesPage() {
                 for itself.
               </h1>
               <p className="mt-4 text-base leading-relaxed text-zinc-600 dark:text-zinc-400 sm:text-lg">
-                A tour of common outcomes &mdash; not a feature list. Six places
-                where the task model, worktree isolation, and sandbox turn a
-                half-day of babysitting the terminal into something you can
-                queue and review.
+                A tour of common outcomes &mdash; not a feature list. Seven
+                places where the task model, worktree isolation, and sandbox
+                turn a half-day of babysitting the terminal into something you
+                can queue and review.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Scenario grid */}
+        {/* Use case grid */}
         <section className="px-6 pb-20">
           <div className="mx-auto max-w-7xl">
-            <div className="grid gap-5 md:grid-cols-2">
-              {scenarios.map((scenario) => (
-                <ScenarioCard key={scenario.id} scenario={scenario} />
-              ))}
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {useCases.map((useCase) => {
+                const Icon = iconMap[useCase.icon];
+                return (
+                  <Link
+                    key={useCase.slug}
+                    href={`/use-cases/${useCase.slug}`}
+                    className="card-hover group flex h-full flex-col rounded-2xl border border-zinc-200 bg-white/70 p-6 backdrop-blur-sm transition-colors hover:border-fire-500/50 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-fire-400/50"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-fire-500/10 text-fire-500 dark:bg-fire-400/10 dark:text-fire-400"
+                        aria-hidden="true"
+                      >
+                        <Icon className="h-5 w-5" strokeWidth={2} />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-fire-600 dark:text-fire-400">
+                          {useCase.tag}
+                        </span>
+                        <h2 className="mt-1 text-lg font-semibold leading-snug tracking-tight text-zinc-900 dark:text-white sm:text-xl">
+                          {useCase.title}
+                        </h2>
+                      </div>
+                    </div>
+                    <p className="mt-4 flex-1 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                      {useCase.tagline}
+                    </p>
+                    <p className="mt-5 inline-flex items-center gap-1 text-sm text-fire-600 underline-offset-2 group-hover:underline dark:text-fire-400">
+                      Read the playbook
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="transition-transform group-hover:translate-x-0.5"
+                        aria-hidden="true"
+                      >
+                        <path d="M5 12h14M13 5l7 7-7 7" />
+                      </svg>
+                    </p>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </section>
