@@ -6,7 +6,6 @@ import {
   Code2,
   Cpu,
   Edit3,
-  ExternalLink,
   FileKey,
   Gem,
   GitBranch,
@@ -100,12 +99,7 @@ const itemListLd = {
     position: index + 1,
     name: integration.name,
     description: integration.tagline,
-    url:
-      integration.detailHref !== undefined
-        ? `${siteUrl}${integration.detailHref}`
-        : integration.docsHref !== undefined
-          ? `${siteUrl}${integration.docsHref}`
-          : (integration.homepage ?? `${siteUrl}/integrations#${integration.slug}`),
+    url: `${siteUrl}/integrations/${integration.slug}`,
   })),
 };
 
@@ -184,13 +178,19 @@ function StatusPill({ status }: { status: IntegrationStatus }) {
 
 function IntegrationCard({ integration }: { integration: Integration }) {
   const Icon = iconMap[integration.iconKey];
-  const isAgent = integration.category === "agent";
-  const isLink = isAgent && integration.detailHref !== undefined;
   const cardClasses =
-    "card-hover scroll-mt-24 flex h-full flex-col rounded-2xl border border-zinc-200 bg-white/70 p-6 backdrop-blur-sm transition-colors hover:border-fire-500/50 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-fire-400/50";
+    "card-hover group scroll-mt-24 flex h-full flex-col rounded-2xl border border-zinc-200 bg-white/70 p-6 backdrop-blur-sm transition-colors hover:border-fire-500/50 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-fire-400/50";
 
-  const inner = (
-    <>
+  return (
+    <Link
+      id={integration.slug}
+      href={`/integrations/${integration.slug}`}
+      aria-labelledby={`integration-${integration.slug}-name`}
+      className={cardClasses}
+    >
+      <div id={`integration-${integration.slug}-name`} className="sr-only">
+        {integration.name}
+      </div>
       <div className="flex items-start justify-between gap-3">
         <div
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-fire-500/10 text-fire-500 dark:bg-fire-400/10 dark:text-fire-400"
@@ -200,7 +200,7 @@ function IntegrationCard({ integration }: { integration: Integration }) {
         </div>
         <StatusPill status={integration.status} />
       </div>
-      <h3 className="mt-4 text-lg font-semibold leading-snug tracking-tight text-zinc-900 dark:text-white sm:text-xl">
+      <h3 className="mt-4 text-lg font-semibold leading-snug tracking-tight text-zinc-900 group-hover:text-fire-700 dark:text-white dark:group-hover:text-fire-300 sm:text-xl">
         {integration.name}
       </h3>
       <p className="mt-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -209,90 +209,24 @@ function IntegrationCard({ integration }: { integration: Integration }) {
       <p className="mt-3 flex-1 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
         {integration.summary}
       </p>
-      {(integration.docsHref || integration.homepage || isLink) && (
-        <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-          {isLink && integration.detailHref && (
-            <span className="inline-flex items-center gap-1 font-medium text-fire-600 dark:text-fire-400">
-              Read more
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M5 12h14M13 5l7 7-7 7" />
-              </svg>
-            </span>
-          )}
-          {!isLink && integration.docsHref && (
-            <Link
-              href={integration.docsHref}
-              className="inline-flex items-center gap-1 font-medium text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
-            >
-              Docs
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M5 12h14M13 5l7 7-7 7" />
-              </svg>
-            </Link>
-          )}
-          {!isLink && integration.homepage && (
-            <a
-              href={integration.homepage}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-medium text-zinc-600 underline-offset-2 hover:text-fire-600 hover:underline dark:text-zinc-400 dark:hover:text-fire-400"
-            >
-              <ExternalLink className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
-              Homepage
-            </a>
-          )}
-        </div>
-      )}
-    </>
-  );
-
-  if (isLink && integration.detailHref) {
-    return (
-      <Link
-        id={integration.slug}
-        href={integration.detailHref}
-        aria-labelledby={`integration-${integration.slug}-name`}
-        className={`${cardClasses} group cursor-pointer`}
-      >
-        <div id={`integration-${integration.slug}-name`} className="sr-only">
-          {integration.name}
-        </div>
-        {inner}
-      </Link>
-    );
-  }
-
-  return (
-    <article
-      id={integration.slug}
-      aria-labelledby={`integration-${integration.slug}-name`}
-      className={cardClasses}
-    >
-      <div id={`integration-${integration.slug}-name`} className="sr-only">
-        {integration.name}
-      </div>
-      {inner}
-    </article>
+      <span className="mt-5 inline-flex items-center gap-1 text-xs font-medium text-fire-600 dark:text-fire-400">
+        Read more
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          className="transition-transform group-hover:translate-x-0.5"
+        >
+          <path d="M5 12h14M13 5l7 7-7 7" />
+        </svg>
+      </span>
+    </Link>
   );
 }
 
