@@ -281,6 +281,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
+      url: `${siteUrl}/glossary`,
+      lastModified: maxLastModified([
+        "app/glossary/page.tsx",
+        "components/GlossaryFilter.tsx",
+        "components/GlossaryAnchor.tsx",
+        "components/GlossaryJsonLd.tsx",
+        "lib/glossary.ts",
+      ]),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
       url: `${siteUrl}/agents`,
       lastModified: new Date(),
       changeFrequency: "monthly",

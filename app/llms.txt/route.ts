@@ -46,6 +46,7 @@ export function GET() {
     `- [Source on GitHub](${socialLinks.github}): Apache-2.0 licensed.`,
     `- [Changelog](${siteUrl}${CHANGELOG_URL}): Release notes.`,
     `- [Roadmap](${siteUrl}/roadmap): Public roadmap — shipped, in progress, on deck, and where to help.`,
+    `- [Glossary](${siteUrl}/glossary): Plain-English definitions of every Watchfire term, mode, and concept.`,
   ];
 
   const body = [

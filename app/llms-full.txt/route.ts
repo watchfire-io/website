@@ -7,6 +7,11 @@ import {
   onDeckItems,
   type RoadmapItem,
 } from "@/lib/roadmap";
+import {
+  glossary,
+  glossaryCategories,
+  type GlossaryCategory,
+} from "@/lib/glossary";
 
 export const dynamic = "force-static";
 export const revalidate = false;
@@ -67,6 +72,35 @@ function byteLength(s: string): number {
   return Buffer.byteLength(s, "utf8");
 }
 
+function renderGlossarySection(): string {
+  const lines: string[] = [
+    "\n---\n",
+    "## Glossary\n",
+    `Source: ${siteUrl}/glossary\n`,
+    "Plain-English definitions of every Watchfire term, mode, and concept. Each entry is anchor-linkable as `" +
+      `${siteUrl}/glossary#<slug>` +
+      "`.\n",
+  ];
+
+  for (const category of glossaryCategories) {
+    const entries = glossary.filter(
+      (e: { category: GlossaryCategory }) => e.category === category.id,
+    );
+    if (entries.length === 0) continue;
+    lines.push(`### ${category.title}\n`);
+    for (const entry of entries) {
+      const aliases =
+        entry.aliases && entry.aliases.length > 0
+          ? ` _(also: ${entry.aliases.join(", ")})_`
+          : "";
+      lines.push(`- **${entry.term}**${aliases} — ${entry.definition}`);
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
 function renderRoadmapSection(): string {
   const renderItem = (item: RoadmapItem): string => {
     const issueLine = item.issue ? `\n  Tracking: ${item.issue}` : "";
@@ -105,9 +139,13 @@ Generated: ${generated}
 `;
 
   const roadmapSection = renderRoadmapSection();
+  const glossarySection = renderGlossarySection();
 
-  const parts: string[] = [header, roadmapSection];
-  let total = byteLength(header) + byteLength(roadmapSection);
+  const parts: string[] = [header, glossarySection, roadmapSection];
+  let total =
+    byteLength(header) +
+    byteLength(glossarySection) +
+    byteLength(roadmapSection);
   let truncatedAt: string | null = null;
 
   for (const entry of entries) {

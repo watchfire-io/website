@@ -61,6 +61,15 @@ export default function BlogIndexPage() {
             occasional behind-the-scenes look at running coding agents in
             sandboxed git worktrees.
           </p>
+          <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-500">
+            New to the terminology? Skim the{" "}
+            <Link
+              href="/glossary"
+              className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+            >
+              Glossary &rarr;
+            </Link>
+          </p>
         </div>
 
         {tags.length > 0 ? (
