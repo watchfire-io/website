@@ -319,6 +319,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
+      url: `${siteUrl}/pricing`,
+      lastModified: fileLastModified("app/pricing/page.tsx"),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
       url: `${siteUrl}/changelog`,
       lastModified: maxLastModified([
         "app/changelog/page.tsx",
