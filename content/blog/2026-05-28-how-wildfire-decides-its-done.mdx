@@ -1,0 +1,75 @@
+---
+title: "How Wildfire decides it's done"
+date: "2026-05-28"
+summary: "Wildfire mode runs the task queue, refines drafts, generates new work, and at some point it stops. The signal that stops it is one empty file. Here is why that signal, and not a timer or an iteration cap, is the one we keep."
+tags: ["deep-dive", "wildfire", "design", "architecture"]
+author: "Nuno Coração"
+---
+
+Most people meet Wildfire as a small piece of magic. You run `watchfire wildfire` against a project with a few ready tasks and a sharp definition, then close the laptop. Forty minutes later the tray icon is no longer orange, the queue has cleared, and there are three more tasks in `.watchfire/tasks/` that the agent wrote on the way out. The loop ran, the loop stopped, the project moved.
+
+This post is about the stopping. Once the loop is running, what tells it that it is done? The naive answers all have problems. "After ten iterations" is arbitrary — short on real projects, long on small ones. "After thirty minutes" is worse. "When the user hits Ctrl+C" makes Wildfire useless for the case it exists for, which is unattended runs. The signal Wildfire actually uses is the absence of new tasks at the end of a Generate phase — a single empty YAML file on disk. The rest of this post is the why.
+
+## The three phases, briefly
+
+[Inside Wildfire mode](/blog/2026-05-18-inside-wildfire-mode) covers the loop in full. The summary that matters here is that a Wildfire cycle is three phases the daemon runs in order:
+
+- **Execute.** Pick the next `ready` task, spawn an agent inside a fresh git worktree at `.watchfire/worktrees/<n>/` on branch `watchfire/<n>`, let it work to `status: done`, merge.
+- **Refine.** When no `ready` tasks remain, take a `draft` task and tighten its prompt and acceptance criteria into something an executor can act on. Mark it `ready`.
+- **Generate.** When there are no `draft` tasks either, look at the project as a whole and decide whether more work belongs in the queue. If yes, write new task files. If no, end.
+
+Execute drains into Refine, Refine drains into Execute (because each refined task becomes a `ready` task), and only when both queues are empty does the daemon run Generate. The stopping condition lives in that last phase. Everything before it is bookkeeping that gets the loop to the question of "is there more meaningful work to do?" The interesting design question is not how the loop is shaped — that follows from the queue states — but how it knows to exit.
+
+## The signal: an empty Generate output
+
+The end of a Generate phase looks like this. The daemon spawns an agent at the project root (not in a worktree — Generate is rewriting `.watchfire/tasks/`, not the codebase). The agent is handed the project definition, the full task history, and a tight system prompt. The relevant lines of that prompt look like this:
+
+```text
+4. Decide whether meaningful work remains:
+   - If YES: Create new task YAML files in .watchfire/tasks/ …
+   - If NO: Do NOT create any tasks. The absence of new tasks signals that
+     the best version has been achieved and wildfire should stop.
+…
+9. Signal completion: Create an empty file at
+   `.watchfire/generate_done.yaml` to signal that this phase is complete.
+```
+
+Two things happen at once in that contract, and the separation is what makes the loop stable. The marker file — `.watchfire/generate_done.yaml` — is _always_ written. It is how the agent tells the daemon "I am done with this phase, reap the process." It does not carry any decision. The decision lives in what _else_ happened in the working directory: either there are new task YAMLs sitting in `.watchfire/tasks/`, or there are not.
+
+When the daemon sees the marker land — through its `fsnotify` watcher, with a five-second polling fallback for missed kqueue events — it deletes the marker, stops the agent, and re-scans for `ready` tasks. If there are new tasks, the daemon falls back into Execute and the loop continues. If there are none, there is nothing to chain to, and the project transitions to chat mode. The Go code that picks the next phase is one straight line of conditionals: `ready → Execute; draft → Refine; neither → Generate; Generate produced nothing → chat`. There is no "wildfire is done" boolean anywhere. The state of the queue _is_ the boolean.
+
+That decoupling matters. The agent does not have to know what iteration it is on. It answers one question — "is there meaningful work left?" — in the format the rest of the system already understands: the presence or absence of task files. The stopping condition is not a special case; it is the queue going quiet.
+
+## Why this signal and not the alternatives
+
+Four alternatives were on the whiteboard for this. Each is reasonable, and each loses on something specific.
+
+**A fixed iteration cap, say N=10.** The honest version of this idea: pick a number, run the loop that many times, then stop. The advantage is that the loop _will_ terminate. The failure mode is that the number is wrong on every project. Ten cycles is far too many for a project where the queue empties after the second Execute and the second Generate is honestly out of ideas — you spend eight extra cycles generating filler. Ten cycles is far too few for a project where each Generate phase produces six high-quality new tasks and the loop is genuinely progressing. A cap that fits both projects is a cap that fits neither.
+
+**A wall-clock timeout, say thirty minutes.** Worse than the iteration cap, because the unit is even less correlated with progress. One Execute can take ninety seconds (small docs change) or fifty minutes (real refactor with tests). A timeout mid-Execute leaves a half-merged branch behind. A timeout at the phase boundary is the iteration cap with extra steps. The only honest version of a wall-clock cap is "this run is allowed to cost at most X dollars," and we track that out-of-band — see [what it costs to run Watchfire](/blog/2026-05-22-what-it-costs-to-run-watchfire).
+
+**"Stop when the agent says it is done", free-form.** The version where the Generate agent prints "I think we're done" and the daemon parses that. The problem is that "the agent says so" in plain text is not a contract — it is a hope. Models phrase the same conclusion fifteen different ways. A daemon that has to regex agent output breaks the first time the model gets chatty. The empty-Generate-output signal gives the agent a _structured_ way to say "done" — write a file, or do not — that the daemon checks with `os.Stat`.
+
+**Stop when the task queue is empty, without a Generate phase at all.** This is the seductive one. Why have Generate? Just run until ready and draft are both empty, then quit. The failure mode is that the queue starts empty for every project the moment the last Execute lands. You would never finish the first batch of tasks without immediately deciding the project was done. Generate is what gives the loop a chance to ask "having watched the last cycle land, is there obviously more?" before the answer defaults to "no". Removing it collapses Wildfire into start-all.
+
+The empty-Generate-output signal beats all four because it ties termination to the same judgment the loop is already making at every other step: _is there meaningful work?_ Either there are new task files on disk or there are not, and the system reads the queue the same way it always does.
+
+## The pragmatic limits we keep anyway
+
+The honest part. The empty-Generate-output signal is the _primary_ stopping condition, but it is not the only one. A couple of safety rails sit underneath it and exist precisely because the agent can get the meaningful-work judgment wrong in either direction.
+
+There is a **restart cap**: if the same task fails to complete three times in a row — rate limits, crashes, auth errors, a flaky test the agent cannot pin down — the daemon stops the loop and drops into chat mode. The [Wildfire command docs](/docs/commands/wildfire) cover this. The cap exists so a single broken task cannot spin Wildfire forever.
+
+There is **merge-failure-stops-the-chain**: a worktree merge conflict on the way back to `main` halts the chain rather than papering over it. The branch is left for inspection and you take over.
+
+And there is **the human override**: Ctrl+C detaches the TUI but leaves the daemon running. To genuinely stop a run, use the tray icon or `watchfire agent stop`. Detach is cheap, stop is explicit — most of the time the human pressing Ctrl+C wants to look at something, not abort.
+
+The agent can also be wrong in the other direction. Declaring "done" too early because the project definition was vague: you write a new task by hand and re-run. Filler-generating because the definition was too ambitious: you delete the bad tasks, sharpen the definition, and re-run. Both failure modes have the same fix surface — the project definition and the task list — which is exactly where you would already be looking.
+
+## The deeper bet
+
+The stopping condition is a small instance of a larger choice that runs through the whole tool. Wherever Wildfire can let the agent reason about the work, it does — including whether the work is finished. Wherever the control surface is for the human — start, stop, scope, definition — we keep it cheap and explicit, with no hidden state and no magic numbers.
+
+This post is itself an instance of that bet. The task that produced it was written in a previous Generate phase, and the same loop that wrote it would have written the next one if it had thought there was more to say. It did not. That is the signal. We took it.
+
+Mechanics live in the [Wildfire docs](/docs/commands/wildfire), the loop shape in [inside-wildfire-mode](/blog/2026-05-18-inside-wildfire-mode), the receipts in [eating our own dogfood](/blog/2026-05-19-eating-our-own-dogfood).
