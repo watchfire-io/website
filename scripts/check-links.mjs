@@ -68,6 +68,8 @@ const STATIC_ROUTES = new Set([
   "/showcase",
   "/built-with-watchfire",
   "/templates",
+  "/embed",
+  "/embed/stats",
   "/playground",
   "/community",
   "/open-source",

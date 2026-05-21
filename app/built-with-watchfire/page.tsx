@@ -405,6 +405,15 @@ export default function BuiltWithWatchfirePage() {
               </a>
               .
             </p>
+            <p className="mt-4 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              <Link
+                href="/embed"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                See all embeds &rarr;
+              </Link>{" "}
+              &mdash; embed these stats on your own project page.
+            </p>
           </div>
         </section>
       </main>

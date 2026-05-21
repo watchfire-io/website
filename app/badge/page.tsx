@@ -269,6 +269,15 @@ export default function BadgePage() {
               </Link>
               .
             </div>
+            <p className="mt-4 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              <Link
+                href="/embed"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                See all embeds &rarr;
+              </Link>{" "}
+              &mdash; stats widgets, GitHub stars, version badges, and more.
+            </p>
           </div>
         </section>
 

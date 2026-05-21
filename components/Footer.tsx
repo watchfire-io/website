@@ -25,6 +25,7 @@ const footerColumns: FooterColumn[] = [
       { label: "Demos", href: "/demos" },
       { label: "Changelog", href: "/changelog" },
       { label: "Badge", href: "/badge" },
+      { label: "Embed kit", href: "/embed" },
     ],
   },
   {

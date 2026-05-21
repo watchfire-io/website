@@ -102,6 +102,25 @@ function renderGlossarySection(): string {
   return lines.join("\n");
 }
 
+function renderEmbedSection(): string {
+  const lines: string[] = [
+    "\n---\n",
+    "## Embed kit\n",
+    `Source: ${siteUrl}/embed\n`,
+    "Copy-paste badges, stats, and widgets you can drop into any project.\n",
+    "Each widget has both a Markdown snippet (for README files) and an HTML snippet (for blogs). Snippets use fully-qualified URLs (the site's siteUrl), so they paste cleanly into any external project.\n",
+    "### Widgets",
+    "",
+    `- **Made with Watchfire** badge — gradient flame pill. Sources: ${siteUrl}/badges/made-with-watchfire-flame.svg (also /badges/made-with-watchfire.svg, -dark, -light).`,
+    "- **GitHub stars badge** — live star count served by shields.io.",
+    "- **Latest version badge** — current Watchfire release, also via shields.io.",
+    `- **Built with Watchfire stats** — iframe at ${siteUrl}/embed/stats?project=<slug> showing live task-completion stats.`,
+    `- **Powered by Watchfire** pill — tiny inline SVG at ${siteUrl}/embed/powered-by.svg.`,
+    "",
+  ];
+  return lines.join("\n");
+}
+
 function renderTemplatesSection(): string {
   const lines: string[] = [
     "\n---\n",
@@ -160,17 +179,20 @@ Generated: ${generated}
   const roadmapSection = renderRoadmapSection();
   const glossarySection = renderGlossarySection();
   const templatesSection = renderTemplatesSection();
+  const embedSection = renderEmbedSection();
 
   const parts: string[] = [
     header,
     glossarySection,
     templatesSection,
+    embedSection,
     roadmapSection,
   ];
   let total =
     byteLength(header) +
     byteLength(glossarySection) +
     byteLength(templatesSection) +
+    byteLength(embedSection) +
     byteLength(roadmapSection);
   let truncatedAt: string | null = null;
 
