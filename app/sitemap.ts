@@ -199,6 +199,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
+      url: `${siteUrl}/when-not-to-use`,
+      lastModified: fileLastModified("app/when-not-to-use/page.tsx"),
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
       url: `${siteUrl}/press`,
       lastModified: maxLastModified([
         "app/press/page.tsx",

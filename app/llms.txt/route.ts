@@ -54,6 +54,7 @@ export function GET() {
     `- [Embed kit](${siteUrl}/embed): Copy-paste badges, stats, and widgets you can drop into any project.`,
     `- [Resources](${siteUrl}/resources): Curated external reading — papers, posts, agent CLIs, related OSS, talks.`,
     `- [Manifesto](${siteUrl}/manifesto): What Watchfire believes about how AI coding agents should run inside real codebases — six tenets, distilled.`,
+    `- [When Watchfire is the wrong tool](${siteUrl}/when-not-to-use): Eight scenarios where Watchfire is a poor fit, with concrete pointers to what to reach for instead.`,
   ];
 
   const templateLines = taskTemplates.map((template) =>
