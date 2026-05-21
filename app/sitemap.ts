@@ -11,6 +11,7 @@ import { listPublishedBlogPosts } from "@/lib/blog-source";
 import { getAllTags, getPostsByTagSlug } from "@/lib/blog-tags";
 import { agentBackends } from "@/lib/agent-backends";
 import { comparisons } from "@/lib/comparisons";
+import { integrations } from "@/lib/integrations";
 
 function feedLastModified(): Date {
   const entries = getChangelogEntries();
@@ -274,6 +275,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...agentBackends.map((agent) => ({
       url: `${siteUrl}/agents/${agent.slug}`,
       lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+    ...integrations.map((integration) => ({
+      url: `${siteUrl}/integrations/${integration.slug}`,
+      lastModified: maxLastModified([
+        "app/integrations/[slug]/page.tsx",
+        "lib/integrations.ts",
+        "lib/agent-backends.ts",
+      ]),
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),
