@@ -64,6 +64,7 @@ const STATIC_ROUTES = new Set([
   "/security",
   "/faq",
   "/demos",
+  "/tour",
   "/use-cases",
   "/showcase",
   "/built-with-watchfire",

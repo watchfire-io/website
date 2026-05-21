@@ -116,6 +116,15 @@ export default async function Home() {
                 <path d="M5 12h14M13 5l7 7-7 7" />
               </svg>
             </Link>
+            <Link
+              href="/tour"
+              className="group inline-flex items-center gap-2 rounded-lg border border-fire-500/40 bg-fire-500/10 px-4 py-2.5 text-sm font-medium text-fire-700 backdrop-blur-sm transition-all hover:border-fire-500 hover:bg-fire-500/15 hover:shadow-[0_0_20px_rgba(224,112,64,0.2)] dark:border-fire-400/40 dark:bg-fire-400/10 dark:text-fire-300 dark:hover:border-fire-400 sm:px-5 sm:py-3 sm:text-base"
+            >
+              Take the tour
+              <svg className="transition-transform group-hover:translate-x-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M5 12h14M13 5l7 7-7 7" />
+              </svg>
+            </Link>
             <Suspense
               fallback={
                 <a

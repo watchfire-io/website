@@ -265,6 +265,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
+      url: `${siteUrl}/tour`,
+      lastModified: maxLastModified([
+        "app/tour/page.tsx",
+        "components/TourStepIndicator.tsx",
+        "components/TuiPreviewSvg.tsx",
+        "components/GuiLayoutSvg.tsx",
+      ]),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
       url: `${siteUrl}/community`,
       lastModified: fileLastModified("app/community/page.tsx"),
       changeFrequency: "monthly",
