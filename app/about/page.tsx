@@ -395,6 +395,13 @@ export default function AboutPage() {
               >
                 blog
               </Link>
+              , see what shaped our thinking on{" "}
+              <Link
+                href="/resources"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                /resources
+              </Link>
               , or come say hi on the{" "}
               <Link
                 href="/community"

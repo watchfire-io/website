@@ -401,6 +401,13 @@ export default function CommunityPage() {
               >
                 /open-source
               </Link>
+              . For the curated reading list on AI coding agents, see{" "}
+              <Link
+                href="/resources"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                /resources
+              </Link>
               .
             </p>
           </div>

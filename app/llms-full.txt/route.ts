@@ -102,6 +102,24 @@ function renderGlossarySection(): string {
   return lines.join("\n");
 }
 
+function renderResourcesSection(): string {
+  const lines: string[] = [
+    "\n---\n",
+    "## Resources\n",
+    `Source: ${siteUrl}/resources\n`,
+    "Curated external reading — what we read so you don't have to. Includes foundational papers and posts on AI coding agents, links to every supported backend agent CLI, related OSS in the orchestration/sandboxing/protocol space, and a small set of talks and podcasts. Curation lives in `app/resources/page.tsx` and is intentionally short — quality over comprehensiveness.\n",
+    "### Sections",
+    "",
+    "- Foundational reading on AI coding agents — papers and authoritative blog posts.",
+    "- Backend agent CLIs — homepages and Watchfire integration pages for Claude Code, Codex, opencode, Gemini CLI, Copilot CLI, Cursor Agent.",
+    "- Related open-source projects — sandboxing (Bubblewrap, Landlock, Apple App Sandbox), dev containers, protocols (MCP, gRPC), TUI building blocks (Bubble Tea, Lipgloss), and adjacent agents (OpenHands, SWE-agent).",
+    "- Talks & podcasts — short, in progress.",
+    "- From the Watchfire blog — first-party posts that pair with the reading list.",
+    "",
+  ];
+  return lines.join("\n");
+}
+
 function renderEmbedSection(): string {
   const lines: string[] = [
     "\n---\n",
@@ -180,12 +198,14 @@ Generated: ${generated}
   const glossarySection = renderGlossarySection();
   const templatesSection = renderTemplatesSection();
   const embedSection = renderEmbedSection();
+  const resourcesSection = renderResourcesSection();
 
   const parts: string[] = [
     header,
     glossarySection,
     templatesSection,
     embedSection,
+    resourcesSection,
     roadmapSection,
   ];
   let total =
@@ -193,6 +213,7 @@ Generated: ${generated}
     byteLength(glossarySection) +
     byteLength(templatesSection) +
     byteLength(embedSection) +
+    byteLength(resourcesSection) +
     byteLength(roadmapSection);
   let truncatedAt: string | null = null;
 

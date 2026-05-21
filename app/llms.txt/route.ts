@@ -51,6 +51,7 @@ export function GET() {
     `- [Cheatsheet](${siteUrl}/cheatsheet): One-page printable reference — CLI, TUI keybindings, YAML schemas, agent modes, gotchas.`,
     `- [Task templates](${siteUrl}/templates): Copy-paste starter task YAMLs for the most common agent jobs.`,
     `- [Embed kit](${siteUrl}/embed): Copy-paste badges, stats, and widgets you can drop into any project.`,
+    `- [Resources](${siteUrl}/resources): Curated external reading — papers, posts, agent CLIs, related OSS, talks.`,
   ];
 
   const templateLines = taskTemplates.map((template) =>

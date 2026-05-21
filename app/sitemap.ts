@@ -271,6 +271,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
+      url: `${siteUrl}/resources`,
+      lastModified: maxLastModified([
+        "app/resources/page.tsx",
+        "lib/agent-backends.ts",
+        "components/BlogPostCard.tsx",
+      ]),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
       url: `${siteUrl}/open-source`,
       lastModified: maxLastModified([
         "app/open-source/page.tsx",

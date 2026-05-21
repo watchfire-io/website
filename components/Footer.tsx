@@ -33,6 +33,7 @@ const footerColumns: FooterColumn[] = [
     heading: "Resources",
     links: [
       { label: "Blog", href: "/blog" },
+      { label: "Resources hub", href: "/resources" },
       { label: "Built with Watchfire", href: "/built-with-watchfire" },
       { label: "Showcase", href: "/showcase" },
       { label: "Use cases", href: "/use-cases" },
