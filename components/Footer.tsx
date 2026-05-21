@@ -65,6 +65,7 @@ const footerColumns: FooterColumn[] = [
     links: [
       { label: "About", href: "/about" },
       { label: "Manifesto", href: "/manifesto" },
+      { label: "When not to use", href: "/when-not-to-use" },
       { label: "Security", href: "/security" },
       { label: "Privacy", href: "/privacy" },
       {
