@@ -35,6 +35,7 @@ const footerColumns: FooterColumn[] = [
       { label: "Showcase", href: "/showcase" },
       { label: "Use cases", href: "/use-cases" },
       { label: "FAQ", href: "/faq" },
+      { label: "Glossary", href: "/glossary" },
       { label: "Brand", href: "/brand" },
       { label: "Press", href: "/press" },
       { label: "llms.txt", href: "/llms.txt", external: true },

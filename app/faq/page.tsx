@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { HelpCircle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -127,6 +128,15 @@ export default function FaqPage() {
               does, what it doesn&rsquo;t, and where to look when something
               breaks. {totalEntries} questions across {totalCategories}{" "}
               categories. Use the filter or jump straight to a section.
+            </p>
+            <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-500">
+              Stuck on a word? See the{" "}
+              <Link
+                href="/glossary"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                Glossary &rarr;
+              </Link>
             </p>
           </div>
         </section>

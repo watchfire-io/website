@@ -98,6 +98,15 @@ export default function UseCasesPage() {
                 turn a half-day of babysitting the terminal into something you
                 can queue and review.
               </p>
+              <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-500">
+                New to the vocabulary? See the{" "}
+                <Link
+                  href="/glossary"
+                  className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+                >
+                  Glossary &rarr;
+                </Link>
+              </p>
             </div>
           </div>
         </section>

@@ -5,6 +5,8 @@ description: Understand Watchfire's architecture — a daemon orchestrates codin
 
 Watchfire follows a daemon + thin client architecture. A single daemon process (`watchfired`) manages all orchestration, while lightweight clients (CLI/TUI and GUI) connect over gRPC to display state and accept user input.
 
+> New to the vocabulary? Every term used here — daemon, PTY, worktree, sandbox, agent backend — is defined in plain English in the [Glossary →](/glossary).
+
 ## Components
 
 | Component | Binary | Role | Tech |
