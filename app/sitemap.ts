@@ -240,6 +240,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
+      url: `${siteUrl}/open-source`,
+      lastModified: maxLastModified([
+        "app/open-source/page.tsx",
+        "lib/github-contributors.ts",
+      ]),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
       url: `${siteUrl}/changelog`,
       lastModified: maxLastModified([
         "app/changelog/page.tsx",

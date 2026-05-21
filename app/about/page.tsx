@@ -404,6 +404,16 @@ export default function AboutPage() {
               </Link>
               .
             </p>
+            <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+              Watchfire is open source &mdash; see{" "}
+              <Link
+                href="/open-source"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                /open-source
+              </Link>{" "}
+              for the license, contributors, and how to sponsor the project.
+            </p>
           </div>
         </section>
       </main>

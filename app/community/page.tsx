@@ -392,6 +392,17 @@ export default function CommunityPage() {
               to ask questions, share what you&rsquo;ve built, and help shape
               what ships next.
             </p>
+            <p className="mt-3 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+              For the license, contributors wall, and how to sponsor the
+              project, see{" "}
+              <Link
+                href="/open-source"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                /open-source
+              </Link>
+              .
+            </p>
           </div>
         </section>
 
