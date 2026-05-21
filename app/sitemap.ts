@@ -13,6 +13,7 @@ import { agentBackends } from "@/lib/agent-backends";
 import { comparisons } from "@/lib/comparisons";
 import { integrations } from "@/lib/integrations";
 import { useCases } from "@/lib/use-cases";
+import { taskTemplates } from "@/lib/task-templates";
 
 function feedLastModified(): Date {
   const entries = getChangelogEntries();
@@ -338,6 +339,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: maxLastModified([
         "app/use-cases/[slug]/page.tsx",
         "lib/use-cases.ts",
+      ]),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+    ...taskTemplates.map((t) => ({
+      url: `${siteUrl}/templates/${t.slug}`,
+      lastModified: maxLastModified([
+        "app/templates/[slug]/page.tsx",
+        "lib/task-templates.ts",
+        "components/CodeCopyButton.tsx",
       ]),
       changeFrequency: "monthly" as const,
       priority: 0.6,

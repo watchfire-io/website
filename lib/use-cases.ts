@@ -109,6 +109,11 @@ status: ready
     related: ["migration", "test-coverage", "review-prep"],
     relatedDocs: [
       {
+        href: "/templates/refactor-or-rename",
+        label: "Try the template: Refactor / rename",
+        description: "Copy-paste starter YAML for a mechanical, behaviour-preserving slice.",
+      },
+      {
         href: "/docs/recipes#refactor-a-module-across-multiple-tasks",
         label: "Recipe: refactor a module across multiple tasks",
         description: "The full walkthrough this use case is distilled from.",
@@ -197,6 +202,11 @@ status: ready
     ],
     related: ["refactor", "parallel-work", "test-coverage"],
     relatedDocs: [
+      {
+        href: "/templates/update-dependency",
+        label: "Try the template: Update a dependency / migration",
+        description: "Copy-paste starter YAML for a single-library major-version bump.",
+      },
       {
         href: "/docs/concepts/projects-and-tasks",
         label: "Projects and tasks",
@@ -289,6 +299,11 @@ status: ready
     ],
     related: ["refactor", "migration", "review-prep"],
     relatedDocs: [
+      {
+        href: "/templates/add-tests",
+        label: "Try the template: Add tests for an untested module",
+        description: "Copy-paste starter YAML with a coverage bar baked in.",
+      },
       {
         href: "/docs/recipes#add-tests-to-an-untested-module",
         label: "Recipe: add tests to an untested module",
@@ -479,6 +494,11 @@ status: ready
     ],
     related: ["review-prep", "parallel-work", "refactor"],
     relatedDocs: [
+      {
+        href: "/templates/add-docs",
+        label: "Try the template: Add a documentation page",
+        description: "Copy-paste starter YAML with a length budget and section outline.",
+      },
       {
         href: "/docs/concepts/agent-modes",
         label: "Agent modes — Wildfire",
