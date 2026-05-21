@@ -111,6 +111,13 @@ export default function PlaygroundPage() {
               >
                 Projects and Tasks
               </Link>
+              . Quick reference:{" "}
+              <Link
+                href="/cheatsheet"
+                className="text-fire-600 underline-offset-2 hover:underline dark:text-fire-400"
+              >
+                /cheatsheet
+              </Link>
               . If you&rsquo;d like to understand{" "}
               <em>why</em> a good task is shaped this way, read{" "}
               <Link

@@ -255,6 +255,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
+      url: `${siteUrl}/cheatsheet`,
+      lastModified: maxLastModified([
+        "app/cheatsheet/page.tsx",
+        "components/CodeCopyButton.tsx",
+        "components/PrintButton.tsx",
+      ]),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
       url: `${siteUrl}/community`,
       lastModified: fileLastModified("app/community/page.tsx"),
       changeFrequency: "monthly",
