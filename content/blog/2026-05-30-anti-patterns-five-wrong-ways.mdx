@@ -1,0 +1,151 @@
+---
+title: "Anti-patterns: five wrong ways to write a Watchfire task"
+date: "2026-05-30"
+summary: "Anatomy of a great task argued from what good looks like. This is the inverse: five specific ways we have watched our own tasks waste an agent run, why each one fails, and what to write instead. Most of these examples are ours. Honestly so."
+tags: ["practical", "tasks", "prompting", "deep-dive"]
+author: "Nuno Coração"
+---
+
+If you have written a handful of Watchfire tasks, you have probably watched one go sideways. The agent spawned, the worktree filled up, the branch got long, and what came back was either too much, too little, or simply not the thing you meant. You read the diff, sighed, and re-ran it. The honest question after that is: was the failure the model's, or yours? In this codebase, with a 100% success rate across 150-plus runs and thirteen tasks that needed a second pass, the answer is almost always _yours_. Ours, too.
+
+This post is the corollary to [Anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task). That post argued for the shape a task file should have. This one argues from the inverse — five anti-patterns we have actually seen stall a run in this very repository, each with a diagnosis and a fix. Same shape, viewed from the failure side: anatomy of a task that wastes an agent run.
+
+## Anti-pattern #1: the wishlist task
+
+The wishlist task strings together unrelated improvements with the word _and_. "Refresh the landing page for the new release, and fix the footer link, and update the comparison matrix, and regenerate the OG image." Each clause is reasonable. The bundle is not.
+
+```yaml
+# Bad
+title: "Refresh the site for v2.0.0"
+prompt: |
+  Update the landing page hero for the v2.0.0 release.
+  Also fix the footer, update the comparison matrix,
+  and refresh the press-kit OG image while you're in there.
+```
+
+This is not hypothetical. Our v2.0.0 release sweep was a cluster of tasks (`#0044` through `#0049`) whose true brief was "update everything that mentions the old version." That sounds scoped — there is a list of files, the changelog tells you what changed — but it has a long tail of "and also the hero, and also the matrix, and also the OG card." Every one of those tasks needed a second agent session. Nine of the thirteen multi-pass runs in this repo's whole history cluster around a release sweep for exactly this reason. The agent does one objective well, drifts into the next, and produces a branch that does five jobs at 80%. It also has to hold all five in working memory at once, so a mistake in the third objective quietly corrupts the first. The unit of review is the branch; a five-objective branch has no clean rollback surface, because reverting the broken job reverts the four good ones with it.
+
+```yaml
+# Better — one of five
+title: "Update landing-page hero copy for v2.0.0"
+prompt: |
+  Update only the hero pill and subhead in `app/page.tsx`
+  to reference v2.0.0. Do not touch the footer, matrix, or
+  OG image — those are separate tasks.
+```
+
+The fix is the cheapest edit you will ever make: split. The cost of an extra task file is one minute of typing. The cost of an over-scoped one is a refine pass that can run for hours.
+
+## Anti-pattern #2: the vague acceptance criteria
+
+A great prompt with a fuzzy `acceptance_criteria` block still fails, because the criteria are the only field the agent uses to decide it is done.
+
+```yaml
+# Bad
+acceptance_criteria: |
+  - The dashboard feels faster.
+  - Charts look on-brand.
+  - The page works.
+```
+
+None of those can be settled by reading the diff or running a command. "Feels faster" against what baseline? "On-brand" by whose eye? The agent has no monitor and no opinion about your brand, so it satisfies the criterion by guessing and then declares victory. Sometimes it under-shoots and stops at a trivial change; sometimes it over-shoots, rewriting half the component to be sure "faster" is covered. Either way you find out at review time.
+
+```yaml
+# Better
+acceptance_criteria: |
+  - All five components in `components/charts/` source colors
+    from `lib/brand/colors.ts`, not inline literals.
+  - `npm run build` passes with no new warnings.
+  - No file outside `components/charts/` is modified.
+```
+
+Every line is a one-command-or-one-grep question. Note that vague criteria do not only produce vague work — they corrupt the record. A task with soft criteria lands `success: true` even when a human would have called it a miss, because the agent is grading itself against the contract you wrote, not the one you meant. The full treatment — files, behaviors, integrations, negatives, quality, in that order — is in [The shape of a great acceptance_criteria block](/blog/2026-05-23-the-shape-of-a-great-acceptance-criteria-block). The rule is short: if a criterion needs your eye to verify, the agent cannot check it either.
+
+## Anti-pattern #3: the secret-requirement task
+
+This one is the most human failure, because it comes from knowing your own codebase too well. You write "match the existing pattern" without naming the file. You write "use our usual formatting" without linking it. The requirement is real — it is just locked in your head.
+
+```yaml
+# Bad
+title: "Update changelog with v0.1.1 through v0.3.0"
+prompt: |
+  Add the missing releases. Copy from the source repo's
+  CHANGELOG.md. Keep the same formatting style as the
+  existing entry.
+acceptance_criteria: |
+  - Content matches the source exactly.
+```
+
+That is, nearly verbatim, task `#0020` — the most expensive task in this corpus, at six agent sessions. The source path was implicit, the formatting was "described by reference," and the agent had to re-derive on every pass what "the existing entry" looked like and where the source actually lived. The prompt was the shortest in the repo. That was the problem, not the virtue.
+
+```yaml
+# Better
+prompt: |
+  Add v0.1.1–v0.3.0 above the v0.1.0 entry in
+  `content/docs/changelog.mdx`. Source is
+  `~/source/watchfire/CHANGELOG.md`. Copy the exact
+  heading + bullet format used by the existing v0.1.0
+  block in the same file. Do not paraphrase.
+```
+
+The fix: link the references in-prompt. The agent does not share your local context — your editor tabs, your muscle memory for where things live, your sense of what is "obvious." Every one of those is invisible to a process that starts each session from a cold worktree and the three text fields of a YAML file. Anything you would point at in a hallway conversation has to be a path in the prompt. After `#0020`, every changelog-style task here names the source file and the exact entry to mirror, and the session count dropped to one.
+
+## Anti-pattern #4: the boundary-less task
+
+Give an agent a wide goal and no fence, and it behaves like a conscientious colleague: it fixes the adjacent thing it noticed on the way past. That is admirable in a teammate and dangerous in a worktree the daemon is about to merge.
+
+```yaml
+# Bad
+title: "Clean up the docs sidebar"
+prompt: |
+  Tidy up the docs navigation so it reads better.
+```
+
+"Tidy up" with no boundary is how a one-page edit becomes a four-page refactor. Our release-sweep tasks taught us this directly: the agent, quite reasonably, saw a tangential fix and made it, and the diff grew past what we could review in one sitting. The lesson became policy — every task in this repo now carries an explicit out-of-scope section, and that change traces straight back to the v2.0.0 sweep.
+
+```yaml
+# Better
+title: "Reorder Concepts entries in docs sidebar"
+prompt: |
+  Reorder the entries in `content/docs/concepts/meta.json`
+  so `integrations` follows `secrets`. Edit only that file.
+
+  ## Out of scope
+  - Do not rename, add, or remove any page.
+  - Do not touch `commands/` or `components/` meta.json.
+  - Do not edit any `.mdx` body.
+```
+
+The fix is a named "Out of scope" subsection listing what the agent must NOT do. Negative constraints are the single best lever for keeping a task from drifting, because they are exactly the postconditions a wide goal leaves unstated.
+
+## Anti-pattern #5: the task with no exit door
+
+The subtlest failure: a task whose acceptance criteria can _never_ be objectively settled, so the agent has no way to know it has arrived.
+
+```yaml
+# Bad
+acceptance_criteria: |
+  - Improve the UX of the blog index.
+  - Make the page nicer.
+  - Polish the related-posts section.
+```
+
+There is no door the agent can walk through and call the room done. "Nicer" has no exit condition, so the agent either stops at the first plausible change or keeps polishing until it runs out of budget. Our blog-infrastructure cluster — tag pages, reading-time, the related-posts footer — needed second passes for a milder version of this: each task touched several files at once and the first pass missed a detail that only surfaced on integration. The cure for both is the same.
+
+```yaml
+# Better
+acceptance_criteria: |
+  - `components/RelatedPosts.tsx` renders exactly 3 cards
+    on every post page.
+  - Each card links to a post in `content/blog/` and shows
+    its title and date.
+  - `npm run build` passes; `/blog` is unchanged.
+```
+
+The fix: every criterion is a one-line yes/no question. Can a command, a grep, or a glance at one file answer it? If yes, the agent has an exit door. If the only answer is "let me look and decide," you have written an aspiration, and the agent will treat it as one.
+
+## The meta-pattern
+
+All five share one root cause: the human treated the task file as a wish, not a contract. The wishlist wishes for five things. The vague criteria wish for "good." The secret requirement wishes the agent shared your head. The boundary-less task wishes it would stay in its lane. The no-exit-door task wishes "nicer" were measurable.
+
+The framing that prevents all five is the one in [Why YAML for task files](/blog/2026-05-25-why-yaml-for-task-files): the daemon owns the file, the agent borrows it for a session, and the file — not your intent — is the source of truth. A contract is enforceable precisely because it does not rely on what either party privately meant. Write the task as the thing that gets enforced, and the model goes back to being the variable it should be: an engine you can swap, not a lottery ticket you keep buying. The proof, as always, is in [what 150 task runs taught us](/blog/2026-05-22-what-150-task-runs-taught-us) — including the runs where we were the bad example.
