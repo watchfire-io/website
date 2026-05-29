@@ -1,0 +1,83 @@
+---
+title: "Picking the right agent backend: a decision guide"
+date: "2026-05-23"
+summary: "Watchfire runs six coding agents on the same task contract. Knowing you can swap them is not the same as knowing which one to reach for. Here is the opinionated version: given the shape of a task, which backend to pick and which to fall back to."
+tags: ["deep-dive", "agents", "how-to", "practical"]
+author: "Nuno Coração"
+---
+
+You open a task, and there is a dropdown. Six backends in it: [Claude Code](/agents/claude-code), [Codex](/agents/codex), [opencode](/agents/opencode), [Gemini CLI](/agents/gemini), [GitHub Copilot CLI](/agents/copilot), and [Cursor Agent](/agents/cursor). Each is a real CLI you installed and logged into. Each can do the work. None of them comes with a label that says "use me for this." And you do not have the budget — of time, of tokens, of patience — to run the same task through all six and diff the results.
+
+[Bring your own agent](/blog/2026-05-18-bring-your-own-agent) made the case for *why* the dropdown has six entries: the agent is the swappable part, the orchestration is the part worth building once. That post deliberately refused to pick a winner. This one picks. Not a single global winner — there isn't one — but a defensible first choice for each shape of task you actually do, plus the fallback for when the first choice disappoints. Treat it as a senior engineer's recommendation, not a feature matrix. You can disagree with any specific call here; the point is to give you a default so you stop staring at the dropdown.
+
+## The dimensions that actually matter
+
+Before the recommendations, the axes they hinge on. There are a dozen things you *could* compare. Six of them move the decision.
+
+**Reasoning depth vs. tight feedback loop.** This is the big one. Some tasks reward an agent that stops, reads widely, and forms a theory before it touches a file — that's reasoning depth. Others reward an agent that makes one small change, runs the test, reads the failure, and adjusts — fast, disciplined, low-ceremony loops. The same backend rarely tops both. Claude Code leans toward judgement on ambiguous work; Codex leans toward rounds-to-done on well-scoped work. Most of the recommendations below are a bet on which of these two modes the task wants.
+
+**Tool ecosystem — which CLIs and SDKs the backend handles natively.** A backend that already knows your package manager, test runner, and build tool spends fewer rounds discovering them. This is mostly a function of how much of that surface the model has seen, and it favors the mainstream stacks. It matters most on dependency and migration work, where the agent has to drive `npm`, `pip`, `cargo`, or `go` correctly the first time.
+
+**Context-window pressure — how big are the files you usually touch.** If your work means holding three 2,000-line files and a schema in view at once, a roomier context window stops being a luxury. Gemini CLI's window is the standout here; it changes which tasks are comfortable rather than which are possible. For a quick fix in one known file, this axis is noise.
+
+**Cost per token, per task.** Real, but easy to over-weight. The honest framing is *cost relative to the value of the task*. A one-off architectural decision is worth the priciest reasoning you can buy; a queue of 40 lint-and-test passes is not. We measured where the money actually goes in [what it costs to run Watchfire](/blog/2026-05-22-what-it-costs-to-run-watchfire) — read it before optimizing token price on tasks where the engineer's review time dwarfs the model bill. Where this guide says one backend is "cheaper," it means qualitatively, at task scale; there are no invented percentages here.
+
+**License and data-handling stance.** For most teams this is dormant until it isn't. If a task touches code that cannot leave your network, the question stops being "which is smartest" and becomes "which can run under my constraints." opencode is the open-source, provider-agnostic answer — you point it at the model you are allowed to use and nothing about the backend forces a vendor on you.
+
+**Maturity of MCP and extension support.** If your tasks lean on Model Context Protocol servers — a database inspector, an internal API tool, a docs index — the quality of that integration is part of the backend, not a side feature. This is also the axis moving fastest across releases, so weight it by what you actually wire up, not by the changelog.
+
+A seventh, quieter axis sits underneath all of these: **what your team has already standardized on.** If everyone lives in the GitHub stack, [GitHub Copilot CLI](/agents/copilot) inherits the `gh` login and MCP config you already maintain, and that org-fit can outweigh a marginal task-shape advantage. If you've standardized on Cursor in the editor, [Cursor Agent](/agents/cursor) puts the same provider behind the unattended queue. For everyday work, "the one my team already runs" is a perfectly good answer. The recommendations below are for when you're choosing on the merits of the task itself.
+
+## The recommendations
+
+Six task archetypes. For each: a primary, a fallback, and the reasoning. Switching between them is one line — set the per-task `agent` field and the next run picks it up:
+
+```yaml
+title: "Upgrade pino from 8.x to 9.x"
+agent: codex        # overrides project default_agent
+status: ready
+```
+
+### Big refactor across many files
+
+**Primary: Claude Code. Fallback: Codex.** A refactor that spans a dozen files is an ambiguity problem before it is a typing problem. The agent has to infer the seams, keep a consistent mental model across files it is editing in sequence, and resist the temptation to "fix" things outside the scope. That is judgement work, and Claude Code is the strong default for it — it tends to make the call a careful reviewer would. Drop to Codex when the refactor is mechanical rather than judgement-heavy (a rename, a signature change applied everywhere) and you'd rather have tight, fast edits than deliberation. Start from the [refactor / rename template](/templates/refactor-or-rename), and for the multi-slice version see the [refactor a tangled module use case](/use-cases/refactor).
+
+### Quick bug fix in a known file
+
+**Primary: Codex. Fallback: Claude Code.** You know the file. You roughly know the cause. What you want is an agent that reproduces, patches, runs the test, and stops — without re-litigating the architecture on the way. This is exactly the tight-loop, well-scoped work where Codex's tool-call discipline shines and rounds-to-done is lowest. Fall back to Claude Code when the "known" file turns out to be a red herring and the fix needs the agent to widen its search and reason about the real cause. The [fix a bug template](/templates/fix-a-bug) is built for this shape — a sharp repro and a single acceptance criterion.
+
+### Test-coverage sprint
+
+**Primary: Gemini CLI. Fallback: Codex.** Backfilling tests across a module is high-volume, individually-low-stakes work: lots of similar files, a clear bar, not much ambiguity per case. That is the profile where cost dominates and Gemini CLI's pricing changes the calculus — you can run the whole sprint without flinching at the bill. Its roomier context window also helps when a single test file has to hold a large module in view. Fall back to Codex when the module's behavior is subtle enough that "generate plausible tests" is a trap and you need the loop to actually run each test and confirm it fails for the right reason. Encode the bar in acceptance criteria using the [add-tests template](/templates/add-tests) and the [backfill tests use case](/use-cases/test-coverage), which is explicit about rejecting snapshot-and-move-on coverage.
+
+### Investigate-and-report (no code change)
+
+**Primary: Claude Code. Fallback: opencode.** The deliverable is a written finding, not a diff — diagnose the intermittent failure, trace the data flow, explain what changed since the deploy. This is pure reasoning depth: read widely, hold a lot in context, and produce a grounded narrative a human can act on. Claude Code is the default here for the same reason it leads on refactors. The fallback is opencode, and the reason is the data-handling axis, not raw capability: investigations often crawl exactly the sensitive code a regulated team cannot send to a third-party API, and opencode lets you run the whole thing against an approved, local model. The [investigate-and-report template](/templates/investigate-and-report) frames the task as a report with no code changes, which keeps the agent honest about scope.
+
+### Performance regression hunt
+
+**Primary: Codex. Fallback: Claude Code.** A perf hunt is a measurement loop: profile, form a hypothesis, change one thing, measure again, repeat. The discipline of changing a single variable and re-running is precisely the tight-loop behavior Codex is good at, and it keeps the investigation from sprawling into a speculative rewrite. Fall back to Claude Code when the bottleneck refuses to localize and the cause is architectural rather than a hot line — at that point you want depth over loop speed. The [performance regression hunt template](/templates/perf-regression-hunt) pins the task to a specific regression and a measurable target, which is what keeps either backend grounded.
+
+### Dependency upgrade
+
+**Primary: Codex. Fallback: Gemini CLI.** A version bump is well-scoped and mechanical: change the manifest, run the build, work through the breakages the changelog warned about. The tool-ecosystem axis carries real weight here — the agent has to drive your package manager correctly — and it pairs well with Codex's tight loop on a clearly-bounded change. Fall back to Gemini CLI when the "upgrade" is really a fan-out migration across many packages, where the work turns into high-volume mechanical edits and cost-at-scale becomes the binding constraint. Use the [update-dependency template](/templates/update-dependency) for the single bump, and the [migration use case](/use-cases/migration) when you're slicing one codemod across a whole tree.
+
+## The wildfire case
+
+Everything above assumes you are choosing per task. Wildfire breaks that assumption. In a Wildfire run the daemon drains the queue unattended — execute, refine, generate, repeat — and the tasks it works through are not all the same shape. The "best per task" logic would have it switch backends between a refactor, a test sprint, and a dependency bump in the same run.
+
+Don't. Pick one backend for the whole Wildfire run and leave it.
+
+The reasoning is that Wildfire's value is unattended momentum, and per-task backend switching trades that away for a marginal per-task gain you are not awake to verify. Each backend has its own per-session isolation, its own auth, its own failure modes; mixing them across an autonomous loop multiplies the surface where a run can stall on something you only discover the next morning. A single backend across the run gives you one set of behaviors to reason about and one transcript style to skim. Choose the backend that fits the *median* task in the queue — for a mixed everyday queue that is usually Claude Code's breadth — and accept that it is slightly off-optimal for the outliers.
+
+The one exception is the cost-bound run: a long queue of low-stakes, high-volume tasks where the model bill is the constraint that decides whether the run happens at all. There, set the whole run to Gemini CLI and let cost-at-scale win. The decision rule is simple: optimize a Wildfire run for *cost or for breadth*, pick the one backend that delivers it, and don't switch mid-flight. Per-task overrides are for the queues you watch, not the ones you walk away from.
+
+## What we run for this site
+
+This site is dogfooded. The blog post you are reading, the [templates](/templates) pages, the agent pages it links to — they were written by Watchfire tasks running [Claude Code](/agents/claude-code) as the backend, in isolated worktrees, merged after review. We default to Claude Code here because the work skews toward the ambiguous, judgement-heavy end — content with a point of view, docs that have to stay true to the source — which is exactly where this guide recommends it. The receipts are on [built with Watchfire](/built-with-watchfire), and the broader honest-accounting version is in [eating our own dogfood](/blog/2026-05-19-eating-our-own-dogfood). We are not neutral observers of the dropdown; we use it, and this is the choice we make for our own queue.
+
+## Closing
+
+If you remember three sentences: the choice that matters most is reasoning depth versus tight feedback loop, so reach for Claude Code on ambiguous, judgement-heavy work and Codex on well-scoped, fast-iteration work. Let cost-at-scale pull you to Gemini CLI on high-volume queues, let data-handling pull you to opencode when code can't leave the network, and let team standardization pull you to GitHub Copilot CLI or Cursor Agent when org-fit beats a marginal task-shape edge. And in Wildfire, stop optimizing per task — pick one backend for the run.
+
+The first choice is rarely the last; that's the whole point of [what we measure when we measure an agent](/blog/2026-05-19-what-we-measure-when-we-measure-an-agent). Compare the backends side by side on [/agents](/agents) and [/compare](/compare), start from a matching shape on [/templates](/templates), and if you want to feel the difference before you commit a real task, try it in the [/playground](/playground).
