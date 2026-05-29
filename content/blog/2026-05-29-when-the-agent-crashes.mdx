@@ -1,0 +1,109 @@
+---
+title: "When the agent crashes: how Watchfire recovers"
+date: "2026-05-29"
+summary: "The happy path is easy: the agent works, sets status done, the daemon merges. This is the other path. The PTY dies, the agent stalls, the sandbox kills it, the daemon restarts. Here is what Watchfire actually does — and what it leaves for you to do — when a run goes wrong."
+tags: ["deep-dive", "architecture", "daemon", "practical"]
+author: "Nuno Coração"
+---
+
+The happy path is the one everyone demos. The agent reads its task, edits files, commits, writes `status: done` and `success: true`, and the daemon merges the branch and moves on. [The worktrees post](/blog/2026-05-18-isolated-worktrees-per-task) walks that loop end to end.
+
+But you have operational instincts, so you already asked the next question: what about when it's not? The agent segfaults. It hangs. The sandbox kills it. The daemon dies mid-task. Where [the daemon-logs post](/blog/2026-05-29-reading-the-daemon-logs) is about reading what happened, this one is about what the daemon is *doing* in the background to make recovery cheap at all.
+
+## The failure modes
+
+Five things actually go wrong, and Watchfire detects them in five different ways.
+
+**The agent process exits non-zero.** The agent runs under a pseudo-terminal — `watchfired` spawns it with [creack/pty](https://github.com/creack/pty) and reads its output in a goroutine. When the process dies, the read loop hits EOF, breaks, and `cmd.Wait()` returns the exit error. The architecture doc states it plainly: *"Agent crashes (PTY exits) → Daemon detects, stops task."* The PTY closing **is** the detection mechanism — there is no separate health check.
+
+**The agent hangs.** Here is the honest answer: there is no output-idle timer. Watchfire does not kill an agent that has gone quiet for N minutes — that watchdog does not exist in the source, so I won't pretend it does. The only periodic timer is a 5-second poll of the task YAML, and it exists to catch a *completed* task whose file event the watcher missed, not to catch a stall. A hung agent is detected by *you*, watching the terminal or the log; the daemon will sit there as patiently as the agent does.
+
+**The sandbox terminates it.** On macOS the agent runs under `sandbox-exec`; on Linux under Landlock or bubblewrap. When the kernel kills the process for a policy violation, that's just a process exit — the PTY closes and the daemon takes the same path as any other crash. Watchfire does not distinguish "the sandbox killed it" from "it exited on its own"; both are a dead PTY. The *why* lives in the terminal scrollback and the log, not in a special status.
+
+**The daemon restarts mid-task.** A `watchfired` crash, a `launchctl kickstart`, a reboot. The in-memory map of running agents is gone, and the PTY went with it. We'll come back to this one — it's the interesting case.
+
+**You kill the session.** A stop from the CLI, TUI, or GUI sends SIGTERM, waits five seconds, then SIGKILL. The daemon flags the run as user-stopped, which (as we'll see) is what keeps it from chaining onward.
+
+## What the daemon owns, and what the agent borrows
+
+The reason none of those five is a disaster comes down to one invariant: **the daemon owns the task file and the worktree; the agent only borrows them.**
+
+When the agent crashes, nothing the daemon owns goes with it. The task YAML is still on disk in whatever state the agent last saved it. The worktree directory is still there. The branch is still there. Walk an operator through what's actually on disk after a crash and it's reassuringly boring:
+
+```bash
+ls .watchfire/worktrees/
+# 0123        <- the agent died, the directory didn't
+cat .watchfire/tasks/0123.yaml
+# status: ready          <- never flipped; the agent never wrote `done`
+# success: null
+```
+
+Note that `status` — it's still `ready`. There is no `in_progress` state in Watchfire. The three statuses are `draft`, `ready`, and `done`, and a task stays `ready` the entire time an agent works on it. The status only changes when the agent itself writes `done`. So a crashed agent leaves the task looking exactly like one that never started — which is precisely why re-running it is safe.
+
+The work the agent *did* finish is also still there, on its branch:
+
+```bash
+git -C .watchfire/worktrees/0123 log --oneline
+# a1b2c3d wip: extract validation helper
+# (3 commits the agent made before it died)
+git -C .watchfire/worktrees/0123 status
+# changes not staged for commit:  <- and whatever it hadn't committed yet
+```
+
+Nothing is lost. The crash took the process; the artifacts survived.
+
+## Recovery is your call
+
+Watchfire does not auto-retry a crashed agent. That's a deliberate choice, not a missing feature. A crashed agent has already done *some* work — maybe committed three good commits, maybe left a half-written refactor that doesn't compile. The right move depends entirely on what it had finished, and the daemon can't know that. So it stops, and hands you the decision. You have three paths, and they start the same way: look at the worktree.
+
+**Path 1 — it's good, accept it.** The agent committed everything that mattered before it died. Mark the task done and let the daemon merge it on the next pass:
+
+```bash
+git -C .watchfire/worktrees/0123 log --oneline   # confirm the work is committed
+watchfire task 0123                              # set status: done, success: yes
+```
+
+**Path 2 — it's recoverable, re-queue it.** Partial but salvageable; you want the agent to pick up where it left off. The branch and its commits stay; you just put the task back in the queue. If the agent never flipped the status it's already `ready` and you simply re-run it:
+
+```bash
+watchfire task 0123      # set status back to ready (if the agent marked it done)
+watchfire run 0123       # daemon reuses the existing worktree at 0123/
+```
+
+The worktree is reused, not recreated — the next agent sees the prior commits and continues against them.
+
+**Path 3 — it's beyond saving, start clean.** The agent wedged the branch and you'd rather it never happened. Throw away the artifact and start from `HEAD`:
+
+```bash
+git worktree remove --force .watchfire/worktrees/0123
+git branch -D watchfire/0123
+watchfire run 0123       # daemon recreates the worktree fresh from HEAD
+```
+
+The daemon recreates the worktree and a clean `watchfire/0123` branch cut from the current default branch. The previous attempt is gone, and `main` was never touched — that's the [safe-failure property](/blog/2026-05-18-isolated-worktrees-per-task) the worktree design buys you.
+
+## The daemon survives the agent
+
+The fourth failure mode deserves its own section, because it's the one people assume is fatal and isn't.
+
+When `watchfired` itself restarts, the dead PTY is gone for good. The daemon does **not** try to re-attach to it — that session is over, and pretending otherwise would mean reconnecting to a process that no longer exists. The architecture doc is blunt: *"Daemon crashes mid-task → on restart, user must manually restart task."*
+
+But "the session is gone" is not "the work is gone." The daemon keeps its source of truth on disk, not in memory. As [the daemon post](/blog/2026-05-24-why-watchfire-is-a-daemon) lays out, the task list lives in YAML files the daemon reads on demand. When it comes back up it doesn't replay an in-memory queue — it reads `.watchfire/tasks/` from the filesystem, exactly as on any cold start. The worktrees are right where the previous daemon left them. The next start picks up from the YAML, not from anything the dead process held. A reboot mid-run costs you one `watchfire run 0123` — that's the whole procedure.
+
+## What Wildfire does when a task fails
+
+Wildfire is the autonomous loop, and the obvious worry is that one failed task halts the whole run. It mostly doesn't — and the reason is subtler than "success: false stops everything."
+
+The chain advances when the task is `done`, *the merge finished cleanly*, no auth/rate-limit issue is active, and you didn't stop it. Crucially, the chain decision keys on the **merge outcome**, not on the agent's `success` flag. A task the agent marks `success: false` but whose branch merges cleanly does not, by itself, stop the loop — Wildfire records the `failure_reason` on the YAML and moves to the next ready task. The failure is logged, not fatal.
+
+What *does* halt the loop:
+
+- **A merge that fails** (conflict, dirty target). The daemon persists `merge_failure_reason` to the YAML and fires a `TASK_FAILED` notification so the halt is never silent.
+- **An active issue** — an auth wall or rate limit the daemon read off the agent's terminal. The log says `[chain] Chaining blocked: active issue detected` and the TUI shows an issue banner.
+- **The restart limit.** If the same task gets restarted three times without ever reaching `done`, the daemon gives up chaining and drops into chat mode: `[chain] Restart limit reached: task #0123 restarted 3 times without completing — switching to chat mode`. That's the closest thing to a retry cap, and it exists to stop a doomed task from spinning forever.
+
+So the user-visible signal of a failed task is concrete and on disk: `failure_reason` for an agent-reported failure, `merge_failure_reason` for a merge that wouldn't land, a desktop notification, or a banner.
+
+## The design principle
+
+The thread through all five failure modes is one decision: Watchfire treats failure as a normal state, not an exception. The task YAML is the recovery *contract* — where state lives, surviving every crash, the same file whether the agent succeeded, failed, or never finished. The worktree is the recovery *artifact* — the work that outlives the process. And the daemon refuses to be clever about retry. It doesn't guess what a half-finished agent meant to do; it stops, leaves everything on disk exactly as it was, and makes your next action — accept, re-queue, or discard — a single command. Cheap recovery beats automatic recovery, because you're the one who knows what "recovered" means.
