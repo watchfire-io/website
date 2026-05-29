@@ -58,10 +58,10 @@ export default function GuiPreviewSvg({ className }: { className?: string }) {
         {/* Sidebar: logo */}
         <g transform="translate(50 72)">
           <path
-            d="M5 14 C 5 14 0 9 0 4 C 0 0 2.5 -2 5 -2 C 7.5 -2 10 0 10 4 C 10 9 5 14 5 14 Z"
+            d="M5 -2 C 5 -2 0 5 0 9 C 0 12 2 14 5 14 C 8 14 10 12 10 9 C 10 5 5 -2 5 -2 Z"
             fill="url(#co-gui-accent)"
           />
-          <circle cx="5" cy="6" r="1.8" fill="#fff5e6" opacity="0.9" />
+          <circle cx="5" cy="10" r="1.8" fill="#fff5e6" opacity="0.9" />
         </g>
         <text x="65" y="80" fontSize="9" fontFamily="Outfit, system-ui, sans-serif" fontWeight="600" fill="#fafafa">watchfire</text>
 
