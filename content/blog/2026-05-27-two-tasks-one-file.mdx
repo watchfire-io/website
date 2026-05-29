@@ -1,0 +1,117 @@
+---
+title: "Two tasks, one file: what happens when worktrees collide"
+date: "2026-05-27"
+summary: "Point Wildfire at a real codebase and within a day you'll ask the question: what happens when two tasks both edit package.json? The honest answer is more nuanced than 'git sorts it out.' Here is exactly what Watchfire does at merge time, the three outcomes you'll see, and how to design tasks so you rarely hit the bad one."
+tags: ["deep-dive", "architecture", "practical", "tasks"]
+author: "Nuno Coração"
+---
+
+You queued two tasks. One adds a dependency, so it edits `package.json`. The other bumps a version, so it also edits `package.json`. Both are `ready`. You start a run, walk away, and come back to a question you didn't think to ask first: what happens when they both touch the same file?
+
+The reflexive answer — "git will sort it out" — is wrong often enough to be dangerous. Git *will* do something deterministic, but whether that something is "clean merge," "auto-resolved merge," or "task ends in a known failure state with a half-merged tree" depends entirely on which lines moved and in what order they landed. This post is the precise version of that answer, grounded in what the daemon actually runs. If you've read [why we run every task in its own git worktree](/blog/2026-05-18-isolated-worktrees-per-task), this is the sequel: worktrees explain why the *writes* never race. This post is about the one moment they finally meet.
+
+## The collision setup
+
+First, correct one assumption, because the rest depends on it. Watchfire runs **one active task per project at a time**. Wildfire and start-all don't fan two tasks out simultaneously inside a single repo — they *chain*: run task A to completion, merge it, then start task B. The parallelism you get is across projects, not within one. (See [Git Worktree Isolation](/docs/concepts/worktrees) for the formal statement.)
+
+So the two tasks editing `package.json` never write to the same file at the same instant. They can't. Each runs alone, in its own worktree, on its own branch. What the operator actually sees is sequential: task A finishes and merges, task B finishes and tries to merge. The collision — if there is one — happens entirely at that second merge. Not in the editor. In `git merge`.
+
+## What `git worktree` does for you here
+
+When a task starts, the daemon creates a worktree and a branch for it:
+
+```bash
+ls .watchfire/worktrees/
+# 0042/   0043/
+
+git worktree list
+# /path/to/repo                      a1b2c3d [main]
+# /path/to/repo/.watchfire/worktrees/0042  e4f5a6b [watchfire/0042]
+# /path/to/repo/.watchfire/worktrees/0043  9c8d7e6 [watchfire/0043]
+```
+
+Each task gets `.watchfire/worktrees/<NNNN>/` on a branch named `watchfire/<NNNN>`, where `<NNNN>` is the zero-padded task number. The agent for task 42 only ever sees its own directory and its own branch. The agent for task 43 sees a completely separate copy of the tree. Two agents can both rewrite `package.json` line for line and neither one's editor ever observes the other's changes — they are editing different files on disk that happen to share a path inside the repo.
+
+One detail matters more than it looks: **the branch is cut from whatever `main` pointed at when the worktree was created, and an existing worktree is reused rather than re-cut.** If task 43's worktree was created before task 42 merged, branch `watchfire/0043` is rooted at the *old* `main`. Watchfire never rebases that branch before merging. That's the whole game. The writes are isolated; the divergence is real; the merge is where it surfaces.
+
+## The merge order matters
+
+Here's the sequence the daemon actually runs. Task A (42) finishes first. From the project root — with `main` checked out — the daemon does, in effect:
+
+```bash
+# Run from the project root, not the worktree.
+git diff --stat main watchfire/0042   # is there anything to merge?
+git merge --no-ff watchfire/0042 -m "Merge watchfire/0042"
+```
+
+That `--no-ff` is deliberate: every task lands as an explicit merge commit, so the history reads as "here is the unit of work task 42 did," not a flattened fast-forward. The diff check in front of it is a guard — a branch with no file differences is skipped rather than producing an empty merge commit. Task A merges cleanly because nothing else has moved. `main` now points at A's merge.
+
+Now task B (43) finishes. Its branch is still rooted at the `main` from *before* A landed, and it touched the same lines of `package.json`. The daemon runs the same `git merge --no-ff watchfire/0043`. There is no rebase, no cherry-pick, no rewrite of B's history — just a three-way merge of B's branch into the current `main`. Git computes the merge base (the old `main`), diffs both sides against it, and tries to combine them. Whether that succeeds is now entirely git's call. You can reproduce the daemon's exact decision by hand:
+
+```bash
+git checkout main
+git merge --no-ff watchfire/0043 -m "Merge watchfire/0043"
+# either it merges, or it stops with CONFLICT and leaves markers in the tree
+```
+
+If that command would conflict for you at the terminal, it conflicts for the daemon. There's no hidden cleverness — Watchfire is running the merge you'd run.
+
+## The three outcomes
+
+Whatever git decides, it lands in one of three buckets. Here's what each looks like from the operator's seat.
+
+**1. Clean merge — different lines, same file.** A edited the `dependencies` block; B edited `scripts`. Same file, non-overlapping hunks. Git merges without a question:
+
+```bash
+git status
+# On branch main
+# nothing to commit, working tree clean
+```
+
+Both task YAMLs show the happy state. `success: true`, no merge field at all:
+
+```yaml
+status: done
+success: true
+```
+
+This is the common case. Most "collisions" aren't.
+
+**2. Auto-resolvable merge — git three-ways it.** B's branch is behind, but the changes are reconcilable: A added a line near the top, B added a line near the bottom, the merge base lets git interleave them. Same clean result as above — `git status` reports a clean tree, the merge commit lands, the task YAML stays `success: true` with no merge field. The only evidence it was non-trivial is the merge commit itself in `git log --oneline`. You don't have to do anything. This is git's three-way merge earning its keep.
+
+**3. True conflict — same lines, divergent edits.** A and B both rewrote the *same* line of `package.json` to different values. Git cannot choose. The daemon's merge fails, and it immediately runs `git merge --abort` to restore a clean working tree at the project root — so `main` is never left half-merged. Then it records the failure on the task and **stops the chain** (a merge failure halts Wildfire/start-all rather than cascading into the next task). The task's branch and worktree are preserved untouched:
+
+```bash
+git worktree list
+# ... /.watchfire/worktrees/0043  9c8d7e6 [watchfire/0043]  ← still here
+
+git status        # at the project root
+# On branch main
+# nothing to commit, working tree clean   ← abort cleaned it up
+```
+
+The task YAML is where this gets precise. The agent's work was fine — it's the merge that failed — so `success` stays `true`, and a separate field carries the reason:
+
+```yaml
+status: done
+success: true
+merge_failure_reason: "merge failed: CONFLICT (content): Merge conflict in package.json"
+```
+
+That `merge_failure_reason` is a distinct field from `failure_reason` on purpose: an agent that gave up sets `failure_reason`; a merge that couldn't be automated sets `merge_failure_reason` and leaves `success: true`. Your work is safe on `watchfire/0043` — you replay the merge by hand, resolve `package.json`, commit, and you're done.
+
+## Designing tasks to avoid collisions
+
+The cheapest conflict is the one you never queue. A few habits that keep you in bucket 1 and 2:
+
+- **Don't queue two tasks that both rewrite a manifest.** `package.json`, `Cargo.toml`, `go.mod`, a central `routes.ts` — these are magnets for overlap because every task wants to register itself there. If two tasks must each add an entry, sequence them deliberately instead of letting the chain interleave them at unknown branch points.
+- **Write narrow acceptance criteria.** A vague task drifts, and a drifting agent edits files it didn't need to. The tighter the spec, the smaller the diff, the lower the odds two diffs overlap. This is half the argument in [the anatomy of a great task](/blog/2026-05-19-anatomy-of-a-great-task) — collision-avoidance is a side effect of good scoping.
+- **When overlap is unavoidable, serialize.** Run the manifest-touching task, let it merge, *then* start the next one so its worktree is cut from the updated `main`. A branch rooted after the previous merge has nothing to conflict with. The `/docs/recipes` page has patterns for staging dependent work this way.
+
+None of this is exotic. It's the same discipline you'd apply to a team of humans sharing a repo — just made explicit because the "team" is a queue you control.
+
+## What we are *not* trying to solve
+
+Watchfire is not a CRDT-backed editor. We are not trying to merge *intent* — to understand that task A and task B both meant to register a route and produce the union of what they wanted. That's an AI-complete problem wearing a git costume, and pretending to solve it would produce confidently-wrong merges, which is worse than a clean failure.
+
+What we optimize for instead is **cheap recovery**. When the merge can't be automated, surface it loudly, abort cleanly so `main` is never corrupted, preserve the branch exactly as the agent left it, and hand the decision to the human with the conflict intact. A failed auto-merge isn't a bug — it's the system declining to guess. You lose nothing but the time to type `git merge` yourself, and you keep the one thing that matters: a `main` you can trust.
