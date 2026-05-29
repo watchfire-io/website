@@ -1,0 +1,163 @@
+---
+title: "Reading the daemon logs: an operator's guide"
+date: "2026-05-29"
+summary: "When a task gets stuck, the answer is almost always in watchfired's log. Here is where it lives, what its lines actually look like, and the five events plus three walkthroughs you'll reach for when an agent won't start, a worktree won't spawn, or an auto-merge never fires."
+tags: ["how-to", "daemon", "practical", "architecture"]
+author: "Nuno Coração"
+---
+
+You queued a task and started an agent, and nothing happened. The task sits in `ready`. Or the agent spawned, the terminal opened, and then it just… stared at you. Or the agent finished, flipped its task to `done`, and the branch never merged. Three different symptoms, one diagnostic move: read what the daemon was doing.
+
+`watchfired` is the orchestrator. It allocates worktrees, spawns the agent process, watches the files, decides whether to merge, and chains to the next task. Every one of those steps prints a line. When something is wedged, the daemon almost always already told you why — you just have to know where it wrote it down. This post is the operator's tour: where the log lives, what its lines look like, the five events that matter most, and three walkthroughs for the failures you'll actually hit. For symptom-first fixes (stale state files, login prompts, connection refused) see [Troubleshooting](/docs/troubleshooting); this post is the layer underneath it.
+
+## Where the logs live
+
+There is exactly one daemon log file, and it's the same path on macOS and Linux:
+
+```bash
+~/.watchfire/daemon.log
+```
+
+The daemon tees its output here in addition to stderr. That "in addition" matters more than it sounds: when `Watchfire.app` launches the daemon, the process's stdout and stderr are wired to `/dev/null`. Every chain decision, every watcher event, every merge — all of it would vanish if the file didn't exist. So when the GUI is the thing that started your daemon, `daemon.log` is not a convenience, it is the *only* durable record. Tail it:
+
+```bash
+tail -f ~/.watchfire/daemon.log
+```
+
+The file appends across restarts (a crash's last lines are usually the most diagnostic), and it self-rotates at 500 MiB, keeping one backup at `~/.watchfire/daemon.log.1`. If you'd rather watch the daemon live in a terminal instead of through the file, run it in the foreground — stderr lands right in your shell:
+
+```bash
+watchfired --foreground
+```
+
+Don't confuse `daemon.log` with the per-project session logs under `~/.watchfire/logs/<project_id>/`. Those hold each run's session record and the JSONL transcript of the *agent's* conversation. `daemon.log` is the *daemon's* point of view — orchestration, not conversation. When you file a bug, [Troubleshooting](/docs/troubleshooting) asks for the transcript; for orchestration questions, `daemon.log` is the file.
+
+## The log levels (there aren't any)
+
+Set your expectations correctly: `watchfired` uses Go's standard `log` package, not a leveled logger. There is no `INFO`/`DEBUG`/`WARN`/`ERROR` field to filter on, and **there is no verbosity flag or environment variable** — the only daemon flags are `--foreground` and `--port`. Everything is logged, all the time, at one level.
+
+What you get instead is structure-by-convention. Every line carries the `[watchfired]` prefix, a date and time, and the source file and line that emitted it:
+
+```text
+[watchfired] 2026/05/29 09:14:02 root.go:124: Daemon starting on port 51847 (PID 4821)
+```
+
+That `root.go:124` is a gift — it points you straight at the code. Subsystems then tag themselves with a bracketed prefix: `[watcher]`, `[merge]`, `[chain]`, `[sandbox]`, `[worktree]`, `[poll]`, `[auto-pr]`, and `[agent:<projectID>]` for lines that come from a specific agent's PTY. The few genuinely high-severity lines spell out `WARN` or `ERROR` in the message text. So you don't filter by level — you `grep` by tag.
+
+## The five log lines that matter most
+
+These are real lines (their format strings lifted from the source); the IDs and ports are illustrative.
+
+**1. Startup / port bind.** The daemon binds a dynamic port, then confirms it's accepting connections:
+
+```text
+[watchfired] ... root.go:124: Daemon starting on port 51847 (PID 4821)
+[watchfired] ... root.go:151: Daemon ready on port 51847 (PID 4821)
+```
+
+`starting` without a matching `ready` means it bound but never became reachable — a clients-can't-connect problem. (See [Architecture → Network](/docs/concepts/architecture#network) for how that port reaches `daemon.yaml`.)
+
+**2. Task transition (ready → running).** There's no literal "ready→running" line; the load-bearing one is the spawn, followed by the chain's decision to move to the next task:
+
+```text
+[watchfired] ... manager.go:394: Agent started for project my-app (task mode)
+[watchfired] ... manager.go:471: [chain] Decision: taskDoneOK=true userStopped=false hasIssue=false mode=wildfire nextTaskFn=true
+```
+
+If you never see `Agent started`, the task never left `ready` — the daemon never picked it up.
+
+**3. Worktree creation.** A clean worktree creation is *silent* on success — `git worktree add` just runs. What you'll see are the exceptions, like a stale branch being recreated:
+
+```text
+[watchfired] ... worktree.go:44: [worktree] Branch watchfire/0042 already exists — deleting stale branch and recreating from HEAD
+```
+
+(More on isolated worktrees in [Isolated worktrees per task](/blog/2026-05-18-isolated-worktrees-per-task).)
+
+**4. Agent process spawn (PTY, sandbox).** The sandbox layer announces its backend decision, and the agent's own PTY-watching lines carry the `[agent:<id>]` tag:
+
+```text
+[watchfired] ... sandbox_darwin.go:197: [sandbox] Backend "landlock" not available on macOS, falling back to seatbelt
+[watchfired] ... sandbox.go:148: [sandbox] Running agent without sandbox (--no-sandbox or sandbox=none)
+[watchfired] ... process.go:540: [agent:my-app] Issue detected: type=auth message="Please run /login"
+```
+
+That last line is the daemon reading the agent's terminal and noticing trouble — gold when an agent spawned but isn't doing anything.
+
+**5. Merge / cleanup.** When a task flips to `done`, the daemon decides a merge path and reports the outcome:
+
+```text
+[watchfired] ... taskdone.go:108: [merge] Task #0042 done, deciding merge path (auto_merge=true, auto_delete=true)
+[watchfired] ... taskdone.go:217: [merge] Auto-merged task #0042 into current branch
+[watchfired] ... taskdone.go:226: [merge] Removed worktree for task #0042
+```
+
+## Three real-world troubleshooting walkthroughs
+
+### Walkthrough 1 — task stuck in `ready`
+
+The task isn't moving and no terminal opened. The daemon never spawned an agent, so look for the *absence* of a spawn line and the *presence* of a "nothing to do" line:
+
+```bash
+grep -E '\[chain\]|Agent started|no more tasks' ~/.watchfire/daemon.log | tail -20
+```
+
+If you see `<mode>: no more tasks for project my-app`, the daemon scanned and found nothing it considered ready — the task's `status:` probably isn't `ready`, or its YAML failed to load. If you see a restart loop instead —
+
+```text
+[watchfired] ... manager.go:513: [chain] Restart limit reached: task #0042 restarted 3 times without completing — switching to chat mode
+```
+
+— the agent kept starting and bailing without writing `success`, and the daemon gave up and dropped into chat mode. The fix is upstream, in the task, not the daemon.
+
+### Walkthrough 2 — agent spawned but nothing happens
+
+You *do* see `Agent started`, a terminal is open, but the agent is inert. This is almost always a login or rate-limit wall, and the daemon detects it from the PTY output. Grep the agent tag:
+
+```bash
+grep -E '\[agent:|\[sandbox\]' ~/.watchfire/daemon.log | tail -30
+```
+
+`Issue detected: type=auth` means the backend wants you to log in (see [Troubleshooting → login](/docs/troubleshooting) for the per-backend flow); `type=rate_limit` means you're throttled. On the sandbox side, a `[sandbox]` fallback line tells you which backend actually applied — useful when an agent can't reach something it needs and you suspect the sandbox is the cause. (The whole sandbox model is in [How Watchfire sandboxes every agent](/blog/2026-05-19-how-watchfire-sandboxes-every-agent).)
+
+### Walkthrough 3 — auto-merge didn't trigger
+
+The agent finished, the task says `done`, but `main` never moved. Walk it backwards from the merge. First, did the daemon even *see* the save?
+
+```bash
+grep '\[watcher\]' ~/.watchfire/daemon.log | tail -20
+```
+
+A healthy save produces a `debounce fired: …0042.yaml (op=WRITE)` line. No watcher line means [file watching](/docs/concepts/architecture#file-watching) didn't observe the change — the polling fallback should still catch it, but its silence is a clue. Then check the merge path:
+
+```bash
+grep '\[merge\]' ~/.watchfire/daemon.log | tail -20
+```
+
+Three common outcomes, all real lines:
+
+```text
+[merge] Task #0042 not done (status: ready), skipping merge
+[merge] Branch watchfire/0042 has no file differences vs main — nothing to merge
+[merge] Task #0042 done, deciding merge path (auto_merge=true, auto_delete=true)
+```
+
+The first means the status never actually flipped. The second means the agent did the work but committed nothing that differs from `main` — there was literally nothing to merge. And if you opted into GitHub auto-PR, watch for the daemon quietly rerouting:
+
+```text
+WARN [auto-pr] project my-app: github auto-PR enabled but gh CLI unavailable; falling back to silent merge (will not warn again this run)
+```
+
+That tells you the merge happened, just not the way you expected.
+
+## Tips
+
+- **The file is canonical.** Because GUI-launched daemons send stderr to `/dev/null`, `Console.app` and `log stream` won't have it. Read `~/.watchfire/daemon.log`. Use `watchfired --foreground` only when you want live stderr in a terminal.
+- **Grep by tag, not by level.** There are no levels. `grep '\[merge\]'`, `grep '\[chain\]'`, `grep '\[agent:'` are your filters.
+- **Follow one task end-to-end** with its zero-padded number: `grep '#0042' ~/.watchfire/daemon.log`.
+- **Watch a failure as it happens:** `tail -f ~/.watchfire/daemon.log | grep --line-buffered -E '\[chain\]|\[merge\]|\[sandbox\]'`.
+- **When you file an issue,** attach the relevant slice of `daemon.log` alongside the transcript from `~/.watchfire/logs/<project_id>/` that [Troubleshooting](/docs/troubleshooting) asks for. The two together turn "it got stuck" into a reproducible report.
+
+---
+
+**Related:** [Troubleshooting](/docs/troubleshooting) for symptom-first fixes · [Architecture → File watching](/docs/concepts/architecture#file-watching) for how saves become events · [How file watching makes Watchfire feel alive](/blog/2026-05-22-how-file-watching-makes-watchfire-feel-alive) and [Why Watchfire is a daemon](/blog/2026-05-24-why-watchfire-is-a-daemon) for the design underneath the lines.
