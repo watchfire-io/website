@@ -1,0 +1,120 @@
+---
+title: "Why gRPC: the protocol between watchfired and its clients"
+date: "2026-05-31"
+summary: "One daemon, three clients, a long-lived stream of terminal output running alongside ordinary request/response calls. The protocol that carries all of that is gRPC over loopback TCP. Here is the honest accounting: the four alternatives we steelmanned, what the .proto actually looks like, how a client opens the connection, and the costs we took on to get schema-first generated clients in two languages."
+tags: ["deep-dive", "architecture", "daemon", "design"]
+author: "Nuno Coração"
+---
+
+This is the third in a small run of posts about choices that look arbitrary from the outside and were not. The first argued [why Watchfire is a daemon](/blog/2026-05-24-why-watchfire-is-a-daemon) rather than a library. The second argued [why task files are YAML](/blog/2026-05-25-why-yaml-for-task-files) rather than JSON or a database. This one is about the wire between the daemon and the things that talk to it. The daemon is `watchfired`. The things are a CLI, a TUI, and an Electron GUI. The wire is gRPC, and if you have built daemons before you are probably already a little suspicious. Good. So was I.
+
+## The problem
+
+Three clients, one daemon, and they all have to drive the same state in real time. The CLI scripts it. The TUI sits in your terminal and renders it. The Electron GUI shows every project at once on a second monitor. None of them owns state — the daemon does — so all three are reading and writing the same task list, the same agent lifecycle, the same git worktrees, at the same time.
+
+Most of the traffic is ordinary request/response. `ListTasks`. `StartAgent`. `MergeBranch`. Send a message, get a reply, done. That part any protocol can do.
+
+The part that decides the protocol is the live output. When an agent is running, the daemon spawns it under a PTY, parses the escape codes through a terminal emulator, and produces a stream of screen buffers. Every client looking at that agent wants those buffers as they happen — not on a poll, but pushed, continuously, for the twenty minutes or two hours the agent runs. And while that stream flows one way, keystrokes flow the other: you type into the TUI, the daemon feeds it to the agent's PTY.
+
+So the constraints, stated before any winner is named: long-lived server-push streams, ordinary unary calls, a generated client in both Go and TypeScript, and the ability to add new calls without breaking a client that has not been rebuilt. That list is the whole argument.
+
+## The four contenders we steelmanned
+
+**Plain HTTP + REST.** The honest favorite, because it is the easiest thing in the world to debug. `curl` exists. Every proxy, every log, every engineer already understands it. For `ListTasks` and `StartAgent` it would have been completely fine. It falls apart on the streaming. There is no clean server-push in REST; you get long-polling, or you reach for chunked transfer encoding and hand-roll a framing format on top, or you bolt on Server-Sent Events — at which point you have a second protocol stapled to your first, and the "easy to debug" property you bought REST for is gone. The failure mode is that the live agent output, which is the whole point, is the one thing REST does worst.
+
+**JSON-RPC over a Unix socket.** Lighter than gRPC, no code generation, no `protoc` in the build. We seriously considered it — it is the natural thing to reach for when you want structured calls without a framework. The failure mode is the absence of a schema. JSON-RPC is a calling convention, not a contract. Nothing describes the shape of a `StartAgentRequest`; each side just has to agree, by convention and vigilance, on what fields exist. With one client that is tolerable. With three clients in two languages it is a standing liability: the Go side and the TypeScript side drift, and nothing catches it until something is `undefined` at runtime. To be clear about the history — we never shipped a JSON-RPC prototype. gRPC was in the first commit. JSON-RPC lost on the whiteboard, not in production.
+
+**WebSockets + JSON.** This is the contender that actually streams cleanly, which is why it deserves a serious look. A WebSocket is bidirectional by nature; the screen buffers go one way, keystrokes the other, no second protocol required. The failure mode is everything around the stream. There is still no schema, so the drift problem from JSON-RPC comes right back. There are no generated clients — every client re-invents message framing, dispatch, and the reconnect state machine by hand. And reconnect semantics on a raw WebSocket are genuinely fiddly: what happens to an in-flight `StartAgent` when the socket drops mid-call? You end up rebuilding, badly, the request/response correlation that a real RPC framework gives you for free.
+
+**A bespoke length-prefixed protocol over a Unix socket.** The maximally lean option: open a Unix domain socket, write length-prefixed frames, define your own message envelope. Fast, zero framework dependency. The failure mode is that you have signed up to maintain a protocol. Versioning, framing, multiplexing concurrent calls over one socket, cancellation, deadlines, backpressure — every one of those is a problem gRPC already solved, and one you will solve again, later, under worse conditions, the first time two streams share a connection.
+
+Which is the real argument for **gRPC**: it is schema-first, so the `.proto` is the single source of truth both languages generate from; it gives native server-streaming for the output and unary calls for everything else, on the same connection; the generated clients in Go and TypeScript are not code we maintain; and adding a new RPC is additive — old clients keep working because they simply never call the new method.
+
+## What the .proto actually looks like
+
+There is one proto file, `proto/watchfire.proto`, and it defines around ten focused services — `ProjectService`, `TaskService`, `BranchService`, `DaemonService`, and so on — rather than one monolithic surface. The one that earns gRPC its place is `AgentService`, because it is where the streaming lives:
+
+```proto
+service AgentService {
+  rpc StartAgent(StartAgentRequest) returns (AgentStatus);
+  rpc StopAgent(ProjectId) returns (google.protobuf.Empty);
+  rpc GetAgentStatus(ProjectId) returns (AgentStatus);
+  rpc SubscribeScreen(SubscribeScreenRequest) returns (stream ScreenBuffer);
+  rpc GetScrollback(ScrollbackRequest) returns (ScrollbackLines);
+  rpc SendInput(SendInputRequest) returns (google.protobuf.Empty);
+  rpc Resize(ResizeRequest) returns (google.protobuf.Empty);
+  rpc SubscribeRawOutput(SubscribeRawOutputRequest) returns (stream RawOutputChunk);
+  rpc SubscribeAgentIssues(SubscribeAgentIssuesRequest) returns (stream AgentIssue);
+  rpc ResumeAgent(ProjectId) returns (AgentStatus);
+}
+```
+
+Read that as the answer to the whole problem statement. `StartAgent` is a unary call — request in, `AgentStatus` out. `SubscribeScreen` is the server-streaming RPC that delivers live output: it returns a `stream ScreenBuffer`, where each `ScreenBuffer` is a pre-rendered terminal snapshot the daemon produced by parsing the agent's raw PTY bytes through `vt10x`. `SendInput` is the keystrokes-back path — a separate unary call, not a second stream, which is a deliberate simplification: output is a stream, input is a series of small writes. `SubscribeRawOutput` and `SubscribeAgentIssues` are the other two streams, for clients that want the unparsed bytes or want to be told the moment an agent hits a rate limit.
+
+The notification surface is its own service for the same reason — a single streaming endpoint:
+
+```proto
+service NotificationService {
+  rpc Subscribe(SubscribeNotificationsRequest) returns (stream Notification);
+}
+```
+
+Nothing about those names was invented for this post; they are the methods clients call today.
+
+## The connection model
+
+Here is the place where reality diverges from what you might assume. The daemon does **not** listen on a Unix socket. It listens on loopback TCP, on a dynamically allocated port:
+
+```go
+listener, err := (&net.ListenConfig{}).Listen(context.TODO(), "tcp", fmt.Sprintf(":%d", port))
+// port is 0 at startup; the OS assigns a free one
+actualPort := listener.Addr().(*net.TCPAddr).Port
+```
+
+Once the port is confirmed accepting connections, the daemon writes its coordinates to `~/.watchfire/daemon.yaml` — `host`, `port`, `pid`, `started_at` — and every client discovers the daemon by reading that file. (Yes, that discovery file is YAML, for the same reasons the [task files are](/blog/2026-05-25-why-yaml-for-task-files).)
+
+TCP rather than a Unix socket is the choice that makes the three-client story work on one port. The same listener serves native gRPC for the Go clients and gRPC-Web for the Electron GUI, multiplexed by an `h2c` handler that routes on the request's `Content-Type` and HTTP version. A browser-flavored runtime cannot speak raw HTTP/2 framing the way a Go client can; gRPC-Web exists to bridge that, and it needs an HTTP endpoint to hit. One loopback TCP port gives both transports a home.
+
+The CLI and TUI use the generated Go client and connect with `grpc.NewClient`:
+
+```go
+func connectDaemon() (*grpc.ClientConn, error) {
+    info, err := config.LoadDaemonInfo() // reads ~/.watchfire/daemon.yaml
+    if err != nil || info == nil {
+        return nil, fmt.Errorf("daemon not running")
+    }
+    addr := fmt.Sprintf("%s:%d", info.Host, info.Port)
+    return grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+}
+```
+
+The Electron GUI uses the generated TypeScript client over gRPC-Web, via Connect's web transport pointed at the same address:
+
+```typescript
+import { createGrpcWebTransport } from '@connectrpc/connect-web'
+import { createClient } from '@connectrpc/connect'
+import { AgentService, TaskService } from '../generated/watchfire_pb'
+
+const transport = createGrpcWebTransport({ baseUrl: `http://${host}:${port}` })
+const tasks = createClient(TaskService, transport)
+```
+
+`insecure` credentials are fine here because the listener is loopback-only — the traffic never leaves the machine. The [daemon post](/blog/2026-05-24-why-watchfire-is-a-daemon) makes the larger version of this argument: everything stays local.
+
+## The trade-offs we accepted
+
+gRPC is not free, and the costs land in three places.
+
+**Build complexity.** There is a `protoc` step, and generated code in two languages — committed Go from the proto and a large generated `watchfire_pb.ts` for the GUI. A new contributor has to regenerate after editing the proto, and forgetting to is a real failure mode. We mitigate by committing the generated code rather than generating at build time, so a normal `go build` or GUI build needs no toolchain; only someone changing the proto regenerates.
+
+**Debugging cost.** You cannot `curl` a gRPC method. The muscle memory of "just hit the endpoint" is gone, replaced by `grpcurl`, which is a fine tool that nobody has installed by default. We accept this and lean on the fact that the daemon also logs its calls — the [operator's guide to the logs](/blog/2026-05-29-reading-the-daemon-logs) exists partly because the wire is not human-readable on its own.
+
+**You cannot open a browser and hit it.** A REST daemon would let you paste a URL and see JSON. gRPC does not. The mitigation is the gRPC-Web surface itself: because the GUI already needs a browser-compatible transport, there is an inspectable HTTP path to the daemon, even if it is not one you eyeball raw.
+
+None of these is small. They are the tax. We pay it because the schema and the generated clients pay it back every time a message shape changes and both languages get the update for free.
+
+## When we would change our minds
+
+The choice is right for one specific thing: local daemon talking to local clients, on loopback, where both ends ship together and a shared schema is pure upside. That is the only traffic gRPC carries here.
+
+If we ever ship a hosted Watchfire control plane — a daemon on your machine reporting to something in the cloud — the daemon-to-cloud protocol probably will not be gRPC. Over the public internet, across organizational and version boundaries, with proxies and auth gateways in the path, the calculus flips: plain HTTPS with a versioned JSON API is easier to secure, easier to observe, and easier for a third party to integrate against. The schema-first win that makes gRPC obvious between two binaries we build together is worth less between two systems that deploy on different schedules. So the answer is not "gRPC is the protocol." It is "gRPC is the protocol for the local hop." That distinction is the whole post.
