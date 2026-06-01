@@ -12,6 +12,40 @@ the more machine-correct cousin; JSON Feed is the lightweight modern format.
 
 <ChangelogJsonLd />
 
+## [7.3.0] Forge
+
+Forge 7.3 is primarily a GUI release. The Electron app gains a focus-chat mode that collapses the center column so the right panel (Chat / Branches / Logs) takes the full row, and the running Watchfire version now sits under the sidebar logo so you no longer have to dig through Settings → About to know what you're on. The version bump to 7.3.0 lands across `version.json`, `gui/package.json`, and `gui/package-lock.json`. One daemon-side fix closes the size-cap deferral v7.2.1 left open: `~/.watchfire/daemon.log` is now bounded after a user's log grew to 300 GB.
+
+### Added
+
+- **GUI focus-chat mode.** A new toggle collapses the center column (Tasks / Definition / Insights / …) so only the right panel remains, giving the agent terminal the full width. Switch it on from a `Maximize`/`Minimize` button in the project header or by double-clicking the right-panel divider; Branches and Logs stay reachable in focus mode. The state is per-project and persisted to `localStorage`.
+- **GUI version under the sidebar logo.** The running version now shows as a small `v{version}` line beneath the wordmark, fed by the existing `window.watchfire.getVersion()` IPC. The collapsed sidebar is left as-is, where the value remains in Settings → About.
+
+### Changed
+
+- **All shipped components advertise `7.3.0`.** `version.json`, `gui/package.json`, and `gui/package-lock.json` bump 7.2.1 → 7.3.0 (codename `Forge` preserved). The daemon and CLI pick it up through the existing `Makefile` ldflags wiring, and the Electron app — including the new sidebar version line — reports 7.3.0.
+
+### Fixed
+
+- **Daemon log is now size-capped at ~1 GB.** Closes the cap deferral v7.2.1 called out explicitly — one user's `~/.watchfire/daemon.log` grew to **300 GB** before they noticed. A self-rotating writer caps the active file at 500 MB and keeps a single 500 MB backup (`daemon.log.1`), for ≈1 GB total. On startup an already-oversized log rotates immediately, and a rotation failure never crashes the daemon — it surfaces on stderr and continues.
+
+## [7.2.1] Forge
+
+Forge 7.2.1 closes the second wildfire-chain leak that v7.2.0 only half-fixed. With v7.2.0 deployed and the daemon's logs going to `/dev/null` (Electron-launched stdio fan-out), the Generate phase kept emitting blog-post-style task titles like `title: Write a blog post — "Headline: Subhead"`; the unquoted `: ` was parsed as a nested mapping, the strict decoder rejected the file, and it was silently skipped — losing 6 of 24 generated tasks in one ~5-hour run. Two prophylactic fixes.
+
+### Fixed
+
+- **Generate prompts now require single-quoted `title:` scalars.** Both generate system prompts gain an explicit "always single-quote the `title:` value" block, with correct forms (including the doubled-single-quote escape), the silently-dropped wrong form called out, and a nudge to use block scalars for `prompt:` and `acceptance_criteria:`. The model's output was valid English but invalid YAML — the prompt now pins it to the safe subset.
+- **Daemon logs now persist to `~/.watchfire/daemon.log`.** When Watchfire.app launches `watchfired`, the daemon inherits Electron's `/dev/null` stdio, so every chain decision, task-load skip, and phase-watch line was discarded. The daemon now opens `~/.watchfire/daemon.log` in append mode and writes through `io.MultiWriter(os.Stderr, daemonLog)` — foreground runs still print to stderr, and Electron-launched runs leave a forensic trail across restarts. Open is best-effort and never blocks startup.
+
+## [7.2.0] Forge
+
+Forge 7.2 fixes the wildfire chain dying silently after the Generate phase whenever the agent wrote a task YAML with an empty-string timestamp like `started_at: ""`. Caught live: Generate created tasks with `started_at: ""`, `LoadAllTasks` aborted on the first parse error, and the daemon dropped into a NO-AGENT state with ready tasks no one would pick up — no chat session, no notification, no obvious failure signal. The fix has three layers.
+
+### Fixed
+
+- **Wildfire chain no longer silently dies on an empty-string timestamp in a generated task.** Three stacked fixes, one root cause. **(A)** A tolerant `Task` YAML decoder rewrites empty-string scalars on time-typed fields (`created_at`, `started_at`, `completed_at`, `updated_at`, `deleted_at`) to null, so they decode to a zero time instead of erroring on `time.Parse("")`. **(B)** `config.LoadAllTasks` now logs and skips an unparseable task file instead of aborting the whole list, so a single corrupt YAML can't poison the chain. **(C)** The generate prompts spell out exactly which fields belong in a new task YAML and forbid every timestamp field, calling out the `started_at: ""` failure mode so future agent versions don't emit it.
+
 ## [7.1.0] Forge
 
 Forge 7.1 is a GUI-only point release that cleans up the chat terminal regressions introduced alongside v7.0.0's `bytes_received` cursor work. Typing in chat mode no longer line-steps with `[Agent stopped]` floods between chunks, Run All / Wildfire starts (and phase transitions) now render the daemon-sent initial prompt instead of dropping it, same-process stream blips no longer replay the buffer onto a stale xterm and stack overlapping Claude Code banners, and the intermittent `timed out waiting for previous agent to stop` toast when switching modes is gone. The TUI streaming path and the daemon's `SubscribeRawOutput` protocol are untouched — the fix is GUI-only and lives in four renderer files.
