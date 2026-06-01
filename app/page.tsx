@@ -68,13 +68,13 @@ export default async function Home() {
                 <span className="absolute inset-0 animate-ping rounded-full bg-fire-500/60 motion-reduce:animate-none dark:bg-fire-400/60" />
                 <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-fire-500 dark:bg-fire-400" />
               </span>
-              v7.1.0 — Forge
+              v7.3.0 — Forge
             </span>
             <Link
-              href="/docs/changelog#710-forge"
+              href="/docs/changelog#730-forge"
               className="group inline-flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white/70 px-3 py-1 text-xs font-medium text-zinc-700 backdrop-blur-sm transition-colors hover:border-fire-500/50 hover:text-fire-600 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300 dark:hover:border-fire-400/50 dark:hover:text-fire-300 sm:text-sm"
             >
-              Forge 7.1: chat typing fix, mode-switch toast, prompt visibility
+              Forge 7.3: GUI focus-chat mode, 1 GB daemon-log cap
               <svg
                 className="transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
                 width="12"

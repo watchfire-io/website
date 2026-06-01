@@ -112,8 +112,8 @@ const story: StoryEntry[] = [
     text: "Two-way integrations, fleet and per-project insights, and the inline diff viewer.",
   },
   {
-    marker: "v7.1.0 Forge (today)",
-    text: "",
+    marker: "v7.3.0 Forge (today)",
+    text: "A GUI focus-chat mode that hands the agent terminal the full width, the running version under the sidebar logo, and a 1 GB cap on the daemon log.",
   },
 ];
 
