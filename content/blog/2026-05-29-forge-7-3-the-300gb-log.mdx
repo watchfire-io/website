@@ -1,0 +1,63 @@
+---
+title: "Forge 7.3: the 300 GB log, and a quieter GUI"
+date: "2026-05-29"
+summary: "The 7.2 → 7.3 arc is a tidy little story about operability. We made the daemon log durable, the durable log grew to 300 GB, and 7.3 caps it. Along the way we closed two wildfire YAML bugs that were silently eating tasks, and gave the GUI a focus-chat mode. Here's what shipped."
+tags: ["release", "daemon", "practical"]
+author: "Nuno Coração"
+---
+
+Every good resilience fix carries the seed of the next bug. The Forge 7.2 → 7.3 line is the cleanest example of that we've shipped, and the strongest evidence is a number: **300 GB**. That's how large one user's `~/.watchfire/daemon.log` grew before anyone noticed — and it grew that large *because* we'd just made the log work properly. This post walks the arc: the fix that created the next bug and then closed it, two silent task-loss bugs we squashed on the way, and the GUI quality-of-life additions that round out 7.3.0.
+
+## The fix that grew to 300 GB
+
+Start with the good intention. In 7.2.1 we made the daemon's log persist to `~/.watchfire/daemon.log`. The motivation was real and we've [written about it before](/blog/2026-05-29-reading-the-daemon-logs): when `Watchfire.app` launches `watchfired`, the daemon inherits the Electron parent's `/dev/null` stdio. Every `[chain] Decision:`, every `[task-load] skipping`, every `Agent for project X exited` line was being thrown away. If a GUI-launched run wedged, there was no forensic trail at all. So `openDaemonLog` started opening the file in append mode and teeing `log` output through `io.MultiWriter(os.Stderr, daemonLog)`. Foreground and dev runs still saw stderr; Electron-launched runs finally left a record across restarts.
+
+The 7.2.1 changelog was honest about the corner it cut:
+
+> No size cap (rotate manually if it grows); a corrupt or `/dev/null`-overridden file does not abort daemon startup.
+
+"Rotate manually if it grows." Reader, it grew. A daemon that's been chaining wildfire tasks for weeks writes a *lot* of lines, and "append forever" with no cap is exactly the kind of thing that's invisible until it isn't. One user's `daemon.log` reached 300 GB on disk before they noticed the missing free space.
+
+7.3.0 closes the deferral. There's a new self-rotating writer in `internal/daemon/cmd/daemonlog.go` — a `rotatingFileWriter` that slots into the same `io.MultiWriter` chain `openDaemonLog` already used, so nothing about the call site changed. The cap is deliberately boring: 500 MiB per file, one numbered backup (`daemon.log.1`), no gzip. Total disk budget is ≈ 1 GiB.
+
+The mechanics are the parts that are easy to get subtly wrong, so they're worth stating. On each `Write`, if `size + len(p)` would cross the 500 MiB cap, the writer closes the active file, promotes `daemon.log` → `daemon.log.1` (overwriting any previous backup), and opens a fresh active file in append mode. There's also an upgrade path: if you're upgrading *with* a multi-GB log already on disk, the constructor notices the existing file is already at or over the cap and rotates immediately, so the very next write starts clean rather than appending to your 300 GB monster. We skipped `lumberjack` for this — the daemon uses stdlib `log` across 162 call sites, and the one feature lumberjack offered beyond what we needed (gzipped backups) was precisely the one we *didn't* want. Rotation errors propagate back through `Write` to stdlib `log`, which surfaces them on stderr and keeps going; the daemon never crashes because it couldn't rotate a log.
+
+## Two YAML bugs that were eating tasks
+
+The other 7.2 thread is about wildfire losing tasks silently — and both bugs were caught dogfooding on *this very website project*, which is a good reminder that the best test harness is using the thing in anger.
+
+The first bug (7.2.0): empty-string timestamps. Wildfire's Generate phase would occasionally emit a new task YAML with a field like this:
+
+```yaml
+started_at: ""
+```
+
+The strict `yaml.v3` time decoder calls `time.Parse(time.RFC3339, "")`, which fails with `cannot parse "" as "2006"`. That error propagated all the way up from `LoadTask` → `LoadAllTasks` → the wildfire `nextTaskFn`, which bailed without starting a new agent. The daemon ended up in a no-agent state with ready tasks no one would pick up — no chat session, no notification, no obvious failure. 7.2.0 fixed it in three layers: a tolerant `Task.UnmarshalYAML` that rewrites empty-string scalars on time fields to null before decoding, a `LoadAllTasks` loop that logs `[task-load] skipping <file>` and continues instead of aborting the whole list, and tightened generate prompts that forbid timestamp fields outright. Belt, suspenders, and a note to the tailor.
+
+The second bug (7.2.1) was sneakier, because the YAML was *valid* — just not the YAML the agent meant. Generate kept emitting blog-post task titles shaped like this:
+
+```yaml
+title: Write a blog post — "Headline: Subhead"
+```
+
+That unquoted scalar contains `: `, so YAML reads it as a nested mapping, the strict decoder rejects it with `mapping values are not allowed in this context`, and the file is silently skipped. Across one ~5-hour run, 6 of 24 generated tasks vanished this way. The fix is the single quote:
+
+```yaml
+title: 'Write a blog post — "Headline: Subhead"'
+```
+
+7.2.1 updated the generate prompts to *require* single-quoted `title:` values, with the colon gotcha called out explicitly (and the doubled-single-quote escape, `''`, documented for titles that contain apostrophes). The Claude-emitted YAML was technically valid English; the prompt now tells it which subset of YAML to actually write.
+
+## A quieter GUI
+
+7.3.0 is primarily a GUI release, and the headline is **focus-chat mode**. The Electron `ProjectView` is a three-region layout: a center column (Tasks / Definition / Insights / Secrets / Trash / Settings), a right panel (Chat / Branches / Logs), and the bottom integrated terminal. When you're heads-down chatting with the agent, that center column is just visual noise stealing horizontal space — but until now there was no way to hide it without also losing the agent terminal.
+
+Focus-chat mode collapses the center column entirely and lets the right panel take the full row. All three right-panel tabs stay reachable, so Branches and Logs are still one click away. There are two ways to toggle it: a new `Maximize`/`Minimize` button in the project header (which hides itself when the right panel is closed — there's nothing to focus on), and a double-click on the right-panel resize divider. The state is per-project and persisted to `localStorage`, so each project remembers its own preference, and switching projects re-hydrates the right one. The bottom terminal is independent — focus mode doesn't touch whatever you set with `Cmd+\``.
+
+The smaller addition: the **Watchfire version now shows under the sidebar logo**. Previously the only way to know what you were running was Settings → About; now a small muted `v7.3.0` line sits directly under the wordmark, pulled from the existing `window.watchfire.getVersion()` IPC. (The collapsed 56 px sidebar is left alone — no room for it next to the logo.)
+
+## How to get it
+
+7.3.0 ships with the version bumped across `version.json`, `gui/package.json`, and `gui/package-lock.json` together, so every shipped component advertises `v7.3.0` — daemon, CLI, and GUI alike. The codename stays **Forge**: same release line, no new theme minted.
+
+The full breakdown of every change — including the daemon-log test matrix and the exact prompt edits — is in the [changelog](/docs/changelog). And if your daemon is ever doing something you can't explain, the [operator's guide to reading the daemon logs](/blog/2026-05-29-reading-the-daemon-logs) is still the first place to look — it's just that now, the log file watching it will never outgrow a gigabyte.
