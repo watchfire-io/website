@@ -10,7 +10,7 @@
     "perf": "node scripts/perf.mjs"
   },
   "dependencies": {
-    "@types/mdx": "^2.0.13",
+    "@types/mdx": "^2.0.14",
     "fumadocs-core": "^16.6.5",
     "fumadocs-mdx": "^14.2.8",
     "fumadocs-ui": "^16.6.5",
