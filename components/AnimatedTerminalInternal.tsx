@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   defaultScript,
   type AnsiColor,
@@ -42,6 +49,22 @@ function colorClass(color?: AnsiColor): string {
   }
 }
 
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+function subscribeReducedMotion(onChange: () => void) {
+  const mql = window.matchMedia(REDUCED_MOTION_QUERY);
+  mql.addEventListener("change", onChange);
+  return () => mql.removeEventListener("change", onChange);
+}
+
+function getReducedMotion(): boolean {
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
+}
+
+function getReducedMotionOnServer(): boolean {
+  return false;
+}
+
 function buildFinalFrame(script: TerminalLine[]): DisplayLine[] {
   const out: DisplayLine[] = [];
   for (const step of script) {
@@ -62,25 +85,23 @@ export default function AnimatedTerminal({
   script?: TerminalLine[];
 }) {
   const [lines, setLines] = useState<DisplayLine[]>([]);
-  const [reducedMotion, setReducedMotion] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const visibleRef = useRef(true);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReducedMotion(mql.matches);
-    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, []);
+  const reducedMotion = useSyncExternalStore(
+    subscribeReducedMotion,
+    getReducedMotion,
+    getReducedMotionOnServer
+  );
+
+  // With reduced motion the terminal renders its end state directly, so the
+  // animation below never runs and `lines` stays empty.
+  const finalFrame = useMemo(() => buildFinalFrame(script), [script]);
+  const displayLines = reducedMotion ? finalFrame : lines;
 
   useEffect(() => {
-    if (reducedMotion) {
-      setLines(buildFinalFrame(script));
-      return;
-    }
+    if (reducedMotion) return;
 
     let stepIdx = 0;
     let typedChars = 0;
@@ -207,7 +228,7 @@ export default function AnimatedTerminal({
   useLayoutEffect(() => {
     const el = bodyRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [lines]);
+  }, [displayLines]);
 
   return (
     <div
@@ -248,7 +269,7 @@ export default function AnimatedTerminal({
           ref={bodyRef}
           className="h-[19rem] overflow-x-auto overflow-y-hidden px-4 py-4 font-mono text-[12px] leading-5 text-zinc-200 sm:h-[22rem] sm:text-[13px]"
         >
-          {lines.map((line, idx) => {
+          {displayLines.map((line, idx) => {
             if (line.kind === "blank") {
               return (
                 <div key={idx} aria-hidden="true">
