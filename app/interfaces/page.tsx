@@ -28,6 +28,7 @@ const ogImage = buildBlogOgUrl({
 });
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title,
   description,
   alternates: {
@@ -164,7 +165,7 @@ const matrix: MatrixRow[] = [
     capability: "Live terminal output streaming",
     cli: { kind: "partial", note: "Inline when you run a task; no split view." },
     tui: { kind: "yes", note: "Right pane streams the agent PTY." },
-    gui: { kind: "yes", note: "Chat panel streams from the daemon." },
+    gui: { kind: "yes", note: "Primary chat pane streams from the daemon." },
   },
   {
     capability: "Multi-project switching",
@@ -194,7 +195,7 @@ const matrix: MatrixRow[] = [
     capability: "Built-in chat mode",
     cli: { kind: "yes", note: "watchfire run." },
     tui: { kind: "yes", note: "Chat tab." },
-    gui: { kind: "yes", note: "Chat panel." },
+    gui: { kind: "yes", note: "Chat pane — the wide left pane of every project window." },
   },
   {
     capability: "Wildfire mode launcher",

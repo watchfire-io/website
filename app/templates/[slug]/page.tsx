@@ -50,6 +50,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
     title,
     description,
     alternates: { canonical: url },
+    robots: { index: false, follow: false },
     openGraph: {
       type: "article",
       title: `${template.title} task template | Watchfire`,

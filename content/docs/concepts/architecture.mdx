@@ -13,7 +13,7 @@ Watchfire follows a daemon + thin client architecture. A single daemon process (
 |-----------|--------|------|------|
 | **Daemon** | `watchfired` | Orchestration, PTY management, terminal emulation, git workflows, gRPC server, system tray, desktop notifications | Go |
 | **CLI/TUI** | `watchfire` | CLI commands + TUI mode. Project-scoped thin client | Go + Bubbletea |
-| **GUI** | `Watchfire.app` | Multi-project thin client (shows all projects) | Electron |
+| **GUI** | `Watchfire.app` | Multi-window, multi-project thin client — a persistent home (mission control) window plus one window per project, and an optional always-on-top mini-monitor | Electron |
 
 ## Data Flow
 
@@ -190,8 +190,9 @@ Per-backend session homes live alongside `logs/`:
 <project>/
 ├── .watchfire/
 │   ├── project.yaml    # Project configuration
-│   ├── tasks/          # Task YAML files
+│   ├── tasks/          # Task YAML files + per-task metrics sidecars
 │   │   ├── 0001.yaml
+│   │   ├── 0001.metrics.yaml
 │   │   ├── 0002.yaml
 │   │   └── ...
 │   ├── memory.md       # Persistent project knowledge across agent sessions

@@ -19,6 +19,7 @@ const description =
   "Watchfire orchestrates six coding agent backends — Claude Code, Codex, opencode, Gemini CLI, Copilot CLI, and Cursor Agent — through one task model, one worktree-per-task workflow, and one sandbox.";
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: "Agent backends — Watchfire",
   description,
   alternates: {

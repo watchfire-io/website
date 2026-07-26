@@ -9,11 +9,7 @@ import {
 import { getChangelogEntries } from "@/lib/changelog";
 import { listPublishedBlogPosts } from "@/lib/blog-source";
 import { getAllTags, getPostsByTagSlug } from "@/lib/blog-tags";
-import { agentBackends } from "@/lib/agent-backends";
-import { comparisons } from "@/lib/comparisons";
-import { integrations } from "@/lib/integrations";
 import { useCases } from "@/lib/use-cases";
-import { taskTemplates } from "@/lib/task-templates";
 
 function feedLastModified(): Date {
   const entries = getChangelogEntries();
@@ -152,35 +148,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.5,
     },
     {
-      url: `${siteUrl}/badge`,
-      lastModified: maxLastModified([
-        "app/badge/page.tsx",
-        "components/CodeCopyButton.tsx",
-      ]),
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
-      url: `${siteUrl}/embed`,
-      lastModified: maxLastModified([
-        "app/embed/page.tsx",
-        "components/EmbedSnippetTabs.tsx",
-        "components/CodeCopyButton.tsx",
-      ]),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${siteUrl}/embed/stats`,
-      lastModified: maxLastModified([
-        "app/embed/stats/page.tsx",
-        "app/embed/stats/layout.tsx",
-        "lib/dogfood.ts",
-      ]),
-      changeFrequency: "weekly",
-      priority: 0.4,
-    },
-    {
       url: `${siteUrl}/privacy`,
       lastModified: privacyLastMod,
       changeFrequency: "monthly",
@@ -230,53 +197,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
-      url: `${siteUrl}/showcase`,
-      lastModified: maxLastModified([
-        "app/showcase/page.tsx",
-        "lib/showcase.ts",
-      ]),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${siteUrl}/built-with-watchfire`,
-      lastModified: maxLastModified([
-        "app/built-with-watchfire/page.tsx",
-        "lib/dogfood.ts",
-      ]),
-      changeFrequency: "weekly",
-      priority: 0.6,
-    },
-    {
-      url: `${siteUrl}/templates`,
-      lastModified: maxLastModified([
-        "app/templates/page.tsx",
-        "lib/task-templates.ts",
-        "components/CodeCopyButton.tsx",
-      ]),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${siteUrl}/playground`,
-      lastModified: maxLastModified([
-        "app/playground/page.tsx",
-        "components/PlaygroundBuilder.tsx",
-      ]),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${siteUrl}/cheatsheet`,
-      lastModified: maxLastModified([
-        "app/cheatsheet/page.tsx",
-        "components/CodeCopyButton.tsx",
-        "components/PrintButton.tsx",
-      ]),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
       url: `${siteUrl}/tour`,
       lastModified: maxLastModified([
         "app/tour/page.tsx",
@@ -288,33 +208,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
-      url: `${siteUrl}/interfaces`,
-      lastModified: fileLastModified("app/interfaces/page.tsx"),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
       url: `${siteUrl}/community`,
       lastModified: fileLastModified("app/community/page.tsx"),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${siteUrl}/resources`,
-      lastModified: maxLastModified([
-        "app/resources/page.tsx",
-        "lib/agent-backends.ts",
-        "components/BlogPostCard.tsx",
-      ]),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${siteUrl}/open-source`,
-      lastModified: maxLastModified([
-        "app/open-source/page.tsx",
-        "lib/github-contributors.ts",
-      ]),
       changeFrequency: "monthly",
       priority: 0.6,
     },
@@ -356,74 +251,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.6,
     },
-    {
-      url: `${siteUrl}/glossary`,
-      lastModified: maxLastModified([
-        "app/glossary/page.tsx",
-        "components/GlossaryFilter.tsx",
-        "components/GlossaryAnchor.tsx",
-        "components/GlossaryJsonLd.tsx",
-        "lib/glossary.ts",
-      ]),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${siteUrl}/agents`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${siteUrl}/integrations`,
-      lastModified: maxLastModified([
-        "app/integrations/page.tsx",
-        "lib/integrations.ts",
-        "lib/agent-backends.ts",
-      ]),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    ...agentBackends.map((agent) => ({
-      url: `${siteUrl}/agents/${agent.slug}`,
-      lastModified: new Date(),
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    })),
-    ...integrations.map((integration) => ({
-      url: `${siteUrl}/integrations/${integration.slug}`,
-      lastModified: maxLastModified([
-        "app/integrations/[slug]/page.tsx",
-        "lib/integrations.ts",
-        "lib/agent-backends.ts",
-      ]),
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    })),
-    ...comparisons.map((c) => ({
-      url: `${siteUrl}/compare/${c.slug}`,
-      lastModified: maxLastModified([
-        "app/compare/[slug]/page.tsx",
-        "lib/comparisons.ts",
-      ]),
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    })),
     ...useCases.map((u) => ({
       url: `${siteUrl}/use-cases/${u.slug}`,
       lastModified: maxLastModified([
         "app/use-cases/[slug]/page.tsx",
         "lib/use-cases.ts",
-      ]),
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    })),
-    ...taskTemplates.map((t) => ({
-      url: `${siteUrl}/templates/${t.slug}`,
-      lastModified: maxLastModified([
-        "app/templates/[slug]/page.tsx",
-        "lib/task-templates.ts",
-        "components/CodeCopyButton.tsx",
       ]),
       changeFrequency: "monthly" as const,
       priority: 0.6,

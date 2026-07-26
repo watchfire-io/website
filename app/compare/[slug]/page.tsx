@@ -46,6 +46,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
     title: comparison.metaTitle,
     description: comparison.metaDescription,
     alternates: { canonical: url },
+    robots: { index: false, follow: false },
     openGraph: {
       type: "article",
       title: comparison.metaTitle,

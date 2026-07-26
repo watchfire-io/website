@@ -1,12 +1,12 @@
 ---
 title: Roadmap
-description: A snapshot of where Watchfire is heading after Forge — what's shipped, what's likely next, and what we're still thinking about.
+description: A snapshot of where Watchfire is heading after Inferno — what's shipped, what's likely next, and what we're still thinking about.
 ---
 
 This page is a snapshot of intent, not a commitment. Watchfire is open
 source and small, and priorities shift with what users actually run into.
-Everything below is grounded in the [Forge (v7.0.0)](/docs/changelog)
-release on top of the [Beacon (v4.0.0)](/docs/changelog#400-beacon)
+Everything below is grounded in the [Inferno (v8.0.0)](/docs/changelog#800-inferno)
+release on top of the Forge line and the [Beacon (v4.0.0)](/docs/changelog#400-beacon)
 foundation — the [notification bus](/docs/glossary#notification-bus), the
 [outbound relay framework](/docs/concepts/integrations#outbound), the
 [inbound HTTP server](/docs/concepts/integrations#inbound), the
@@ -21,43 +21,45 @@ won't ship anything that pretends to be a feature when it isn't. If a
 the bottom of the page.
 </Callout>
 
-## Now (shipped — v7.0.0 Forge)
+## Now (shipped — v8.0.0 Inferno)
 
-Forge brings manual task reordering across the full stack and fixes
-two long-standing GUI papercuts (chat viewport snap-to-zero and
-Open-in-IDE PATH resolution). The [full changelog](/docs/changelog)
-has every entry; the short version:
+Inferno is the parallel-workspaces release — the first feature-forward
+major since Beacon, built for supervising many projects at once. The
+[full changelog](/docs/changelog#800-inferno) has every entry; the
+short version:
 
-- **Manual task reordering across the full stack** —
-  `TaskService.ReorderTasks` RPC backs `Shift+↑/↓` in the TUI and
-  `@dnd-kit`-powered drag-and-drop in the GUI. Both surfaces apply
-  the new order optimistically, then either commit the server
-  response or revert the snapshot + toast on RPC failure.
-- **Canonical task work order — `(position ASC, task_number ASC)`** —
-  replaces the silent task-number-descending sort that walked
-  `start-all` and `wildfire` queues backwards. `Position` was always
-  on the model; Forge finally honours it. New tasks default to the
-  bottom of the queue (`max(active.position) + 1`) so manual
-  reorderings survive task creation.
-- **GUI chat terminal viewport stays put on scroll** — daemon-side
-  `SubscribeRawFrom(id, bytesReceived)` lets the client resume from
-  a byte cursor instead of replaying the full raw buffer; the
-  client-side subscribe effect is idempotent and the unsubscribe
-  path is debounced 3 s so a single 2 s status-poll flicker can't
-  tear down a live subscription. Plus xterm `scrollback` raised from
-  1 000 to 10 000 lines.
-- **GUI Open-in-IDE finds CLIs in Homebrew + `/usr/local/bin`** —
-  the GUI inherits a stripped-down PATH when launched from
-  Finder/Dock; a new `spawnEnv()` helper prepends the well-known
-  macOS install locations (`/usr/local/bin`, `/usr/local/sbin`,
-  `/opt/homebrew/bin`, `/opt/homebrew/sbin`, `~/.local/bin`,
-  `~/bin`) so `code`, `cursor`, `windsurf`, `zed`, `subl`,
-  `webstorm`, `idea`, and `fleet` all launch correctly.
+- **Multi-window GUI** — a main-process window registry replaces the
+  single `mainWindow`: one independent OS window per project (with
+  per-window PTY routing, per-window state + session restore, and a
+  single-instance lock), so each project can live on its own monitor.
+- **Chat-primary Project View** — the agent terminal is the wide left
+  pane; Tasks / Definition / Insights / Secrets / Trash / Settings
+  become a tabbed reference region on the right. The focus-chat
+  toggle now simply hides the reference region for full-width chat.
+- **Wildfire in the GUI** — the autonomous Execute → Refine → Generate
+  loop gets a first-class GUI control: a confirm-before-start modal, a
+  live phase stepper with the current task, and a Stop control.
+- **Mission control** — the home window aggregates per-project
+  wildfire phase, a cross-project needs-attention panel with
+  click-through, and an optional always-on-top mini-monitor.
+- **Code-output analytics** — per-task `<n>.metrics.yaml` now captures
+  commits, files changed, lines added/removed, and merge kind, rolled
+  up into project and fleet Insights, the exports, and the weekly
+  digest — measuring what the agents actually shipped.
+- **Rich markdown editor** — the project definition and task fields
+  move from plain `<textarea>`s to a CodeMirror editor with a
+  formatting toolbar and source ⇄ split ⇄ preview modes.
 
-## Next (v8.0)
+The [7.4.0 Forge](/docs/changelog#740-forge) operability release
+landed just before Inferno: per-project daemon logs under
+`~/.watchfire/logs/<project_id>/`, a much smaller global `daemon.log`
+cap, and fixes for stranded ready tasks and issue-detector false
+positives.
 
-Plausible next steps that fall naturally out of the Forge architecture
-— written as direction, not as scoped work.
+## Next
+
+Plausible next steps that fall naturally out of the current
+architecture — written as direction, not as scoped work.
 
 - **Richer report templates** — the Markdown export already runs through
   templates under `internal/daemon/insights/templates/`. Expanding the

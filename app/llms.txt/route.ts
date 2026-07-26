@@ -7,7 +7,7 @@ export const revalidate = false;
 
 const HEADER = `# Watchfire
 
-> Better context. Better code. Watchfire turns clear specs into scoped tasks, then lets Claude Code, OpenAI Codex, opencode, Gemini CLI, or GitHub Copilot CLI build them in sandboxed git worktrees.
+> Better context. Better code. Watchfire turns clear specs into scoped tasks, then lets Claude Code, OpenAI Codex, opencode, Gemini CLI, GitHub Copilot CLI, or Cursor Agent build them in sandboxed git worktrees.
 
 Watchfire is an open-source orchestrator for AI coding agents. A daemon (\`watchfired\`) manages projects, tasks, git worktrees, and sandboxed agent sessions; a CLI/TUI and an Electron GUI connect to it over gRPC.
 `;

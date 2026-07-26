@@ -18,6 +18,7 @@ const ogImage = buildBlogOgUrl({
 });
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: "Task templates — Watchfire",
   description,
   alternates: {

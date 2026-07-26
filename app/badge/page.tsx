@@ -17,6 +17,7 @@ const ogImage = buildBlogOgUrl({
 });
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: "Badges — Watchfire",
   description,
   alternates: {

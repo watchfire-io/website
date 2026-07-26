@@ -1,17 +1,17 @@
 ---
 title: GUI (Watchfire.app)
-description: A guided tour of Watchfire.app, the Electron multi-project client for managing tasks, monitoring agents, and reviewing work.
+description: A guided tour of Watchfire.app, the Electron multi-window client for managing tasks, monitoring agents, and reviewing work across many projects at once.
 ---
 
 import GuiLayoutSvg from "@/components/GuiLayoutSvg";
 
-The GUI is a multi-project client built with Electron. Unlike the CLI/TUI (which is project-scoped), the GUI shows every registered project in one place and connects to the daemon over gRPC-Web.
+The GUI is a multi-window, multi-project client built with Electron. Unlike the CLI/TUI (which is project-scoped), the GUI shows every registered project and connects to the daemon over gRPC-Web. v8 "Inferno" replaced the single-window-with-sidebar-navigation model with **independent OS windows**: a persistent **home window** (mission control) anchors the set, each project opens in its **own window** that can live on a separate monitor, and an optional always-on-top **mini-monitor** gives an ambient fleet view.
 
 > Looking for a single-page reference? The [Keyboard Shortcuts](/docs/keyboard-shortcuts) cheat sheet lists every GUI binding in printable form.
 
 <img
   src="/screenshots/dashboard.webp"
-  alt="Watchfire dashboard showing four project cards with task counts and progress bars"
+  alt="Watchfire home window showing four project cards with task counts and progress bars"
   width="2000"
   height="1355"
   loading="lazy"
@@ -20,19 +20,43 @@ The GUI is a multi-project client built with Electron. Unlike the CLI/TUI (which
 />
 {/* TODO: regenerate dashboard.png on a Beacon GUI */}
 
-## Layout
+## Windows
 
-<GuiLayoutSvg className="my-8 block w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-[#16181d]" />
+A main-process window registry tracks every open window, and everything — integrated-terminal output, lifecycle events, notification and tray clicks — is routed per-window.
 
-The window splits into three regions:
+| Window | Role |
+|--------|------|
+| **Home** | The Dashboard / mission-control singleton. Opening it again focuses the existing window. It is also the app's **sole notifier**: OS toasts, sounds, and tray focus events are handled here exactly once, no matter how many windows are open. |
+| **Project** | One independent window per project — its own cockpit. Boots straight into the Project View (no dashboard flash), titled with the project name. Re-opening an already-open project focuses the existing window rather than duplicating it. |
+| **Mini Monitor** | An optional always-on-top fleet view. See [Mini Monitor](#mini-monitor). |
 
-- **Sidebar** — the flame mark, project list, "Add Project," and the Settings entry. Always visible.
-- **Main content** — either the Dashboard or the active Project View, with the integrated terminal docked as a footer (toggle with <kbd>Cmd</kbd>+<kbd>`</kbd>).
-- **Right panel** — Chat, Branches, and Logs. Collapsible — pop it out when you want to focus on the main area.
+A **single-instance lock** ensures one GUI process: a second launch quits immediately and surfaces the running instance's home window instead (two processes would each run a daemon watcher and double-merge worktrees).
 
-## Dashboard
+### Opening project windows
 
-The dashboard is the home view: every registered project rendered as a card with its color dot, current branch, default agent, and a Todo / In Dev / Done task summary with a progress bar. Click any card to drop into the Project View.
+Every project surface in the home window can open a dedicated window:
+
+- **Hover button** — dashboard cards and list rows carry an `ExternalLink` button on hover
+- **<kbd>Cmd</kbd>/<kbd>Ctrl</kbd>-click** — on any card, row, or sidebar entry (plain click on a card also opens the project's window)
+- **Context menu** — sidebar rows offer "Open in New Window" on right-click
+
+When a window for that project already exists, the card affordance flips to a fire-tinted **"Focus open window"** treatment — the action focuses, never duplicates.
+
+### Window state & session restore
+
+Each window's size and position persists independently in `~/.watchfire/window-state.json`, keyed by `home`, `monitor`, or project id. The file also records which project windows were open at quit: on relaunch, Watchfire **re-opens the windows you had open**, skipping any project that has since been unregistered. Bounds that land on an unplugged monitor are discarded so a window never restores off-screen.
+
+### Window shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>N</kbd> | Open (or focus) the home window |
+| <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>[</kbd> | Cycle focus across open windows (the mini-monitor is excluded) |
+| <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> | Open the Mini Monitor (also under Window → Mini Monitor) |
+
+## Home Window — Mission Control
+
+The home window answers "what's running everywhere, and what needs me?" It hosts the sidebar (flame mark, project list, "Add Project," Mini Monitor, and Settings), the dashboard over all registered projects, and global Settings.
 
 ### Status bar & filters
 
@@ -48,7 +72,13 @@ Below it, a row of pill chips narrows the grid to one bucket at a time. Each chi
 | `Idle` | Projects with no running agent and nothing ready |
 | `Has ready tasks` | Projects with at least one `ready` task waiting for an agent |
 
-The Beacon **Insights rollup card** (cross-project KPIs, top projects, and a global `<ExportPill>`) sits under the status bar and shares the `7d` / `30d` / `90d` / `All` window selector with the Project View. See the [Insights concept page](/docs/concepts/insights#cross-project-insights-rollup) for what's aggregated and how the `tasks_missing_cost` caveat surfaces partial data.
+The **Insights rollup card** (cross-project KPIs, top projects, and a global `<ExportPill>`) sits under the status bar and shares the `7d` / `30d` / `90d` / `All` window selector with the Project View. Since v8 it also carries code-output: a compact Commits / Net lines / Merge rate strip, a **"Churn"** top-projects row ranked by net lines shipped, and per-agent net-line figures in the agent legend. See the [Insights concept page](/docs/concepts/insights#cross-project-insights-rollup) for what's aggregated and how partial data surfaces.
+
+### Needs attention
+
+A panel above the insights rollup aggregates issues **across all projects** in one place: live agent issues (auth-required / rate-limited) and failed tasks, listed as `project · kind · #task · detail` with a count badge. Clicking an entry opens (or focuses, never duplicates) the offending project's own window — failed tasks land on the Tasks tab with the task deep-linked; agent issues focus the window, where the issue banner and Resume live in the chat pane. When nothing is wrong, a clean empty state shows: "All clear — nothing needs your attention."
+
+The system tray's Needs-attention / Working / Idle sections route clicks the same way — a tray click for project A surfaces project A's window.
 
 ### Sort & layout
 
@@ -61,11 +91,12 @@ A `LayoutGrid` / `Rows3` toggle in the header switches between the default card 
 Each card carries:
 
 - Project name, color dot, current branch, and the active-agent badge
+- **Wildfire phase badge** — when a project's agent is looping in wildfire mode, the generic agent badge swaps for a compact `Wildfire · Execute` badge, so you can see at a glance which projects are autonomous and where they are in the loop
 - **Elapsed-time badge** — when the agent is running, a ticking `Ns / Nm / Nh Mm` counter sits next to the agent badge and flips to a warning color once it crosses 30 minutes
 - **Last-activity timestamp** — `Active now / 5m ago / 4h ago / 2mo ago` segment, derived from the most recent task `updated_at`
 - **Live PTY preview** — the latest non-blank terminal line, in monospace muted text, throttled to 4 Hz. A singleton subscription manager ref-counts the underlying `AgentService.SubscribeScreen` stream, so the dashboard opens at most one stream per project regardless of how many cards reference it.
-- **Current-task line** — replaces the previous `Next:` line with `Working: <current task title>` (with a `Flame` icon) whenever the agent is actively running
-- **Shell-count chip** — terminal icon + count of alive shell sessions; pulses when any session emitted output in the last 2 seconds, and clicking it expands the [integrated terminal](#integrated-terminal) bottom panel
+- **Current-task line** — `Working: <current task title>` (with a `Flame` icon) whenever the agent is actively running
+- **Shipped line** — a compact `+412 / −97 · 3 merges` line: lines added/removed and merge count over the dashboard's insights window, derived from the same fleet-insights fetch as the rollup card. Projects that shipped no code in the window omit the line entirely.
 - Task counts (Todo / In Dev / Done) and a progress bar
 
 When a project has any task with `status === 'done' && success === false`, the card flips into a **needs-attention** treatment: a red-tinted border, an `AlertTriangle` chip in the header, an `N failed` segment in the counts row, and a red segment in the progress bar.
@@ -90,16 +121,24 @@ A three-step wizard for adding new projects:
 - Coding agent — picker populated from the daemon's `SettingsService.ListAgents` RPC (Claude Code, Codex, opencode, Gemini, Copilot, Cursor, plus any future backends). Seeds `project.default_agent`.
 
 ### Step 3 — Project Definition
-- Markdown editor for project context
+- The rich [markdown editor](#rich-markdown-editor) for project context
 - Skip option for later
 
 ## Project View
 
-Selecting a project opens the split layout: a tabbed main area for managing the project, and a collapsible right panel for live agent output and history.
+Each project window is one project's cockpit. v8 flipped the layout to **chat-primary** — the agent is the work surface, the rest is reference: the agent chat/terminal is the wide **left** pane, and Tasks, Definition, Insights, Secrets, Trash, and Settings live in a tabbed reference region on the **right**. A slim header carries the project name, an "Open another project" affordance, and a Settings toggle, so global Settings stays reachable without leaving the window.
+
+<GuiLayoutSvg className="my-8 block w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-[#16181d]" />
+
+- **Chat pane (left, primary)** — the live agent terminal, with **Branches** and **Logs** as sibling tabs. The header carries the mode badge and the [wildfire control](#wildfire).
+- **Reference region (right)** — a tabbed panel: Tasks, Definition, Insights, Secrets, Trash, Settings. Resizable via a drag divider (~560px first-run default, persisted in `localStorage[wf-right-panel-width]`), and hideable.
+- **Integrated terminal** — docked as a footer bar (toggle with <kbd>Cmd</kbd>+<kbd>`</kbd>). See [Integrated Terminal](#integrated-terminal).
+
+**Focus chat:** the header toggle (`Maximize2`/`Minimize2`) — or double-clicking the divider — hides the right reference region so chat goes full-width. Chat-left is the only layout; there is no side-swap toggle. The focus state persists per project (`wf-chat-focus-<projectId>`), and a tray focus-request for Tasks reveals the reference region if it was collapsed.
 
 <img
   src="/screenshots/project-tasks.webp"
-  alt="Project view with the Tasks tab open and the Chat panel docked on the right, ready for a new agent session"
+  alt="Project window with the agent chat pane on the left and the Tasks reference tab open on the right"
   width="2000"
   height="1355"
   loading="lazy"
@@ -107,7 +146,63 @@ Selecting a project opens the split layout: a tabbed main area for managing the 
   className="my-6 h-auto w-full rounded-xl border border-zinc-200 dark:border-zinc-800"
 />
 
-### Main Tabs
+### Chat Pane
+
+#### Chat
+
+The Chat tab streams the live agent terminal from the daemon (`AgentService.SubscribeScreen`), and you can type input directly. Tasks the agent creates during chat appear in real-time in the Tasks tab without a manual refresh.
+
+<img
+  src="/screenshots/chat-active.webp"
+  alt="Project window with a live Chat session — agent output streaming in the left pane while the task list updates on the right"
+  width="2000"
+  height="1355"
+  loading="lazy"
+  decoding="async"
+  className="my-6 h-auto w-full rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
+
+The toolbar above the terminal exposes the agent modes — **Generate**, **Plan**, **Run All**, and **Stop**. Wildfire is deliberately absent from this menu: it starts only through its own confirm-gated control (below).
+
+#### Branches
+
+A live view of every active worktree and branch with status (in development, merged, conflict) and inline actions to merge, delete, or open in your editor.
+
+<img
+  src="/screenshots/branches.webp"
+  alt="Branches tab listing watchfire worktrees with merge status badges"
+  width="2000"
+  height="1355"
+  loading="lazy"
+  decoding="async"
+  className="my-6 h-auto w-full rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
+
+#### Logs
+
+Per-task session history. The Logs tab renders formatted conversation transcripts (User/Assistant messages with tool call summaries) for every supported backend — Claude Code, Codex, opencode, Gemini, Copilot, Cursor — and falls back to raw PTY scrollback when no transcript is available.
+
+<img
+  src="/screenshots/project-logs.webp"
+  alt="Logs tab listing past task and chat sessions with timestamps and statuses"
+  width="2000"
+  height="1355"
+  loading="lazy"
+  decoding="async"
+  className="my-6 h-auto w-full rounded-xl border border-zinc-200 dark:border-zinc-800"
+/>
+
+### Wildfire
+
+Autonomous [wildfire mode](/docs/concepts/agent-modes#wildfire) — the Execute → Refine → Generate loop — is a first-class control in the Project View header:
+
+- **Start** goes through a **confirm-before-start modal**: wildfire is autonomous, runs unattended, and spends tokens continuously, so there is no one-click start.
+- While running, a live **phase stepper** shows Execute → Refine → Generate with a flame pulsing on the active phase, plus the current task being worked and a **Stop** control.
+- A compact single-line variant (`Wildfire · Execute`) surfaces on mission-control cards/rows and in the mini-monitor, so the loop is visible from anywhere.
+
+The control drives the same gRPC surface as the TUI (`StartAgent` with `mode = "wildfire"`, phase read from `AgentStatus.wildfire_phase`) — GUI and TUI wildfire are the same daemon feature.
+
+### Reference Region
 
 #### Tasks
 
@@ -123,7 +218,7 @@ Tasks are grouped by status (Draft, Ready, Done) with search, filters, and a "Ne
   className="my-6 h-auto w-full rounded-xl border border-zinc-200 dark:border-zinc-800"
 />
 
-Opening a task brings up the task editor — title, prompt, acceptance criteria, status, and an agent picker with a leading **Project default** option. The form preserves its contents during background polling, so edits aren't lost when the task list refreshes.
+Opening a task brings up the task editor — title, prompt, acceptance criteria, status, and an agent picker with a leading **Project default** option. The `prompt` and `acceptance_criteria` fields use the rich [markdown editor](#rich-markdown-editor); the title stays a plain input. The form preserves its contents during background polling, so edits aren't lost when the task list refreshes.
 
 <img
   src="/screenshots/task-edit.webp"
@@ -135,9 +230,7 @@ Opening a task brings up the task editor — title, prompt, acceptance criteria,
   className="my-6 h-auto w-full rounded-xl border border-zinc-200 dark:border-zinc-800"
 />
 
-#### Inspect
-
-The Inspect tab renders the diff for the selected task as an inline file-by-file viewer.
+The task modal also carries an **Inspect** tab — done tasks land on it directly — rendering the task's diff as an inline file-by-file viewer:
 
 - **Pre-merge** — diffs are computed as `<merge-base>...HEAD` on the `watchfire/<n>` branch.
 - **Post-merge** — the diff is reconstructed by locating the merge commit via `git log --grep`.
@@ -148,7 +241,7 @@ Backed by the `internal/daemon/diff` package.
 
 #### Definition
 
-A markdown editor for the project definition — the persistent context every agent reads before starting work. Use it for architecture, key files, conventions, and constraints.
+The project definition — the persistent context every agent reads before starting work — edited in the rich [markdown editor](#rich-markdown-editor) with debounced autosave. Use it for architecture, key files, conventions, and constraints.
 
 <img
   src="/screenshots/project-definition.webp"
@@ -159,6 +252,28 @@ A markdown editor for the project definition — the persistent context every ag
   decoding="async"
   className="my-6 h-auto w-full rounded-xl border border-zinc-200 dark:border-zinc-800"
 />
+
+#### Insights
+
+{/* TODO: capture project-insights.png on a Beacon GUI */}
+
+A per-project view of agent activity, aggregated from the `<n>.metrics.yaml` records under `.watchfire/tasks/`. The tab header carries an `<ExportPill>` that opens the export dialog scoped to the current project (CSV or Markdown via `InsightsService.ExportReport`).
+
+Layout, top to bottom:
+
+- **KPI strip** — totals for tasks completed, duration, tokens, and cost in the selected window
+- **Code KPI strip** — what the agents *shipped*: **Commits**, **Net lines** (signed, with the `+added / −removed` pair as a sub-line), **Files touched**, and **Merge rate** (with a `· N via PR` hint)
+- **Stacked-bar tasks-per-day** — one bar per day, stacked by exit reason
+- **Code-churn-by-day** — lines added stacked over lines removed, per day, next to the tasks-per-day bars
+- **Agent donut** — share of tasks by backend
+- **Agent breakdown** — the per-agent table includes **Commits** and **Net** columns, so output per agent is comparable, not just task count
+- **Duration histogram** — distribution of task durations
+
+Code surfaces only render when real data exists, with an honest **"Code stats based on N of M tasks"** caption — tasks completed before v8.0 have no code metrics and are counted as missing rather than skewing totals to zero.
+
+The header includes a window selector with `7d` / `30d` / `90d` / `All` options. The selection persists across reloads via `localStorage[wf-insights-window]`.
+
+See the [Insights concept page](/docs/concepts/insights) for the underlying metrics package, the per-task record schema, and how the rollup composes.
 
 #### Secrets
 
@@ -202,74 +317,31 @@ Per-project configuration — name, color (which propagates everywhere instantly
   className="my-6 h-auto w-full rounded-xl border border-zinc-200 dark:border-zinc-800"
 />
 
-#### Insights
+## Rich Markdown Editor
 
-{/* TODO: capture project-insights.png on a Beacon GUI */}
+`MarkdownEditor` is the standard editing surface for every markdown / long-text field, built on **CodeMirror 6**. It is **source + preview, not WYSIWYG** — deliberately, so exact markdown and whitespace round-trip cleanly into the daemon-written YAML block scalars (`prompt`, `acceptance_criteria`, project `definition`).
 
-A per-project view of agent activity, aggregated from the `<n>.metrics.yaml` records under `.watchfire/tasks/`. The tab header carries an `<ExportPill>` that opens the export dialog scoped to the current project (CSV or Markdown via `InsightsService.ExportReport`).
+| Feature | Details |
+|---------|---------|
+| **View modes** | Source ⇄ split ⇄ preview toggle |
+| **Toolbar** | Bold, italic, inline code, link, heading, bullet list |
+| **Shortcuts** | <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>B</kbd> (bold), <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>I</kbd> (italic) |
+| **Surfaces** | Project Definition tab, the Add Project wizard's definition step, and the task modal's `prompt` + `acceptance_criteria` fields |
 
-Layout, top to bottom:
+Short fields like the task title stay plain inputs, and each surface keeps its existing save semantics (the Definition tab's debounced autosave, the wizard's Skip path, the task modal's create/update flow).
 
-- **KPI strip** — totals for tasks completed, duration, tokens, and cost in the selected window
-- **Stacked-bar tasks-per-day** — one bar per day, stacked by exit reason
-- **Agent donut** — share of tasks by backend
-- **Duration histogram** — distribution of task durations
+## Mini Monitor
 
-The header includes a window selector with `7d` / `30d` / `90d` / `All` options. The selection persists across reloads via `localStorage[wf-insights-window]`.
+An always-on-top floating mini-window for a glanceable, ambient view of the whole fleet — keep it in a screen corner while working elsewhere. Open it from **Window → Mini Monitor** (<kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>) or the sidebar's "Mini Monitor" button.
 
-See the [Insights concept page](/docs/concepts/insights) for the underlying metrics package, the per-task record schema, and how the rollup composes.
-
-### Right Panel
-
-The right panel docks live agent output and history. Toggle it open or closed at any time.
-
-#### Chat
-
-The Chat tab streams the live agent terminal from the daemon. Watchfire clears the terminal before each new subscription, so switching projects or wildfire phase transitions never accumulate stale output. Tasks the agent creates during chat appear in real-time in the Tasks tab without a manual refresh.
-
-<img
-  src="/screenshots/chat-active.webp"
-  alt="Project view with a live Chat session — agent output streaming on the right while the task list updates on the left"
-  width="2000"
-  height="1355"
-  loading="lazy"
-  decoding="async"
-  className="my-6 h-auto w-full rounded-xl border border-zinc-200 dark:border-zinc-800"
-/>
-
-The toolbar above the terminal exposes the agent modes — **Generate**, **Plan**, **Run All**, **Wildfire**, and **Stop**.
-
-#### Branches
-
-A live view of every active worktree and branch with status (in development, merged, conflict) and inline actions to merge, delete, or open in your editor.
-
-<img
-  src="/screenshots/branches.webp"
-  alt="Branches tab listing watchfire worktrees with merge status badges"
-  width="2000"
-  height="1355"
-  loading="lazy"
-  decoding="async"
-  className="my-6 h-auto w-full rounded-xl border border-zinc-200 dark:border-zinc-800"
-/>
-
-#### Logs
-
-Per-task session history. The Logs tab renders formatted conversation transcripts (User/Assistant messages with tool call summaries) for every supported backend — Claude Code, Codex, opencode, Gemini, Copilot, Cursor — and falls back to raw PTY scrollback when no transcript is available.
-
-<img
-  src="/screenshots/project-logs.webp"
-  alt="Logs tab listing past task and chat sessions with timestamps and statuses"
-  width="2000"
-  height="1355"
-  loading="lazy"
-  decoding="async"
-  className="my-6 h-auto w-full rounded-xl border border-zinc-200 dark:border-zinc-800"
-/>
+- **One compact row per project**, activity-sorted: a status dot that pulses when the agent is working, the project name, and a one-line status — what the agent is doing (task title, chat, or `Wildfire · <phase>`), a red needs-attention flag, or the ready/idle task counts.
+- **Click-through** — clicking a row opens (or focuses) that project's own window.
+- **Floats everywhere** — always-on-top and visible over fullscreen spaces; small by default (320×460, min 240×200), with its geometry persisted like every other window.
+- **Read-only and cheap** — it never plays sounds or shows toasts (the home window is the sole notifier), and it's excluded from the window-cycle shortcut.
 
 ## Integrated Terminal
 
-The GUI includes a built-in shell terminal, separate from the agent Chat terminal in the right panel. It appears as a footer bar at the bottom of the Project View.
+Each project window includes a built-in shell terminal, separate from the agent Chat terminal. It appears as a footer bar at the bottom of the Project View.
 
 ### Opening the Terminal
 
@@ -284,10 +356,11 @@ The footer bar expands upward into a resizable bottom panel. Drag the top edge t
 |---------|---------|
 | **Tabbed sessions** | Up to 5 shell tabs per project |
 | **Powered by node-pty** | Runs in the Electron main process, not the daemon |
+| **Per-window routing** | Each session is keyed to the window that spawned it — output never bleeds into another project's window |
 | **Nerd Font support** | Rich terminal rendering with icons and glyphs |
-| **Session cleanup** | Sessions are cleaned up on project switch or app quit |
+| **Session cleanup** | Sessions persist across panel collapse; closing a tab (X) or the window tears down only that window's sessions |
 
-This is a general-purpose shell — use it for running builds, git commands, or anything else without leaving the GUI. The agent Chat terminal in the right panel streams the coding agent's output from the daemon and is a separate interface.
+This is a general-purpose shell — use it for running builds, git commands, or anything else without leaving the GUI. The agent Chat terminal in the chat pane streams the coding agent's output from the daemon and is a separate interface.
 
 ## Task Status Display
 
@@ -301,7 +374,7 @@ This is a general-purpose shell — use it for running builds, git commands, or 
 
 ## Global Settings
 
-Open Settings from the bottom of the sidebar to manage app-wide preferences — appearance, the defaults applied to every new project, and the per-backend binary paths the daemon should use to launch agents.
+Open Settings from the bottom of the home-window sidebar — or from a project window's header gear (<kbd>Cmd</kbd>+<kbd>,</kbd>), which opens it without leaving the window. It manages app-wide preferences: appearance, the defaults applied to every new project, and the per-backend binary paths the daemon should use to launch agents.
 
 The surface uses a macOS-style two-pane layout: the left sidebar lists eight categories (Appearance, Defaults, Agent Paths, Notifications, Integrations, Inbound, Updates, About), the right pane shows only the selected category. A search box at the top filters categories AND surfaces individual matching controls with category breadcrumbs — clicking a result navigates to the category and pulses the matching field for ~1.5 seconds. `Cmd/Ctrl+F` focuses search, `Esc` clears, `Up`/`Down`/`Enter` navigate. Existing deep-link routes (`#integrations` etc.) still work.
 
@@ -339,7 +412,7 @@ The Notifications panel reads and writes the `defaults.notifications` section of
 | **Quiet hours** | **Off** | Optional time window (start/end, local time, DST-stable). When enabled and inside the window, `models.ShouldNotify` returns false for everything except hard failures. |
 | **Per-project mute** | None | Per-project chip list — projects added here are skipped by `ShouldNotify` regardless of other toggles. Useful for noisy long-running projects. |
 
-Clicking any OS toast or tray Notifications submenu entry routes through `DaemonService.SubscribeFocusEvents` to bring this GUI to the originating project and task.
+With multiple windows open, each toast and sound still fires **exactly once** — the home window is the sole notifier. Clicking a `TASK_FAILED` / `RUN_COMPLETE` toast (or a tray Notifications submenu entry) opens or focuses the originating project's **own** window and routes to the task; `WEEKLY_DIGEST` clicks surface the home window.
 
 ### Integrations
 

@@ -57,6 +57,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
     title,
     description,
     alternates: { canonical: url },
+    robots: { index: false, follow: false },
     openGraph: {
       type: "website",
       title: `${title} | Watchfire`,

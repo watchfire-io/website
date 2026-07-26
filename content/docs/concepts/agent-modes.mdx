@@ -61,6 +61,8 @@ The flagship mode. A fully autonomous three-phase loop that can plan, execute, a
 watchfire wildfire
 ```
 
+Since v8.0 "Inferno", Wildfire can also be started from the GUI: the Project View header has a Wildfire control with a confirm-before-start modal (Wildfire runs unattended and spends tokens continuously), a live Execute → Refine → Generate phase indicator, and a Stop control. In the TUI, press <kbd>w</kbd> from the task list.
+
 ### Phase 1: Execute
 
 Works on all `ready` tasks, one at a time. Same as Start All mode — each task gets its own worktree and agent session.
@@ -89,7 +91,7 @@ graph LR
     G -->|no new tasks| C[Chat Mode]
 `} />
 
-When the Generate phase creates no new tasks, Wildfire transitions to chat mode. You can also stop it at any time with Ctrl+C.
+When the Generate phase creates no new tasks, Wildfire transitions to chat mode. You can also stop it at any time — Ctrl+C in the CLI/TUI, or the Stop control in the GUI.
 
 ### Restart Protection
 

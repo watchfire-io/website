@@ -35,6 +35,7 @@ const ogImage = buildBlogOgUrl({
 });
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: "Open source — Watchfire",
   description,
   alternates: {

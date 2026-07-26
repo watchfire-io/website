@@ -28,6 +28,7 @@ Quick definitions for Watchfire-specific terms. For deeper explanations follow t
 - [GitHub auto-PR](#github-auto-pr)
 - [GUI](#gui)
 - [Idempotency cache](#idempotency-cache)
+- [Inferno](#inferno)
 - [Insights](#insights)
 - [Landlock](#landlock)
 - [Layout toggle](#layout-toggle)
@@ -85,6 +86,10 @@ The 6.x release line — atomic YAML writes that close the `project.yaml` data-l
 ### Forge
 
 The 7.x release line — manual task reordering across the full stack (TUI `Shift+↑/↓`, GUI `@dnd-kit` drag-and-drop, new `TaskService.ReorderTasks` RPC), the spec'd `(position ASC, task_number ASC)` task work order with a new-task-defaults-to-bottom rule, a daemon-side `SubscribeRawFrom` byte cursor that stops the GUI chat terminal from snapping to byte 0 mid-scroll, and a GUI Open-in-IDE PATH fix that finds Homebrew / `/usr/local/bin` CLIs when launched from Finder or the Dock. [Changelog →](/docs/changelog)
+
+### Inferno
+
+The 8.x release line — the parallel-workspaces tentpole, built for supervising many projects at once. A multi-window Electron GUI (a main-process window registry, one independent window per project with per-window PTY routing and a single-notifier election, per-window state + session restore, a single-instance lock), a chat-primary Project View, wildfire mode in the GUI, a mission-control home window (cross-project needs-attention with click-through plus an always-on-top mini-monitor), a CodeMirror rich markdown editor, and code-output analytics (`<n>.metrics.yaml` commits/files/lines/merge-kind rolled up into project and fleet Insights, exports, and the weekly digest). [Changelog →](/docs/changelog)
 
 ## Agent modes
 

@@ -34,6 +34,15 @@ Run the daemon directly so its stderr lands in your terminal:
 watchfired --foreground
 ```
 
+If the daemon started fine before and died later, check the tail of
+`~/.watchfire/daemon.log` — it carries the daemon's lifecycle lines
+(start/stop, update checks, OAuth, integration errors) and is capped
+at ~64 MiB, so it stays readable. The verbose per-project trail
+(wildfire chain decisions, agent start/exit, merges) lives in
+`~/.watchfire/logs/<project_id>/daemon.log` instead — see
+[Daemon Logs](/docs/components/daemon#daemon-logs). Set
+`WATCHFIRE_DEBUG=1` to also log per-event file-watcher lines.
+
 If startup output complains that the [inbound HTTP server](/docs/concepts/integrations#inbound)
 can't bind, another process is already on `127.0.0.1:8765` — set a
 different `ListenAddr` in `InboundConfig`, or stop the conflicting
@@ -212,7 +221,11 @@ as needing attention.
 Watchfire reuses each backend's own login. It does not store API keys
 of its own and does not paper over expired sessions — when the
 backend's auth fails, the session fails. Watchfire detects this from
-the agent's terminal output and surfaces it to the TUI and GUI.
+the agent's terminal output and surfaces it to the TUI and GUI. The
+detector matches the shape of a real provider error — an HTTP 401/429,
+`authentication_error`, or an OAuth / API-key qualifier — so source
+code or task text that merely mentions rate limits or tokens won't
+trip it.
 
 ### Fix
 
@@ -439,9 +452,10 @@ Once you've ruled out the cases above:
   [open an issue](https://github.com/watchfire-io/watchfire/issues/new/choose)
   using the bug report template. Include the output of
   `watchfire daemon status` and `watchfire status`, your OS and kernel
-  version, the relevant log file from `~/.watchfire/logs/<project_id>/`
-  (the JSONL transcript is the readable one), and the exact steps to
-  reproduce.
+  version, the relevant log files from `~/.watchfire/logs/<project_id>/`
+  (the JSONL transcript is the readable session record; `daemon.log` in
+  the same directory is the daemon's per-project decision trail), and
+  the exact steps to reproduce.
 - **Question or open-ended discussion** — start a thread in
   [GitHub Discussions](https://github.com/watchfire-io/watchfire/discussions).
 - **Security vulnerability** — do **not** file a public issue. Follow

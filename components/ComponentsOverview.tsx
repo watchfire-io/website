@@ -10,7 +10,7 @@ const components = [
   {
     title: "GUI (Watchfire.app)",
     tag: "Watchfire.app",
-    description: "Electron multi-project client with a native feel, sidebar navigation, and embedded live terminals.",
+    description: "Electron multi-window client with a native feel — one window per project, a mission-control dashboard, and embedded live terminals.",
     illustration: (
       <svg viewBox="0 0 400 280" fill="none" className="h-full w-full" aria-hidden="true">
         <defs>

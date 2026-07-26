@@ -108,7 +108,7 @@ const howToLd: HowTo = {
       "@type": "HowToStep",
       position: 6,
       name: "Manage every project at once",
-      text: "Open Watchfire.app to switch between projects, follow live agent transcripts, and inspect open branches from one window.",
+      text: "Open Watchfire.app to run every project in its own window, follow live agent transcripts, and watch the whole fleet from the mission-control dashboard.",
       url: `${siteUrl}/tour#step-6`,
     },
   ],
@@ -871,8 +871,8 @@ export default function TourPage() {
           id="step-6"
           number={6}
           label="Multi-project"
-          heading="Run many projects from one window."
-          intro="Watchfire.app is an Electron client over the same daemon — a sidebar of projects, the task list and live terminal in the main pane, and a right-side panel for the chat, branches, and logs."
+          heading="Run many projects, each in its own window."
+          intro="Watchfire.app is an Electron client over the same daemon — a mission-control home window for the whole fleet, plus an independent window per project with the agent chat as the wide main pane and a tabbed reference panel beside it."
           visual={
             <div className="aspect-[800/460] w-full">
               <GuiLayoutSvg className="h-full w-full" />
@@ -880,17 +880,20 @@ export default function TourPage() {
           }
           callouts={
             <>
-              <Callout index={1} title="Project sidebar">
-                Every registered project on this machine. Click to switch — the
-                main pane reloads with that project&rsquo;s tasks.
+              <Callout index={1} title="Home window">
+                Every registered project on this machine, rolled up in the
+                dashboard — what&rsquo;s running, what needs attention. Click a
+                project to open it in its own window.
               </Callout>
-              <Callout index={2} title="Tabs + task list">
-                Tasks, Definition, Secrets, Trash, Settings — everything you
-                can do from the CLI, with a mouse.
+              <Callout index={2} title="Chat up front">
+                The agent terminal is the wide left pane of each project
+                window. Pick a backend, start any mode — Wildfire included —
+                and watch it stream.
               </Callout>
-              <Callout index={3} title="Right panel">
-                Pick an agent backend, watch its chat stream, and see open
-                branches at a glance. Collapsible when you want more room.
+              <Callout index={3} title="Reference tabs">
+                Tasks, Definition, Insights, Secrets, Trash, Settings — a
+                tabbed panel on the right. Hide it when you want the chat
+                full-width.
               </Callout>
               <p className="text-[12px] text-zinc-500 dark:text-zinc-500">
                 Full GUI walkthrough:{" "}

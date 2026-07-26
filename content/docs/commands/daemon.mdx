@@ -49,6 +49,7 @@ Sends a SIGTERM to the daemon process, gracefully shutting it down. All active a
 - Multiple CLI/TUI instances can connect to the same daemon simultaneously
 - If the daemon shuts down, all connected CLI/TUI instances will close
 - The daemon manages all projects registered in `~/.watchfire/projects.yaml`
+- Lifecycle events (start/stop, update checks, OAuth, integration errors) are logged to `~/.watchfire/daemon.log` (capped at ~64 MiB); the verbose per-project trail — wildfire chain decisions, agent start/exit, merges — goes to `~/.watchfire/logs/<project_id>/daemon.log` (self-rotating, 16 MiB × 1 backup). See [Daemon Logs](/docs/components/daemon#daemon-logs).
 - The daemon orchestrates every supported agent backend (Claude Code, Codex, opencode, Gemini, Copilot) — it is not tied to a specific agent. See [Supported Agents](/docs/concepts/supported-agents).
 
 ## Examples
@@ -60,6 +61,12 @@ watchfired --foreground
 ```
 
 Running `watchfired` directly in the foreground prints startup output to your terminal — useful when `watchfire daemon start` exits silently and you need to see why. See [Daemon won't start](/docs/troubleshooting#daemon-wont-start).
+
+To also log every raw file-watcher event (fsnotify and debounce lines, off by default), set `WATCHFIRE_DEBUG`:
+
+```bash
+WATCHFIRE_DEBUG=1 watchfired --foreground
+```
 
 ### Quick health check
 

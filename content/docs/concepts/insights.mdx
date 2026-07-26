@@ -1,9 +1,9 @@
 ---
 title: Insights & Metrics
-description: Beacon captures per-task metrics, aggregates them per project and across the fleet, and exports CSV or Markdown reports.
+description: Beacon captures per-task metrics, aggregates them per project and across the fleet, and exports CSV or Markdown reports. Inferno adds code-output analytics — commits, lines, and merges shipped per task.
 ---
 
-Beacon (v4.0.0) turns every completed agent session into a structured metrics record, then aggregates those records into per-project and cross-project Insights views. Reports can be exported as CSV or Markdown, and a weekly digest summarises the fleet automatically.
+Beacon (v4.0.0) turns every completed agent session into a structured metrics record, then aggregates those records into per-project and cross-project Insights views. Reports can be exported as CSV or Markdown, and a weekly digest summarises the fleet automatically. Inferno (v8.0.0) extends the same records with **code-output analytics** — what the agents actually shipped (commits, files, lines, merges), not just how many tasks closed.
 
 ## Per-Task Metrics Capture
 
@@ -15,7 +15,7 @@ The record carries a fixed set of fields:
 |-------|------|-------------|
 | `task_number` | int | Task number this metric describes |
 | `project_id` | string | Project the task belongs to |
-| `agent` | string | Backend that ran the session (`claude-code`, `codex`, `opencode`, `gemini`, `copilot`) |
+| `agent` | string | Backend that ran the session (`claude-code`, `codex`, `opencode`, `gemini`, `copilot`, `cursor`) |
 | `duration_ms` | int | Wall-clock duration of the session |
 | `tokens_in` | int (nullable) | Prompt tokens consumed, nil when unavailable |
 | `tokens_out` | int (nullable) | Completion tokens produced, nil when unavailable |
@@ -24,6 +24,24 @@ The record carries a fixed set of fields:
 | `captured_at` | timestamp | When the record was written |
 
 Token and cost fields are pointers in the underlying `TaskMetrics` struct, so a backend that doesn't expose those numbers leaves them nil rather than emitting a zero that would skew rollups.
+
+### Code-Output Fields (v8 Inferno)
+
+Inferno adds seven code-output fields to the same `<n>.metrics.yaml` sidecar, capturing what the agent shipped:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `commits` | int | Commits on the task branch (`git rev-list --count <merge-base>..watchfire/<n>`) |
+| `files_changed` | int | Files touched, from the same diff stats the Inspect viewer and auto-PR body use |
+| `lines_added` | int | Lines added across the task branch's diff |
+| `lines_removed` | int | Lines removed across the task branch's diff |
+| `net_lines` | int | `lines_added − lines_removed` |
+| `merged` | bool | `true` when the local silent merge succeeds; `false` for auto-PR (push pending, not merged to the default branch) |
+| `merge_kind` | enum | `silent` or `auto_pr` — which of the two task-completion paths ran |
+
+The task-done merge path (`internal/daemon/agent/taskdone.go`) snapshots these from the still-live `watchfire/<n>` branch **before** worktree cleanup — the snapshot must happen pre-merge, since the merge moves HEAD and would zero the commit count. The outcome fields are stamped on both completion paths, silent merge and GitHub auto-PR. Capture is best-effort: a git or diff error logs and records zeros rather than aborting the merge, and `metrics.RecordCodeStats` merges the code fields into the YAML under a mutex so it never clobbers the concurrent token capture.
+
+**Backward compatibility:** metrics files written before v8.0 have no code fields and read back as zeros. Rollups count those tasks in a `MetricsMissingCode` honesty counter (mirroring `tasks_missing_cost`) so partial data never silently skews a total.
 
 ## Metrics Package
 
@@ -36,7 +54,7 @@ Parsing lives in `internal/daemon/metrics`. Each backend has its own parser file
 | `opencode.go` | opencode | Duration + tokens + cost |
 | `gemini.go` | Gemini CLI | Duration + tokens + cost |
 | `copilot.go` | GitHub Copilot CLI | **Stub** — duration only; tokens / cost stay nil because Copilot has no transcript schema yet |
-| `null.go` | Fallback | Duration only, used when no backend parser matches |
+| `null.go` | Fallback | Duration only, used when no backend parser matches (Cursor Agent sessions currently resolve here) |
 | `capture.go` | — | Goroutine that runs on `handleTaskChanged` and writes the file |
 | `parser.go` | — | Shared helpers across parsers |
 
@@ -49,8 +67,11 @@ Copilot is explicitly a stub. Until upstream exposes per-message token usage, Co
 The view contains:
 
 - **KPI strip** — totals for tasks, duration, tokens, and cost over the selected window
+- **Code KPI strip (v8)** — Commits, Net lines (signed, with the `+added / −removed` pair as a sub-line), Files touched, and Merge rate (merged / total, with a `· N via PR` hint)
 - **Stacked-bar tasks-per-day** — completed tasks per day, stacked by exit reason
+- **Code-churn-by-day chart (v8)** — lines added stacked over lines removed per day, drawn next to the tasks-per-day bars
 - **Agent donut** — share of tasks per backend
+- **Agent breakdown (v8)** — the per-agent table gains Commits and Net columns, so output per agent is comparable, not just task count
 - **Duration histogram** — distribution of task durations
 - **Time-window selector** — `7d` / `30d` / `90d` / `All`. The selection persists to `localStorage[wf-insights-window]` so it sticks across reloads
 - **`<ExportPill>`** — header action that opens the export dialog scoped to the current project
@@ -63,10 +84,11 @@ The Project View Insights tab is documented in the [GUI doc](/docs/components/gu
 
 Surfaces:
 
-- **GUI Dashboard rollup card** — sits alongside the Beacon status bar at the top of the Dashboard. See the [GUI Dashboard doc](/docs/components/gui#dashboard) for the visual layout
+- **GUI Dashboard rollup card** — sits alongside the Beacon status bar at the top of the Dashboard. In v8 it gains a compact Commits / Net lines / Merge rate strip, a "Churn" top-projects row (ranked by net lines shipped, alongside the task-count "Top" row), and per-agent net-line figures in the agent legend. See the [GUI Dashboard doc](/docs/components/gui#dashboard) for the visual layout
 - **TUI fleet overlay** — bound to <kbd>Ctrl</kbd>+<kbd>f</kbd>, mirrors the GUI rollup
 - **Top-projects pill list** — names the projects driving fleet activity in the selected window
 - **`tasks_missing_cost` caveat** — banner that appears whenever a non-trivial slice of tasks is missing cost (typically Copilot sessions), so fleet-level cost numbers are never read as totals when they're really "what we could measure"
+- **`MetricsMissingCode` caveat (v8)** — every code surface is gated on real data and shows an honest "Code stats based on N of M tasks" caption; a fleet of pre-v8.0 tasks gets a quiet empty state instead of a wall of zeros
 
 ## Report Export (CSV + Markdown)
 
@@ -77,11 +99,20 @@ Reports flow through a single RPC: `InsightsService.ExportReport`. The request c
 | **Markdown** | Rendered from templates under `internal/daemon/insights/templates/` (`global.md.tmpl`, `project.md.tmpl`, `single_task.md.tmpl`) |
 | **CSV** | Single file with `# section: <name>` header lines delimiting sub-tables (KPIs, per-day, per-agent, per-task) so multi-table content fits one CSV without losing structure |
 
+Since v8, both formats carry code-output (header order stays stable — new CSV columns are appended):
+
+- **CSV** — the per-task export gains the seven code columns (`commits`, `files_changed`, `lines_added`, `lines_removed`, `net_lines`, `merged`, `merge_kind`); per-project and global exports gain a `# section: code` totals block, the `# section: agents` rows grow commits/lines columns, and the global `# section: top_projects` rows grow commits/lines/net/merges
+- **Markdown** — reports gain a "## Code output" section (totals + per-agent churn columns; the global report also ranks top projects by churn)
+
+A missing or malformed metrics file degrades to zeros and is counted in `MetricsMissingCode`, so partial or pre-v8.0 data never skews a total or breaks an export.
+
 A single `<ExportPill>` component is reused on the Dashboard header and the Project View header. The TUI binds export to <kbd>Ctrl</kbd>+<kbd>e</kbd> with the same scope precedence as the GUI: the active Project View if one is selected, otherwise the dashboard (global). Single-task export is reachable from the task action menu and uses the `single_task` scope.
 
 ## Weekly Digest
 
 A weekly Markdown digest is rendered to `~/.watchfire/digests/<YYYY-MM-DD>.md` regardless of toast suppression — even when notifications are muted, the file is still produced.
+
+Since v8, the digest includes a "## Code output" block — commits, merges, `+added / −removed` lines (with net), and the week's top projects by net churn — so the weekly summary says what the fleet shipped, not only how many tasks closed.
 
 The schedule is driven by `digestRunner`, which arms a re-armable `time.Timer` from `models.DigestSchedule.NextFire`. The runner is DST-stable and includes a 24-hour catch-up window so a daemon restart never silently skips a digest.
 

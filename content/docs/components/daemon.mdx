@@ -46,6 +46,9 @@ The daemon uses `fsnotify` to watch for changes:
 | **Per-project** | `.watchfire/project.yaml`, `.watchfire/tasks/*.yaml` |
 | **Polling fallback** | 5s polling as safety net for missed watcher events |
 | **Re-watch on chain** | Re-watches directories created during earlier phases |
+| **Debug logging** | Per-event `[watcher] fsnotify: …` and debounce lines are gated behind the `WATCHFIRE_DEBUG` env var (off by default) |
+
+The watcher skips events on the daemon's own log files, so log writes inside the watched `~/.watchfire` directory can never feed back into the event loop.
 
 ## Agent Backends
 
@@ -127,6 +130,19 @@ Transcript discovery is owned by each backend — the daemon calls `backend.Loca
 ### Log Viewer
 
 The `ReadLog` RPC serves session logs to clients (TUI and GUI). It prefers the `.jsonl` transcript when available and dispatches to the active backend's `FormatTranscript` to render a readable User/Assistant conversation with tool-call summaries. If no JSONL transcript exists, it falls back to the `.log` file (raw PTY scrollback). The same flow runs for every backend — no special-casing for Claude Code.
+
+## Daemon Logs
+
+Separate from the per-session agent logs above, the daemon writes its own operational trail, split across two locations:
+
+| Log | Path | Carries | Cap |
+|-----|------|---------|-----|
+| **Global** | `~/.watchfire/daemon.log` | Coarse lifecycle lines only: daemon start/stop, update checks, OAuth, the weekly digest, integration errors | ~64 MiB (32 MiB per file, one backup) |
+| **Per-project** | `~/.watchfire/logs/<project_id>/daemon.log` | The verbose operational trail: wildfire `[chain]` / `[poll]` decisions, agent start/exit/stop, the `[merge]` flow, the per-process `[agent]` PTY trail, and the task-watch handlers | 16 MiB per file, one backup |
+
+Both writers are self-rotating and best-effort — a rotation failure never crashes the daemon. When you're debugging why a task didn't start or a merge didn't land, the per-project `daemon.log` is the file to read.
+
+Set `WATCHFIRE_DEBUG` (any non-empty value) to re-enable the per-event file-watcher lines described under [File Watching](#file-watching) — they're off by default because the per-event firehose dwarfs the useful trail. On the first start after upgrading from a pre-7.4.0 daemon, an oversized legacy `daemon.log` is truncated to its last 256 KiB (and over-cap backups deleted) so old runaway logs don't survive the migration.
 
 ## Phase Completion Signals
 

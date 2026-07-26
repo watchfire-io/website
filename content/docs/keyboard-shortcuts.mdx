@@ -184,6 +184,17 @@ Opened with <kbd>Ctrl</kbd>+<kbd>g</kbd>. The overlay has a categories pane on t
 | <kbd>Enter</kbd> | Activate the selected result |
 | <kbd>Esc</kbd> | Close search |
 
+## GUI — window management
+
+v8 "Inferno" made the GUI multi-window: a persistent home (mission control) window, one window per project, and an optional always-on-top mini-monitor. These bindings live in the app menu and work from any window. The mini-monitor is excluded from the window cycle.
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>Cmd</kbd>+<kbd>N</kbd> / <kbd>Ctrl</kbd>+<kbd>N</kbd> | Open or focus the home (mission control) window |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> | Cycle focus to the next open window |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>[</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>[</kbd> | Cycle focus to the previous open window |
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> | Open the always-on-top mini-monitor |
+
 ## GUI — dashboard
 
 The dashboard exposes a small set of global shortcuts. Filter chips and the layout toggle are mouse-driven controls, but their selection persists across reloads via `localStorage[wf-dashboard-filter]` and `localStorage[wf-dashboard-layout]`.
@@ -211,6 +222,15 @@ Project View shortcuts. The integrated terminal toggle is global to the project 
 | <kbd>r</kbd> | Refresh the diff |
 | <kbd>Esc</kbd> | Close the file filter (when focused) |
 
+### Markdown editor
+
+The rich markdown editor (project definition, Add Project wizard, and the task modal's prompt / acceptance criteria fields) adds formatting keybindings.
+
+| Shortcut | Action |
+|----------|--------|
+| <kbd>Cmd</kbd>+<kbd>B</kbd> / <kbd>Ctrl</kbd>+<kbd>B</kbd> | Toggle bold |
+| <kbd>Cmd</kbd>+<kbd>I</kbd> / <kbd>Ctrl</kbd>+<kbd>I</kbd> | Toggle italic |
+
 ### Settings search
 
 The Global Settings view has its own keyboard search.
@@ -224,4 +244,4 @@ The Global Settings view has its own keyboard search.
 
 ## Beacon notification focus events
 
-Beacon focus events are not keyboard-triggered. Click any OS toast or system tray Notifications submenu entry — the click routes through `DaemonService.SubscribeFocusEvents` to bring the connected GUI to the originating project, task, or digest. See the [GUI doc](/docs/components/gui#notification-preferences) for the underlying flow.
+Beacon focus events are not keyboard-triggered. Click any OS toast or system tray Notifications submenu entry — the click routes through `DaemonService.SubscribeFocusEvents` to open or focus the originating project's own window (or the home window for global events and digests). See the [GUI doc](/docs/components/gui#notification-preferences) for the underlying flow.

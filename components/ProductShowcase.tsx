@@ -18,14 +18,14 @@ export default function ProductShowcase() {
           >
             Every project,{" "}
             <span className="bg-gradient-to-r from-fire-400 to-ember-500 bg-clip-text text-transparent">
-              one window
+              its own window
             </span>
           </h2>
           <p
             data-stagger
             className="mx-auto mt-4 max-w-2xl text-lg text-zinc-600 dark:text-zinc-400"
           >
-            Watchfire.app puts your repos, tasks, branches, and live agent terminals in a single multi-project client — built on the same daemon as the CLI.
+            Watchfire.app puts your repos, tasks, branches, and live agent terminals in a multi-window desktop client — one window per project, one mission-control dashboard for the fleet — built on the same daemon as the CLI.
           </p>
         </div>
 
@@ -81,13 +81,13 @@ export default function ProductShowcase() {
               Layout
             </span>
             <h3 className="mt-4 text-2xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
-              Three regions,{" "}
+              Chat first,{" "}
               <span className="bg-gradient-to-r from-fire-400 to-ember-500 bg-clip-text text-transparent">
-                one window
+                reference beside it
               </span>
             </h3>
             <p className="mt-4 text-base leading-relaxed text-zinc-600 dark:text-zinc-400">
-              The app is built around a fixed sidebar, an active main view, and a collapsible right panel — so live agent output never crowds out the work you&apos;re reviewing.
+              Each project window is chat-primary: the agent terminal is the wide left pane, with everything else in a tabbed reference panel on the right — so the live work surface leads and the paperwork stays one tab away.
             </p>
             <ul className="mt-6 space-y-4 text-sm">
               <li className="flex gap-3">
@@ -95,8 +95,8 @@ export default function ProductShowcase() {
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="6" /></svg>
                 </span>
                 <div>
-                  <p className="font-semibold text-zinc-900 dark:text-white">Sidebar</p>
-                  <p className="mt-0.5 text-zinc-600 dark:text-zinc-400">Every project, the dashboard, and Settings — always one click away.</p>
+                  <p className="font-semibold text-zinc-900 dark:text-white">Home window</p>
+                  <p className="mt-0.5 text-zinc-600 dark:text-zinc-400">Mission control for the fleet — the dashboard rolls up every project, flags what needs attention, and opens each one in its own window. An always-on-top mini-monitor keeps it glanceable.</p>
                 </div>
               </li>
               <li className="flex gap-3">
@@ -104,8 +104,8 @@ export default function ProductShowcase() {
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="6" /></svg>
                 </span>
                 <div>
-                  <p className="font-semibold text-zinc-900 dark:text-white">Main content</p>
-                  <p className="mt-0.5 text-zinc-600 dark:text-zinc-400">Tasks, Definition, Secrets, Trash, and Settings — plus a built-in terminal docked at the footer.</p>
+                  <p className="font-semibold text-zinc-900 dark:text-white">Chat pane</p>
+                  <p className="mt-0.5 text-zinc-600 dark:text-zinc-400">The agent terminal, front and center — pick a backend, start any mode including Wildfire, and watch it work. A built-in terminal stays docked at the footer.</p>
                 </div>
               </li>
               <li className="flex gap-3">
@@ -113,8 +113,8 @@ export default function ProductShowcase() {
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="6" /></svg>
                 </span>
                 <div>
-                  <p className="font-semibold text-zinc-900 dark:text-white">Right panel</p>
-                  <p className="mt-0.5 text-zinc-600 dark:text-zinc-400">Live Chat, Branches, and Logs. Collapse it when you want focus, pop it back when you need eyes on the agent.</p>
+                  <p className="font-semibold text-zinc-900 dark:text-white">Reference panel</p>
+                  <p className="mt-0.5 text-zinc-600 dark:text-zinc-400">Tasks, Definition, Insights, Secrets, Trash, and Settings in tabs on the right. Hide it when you want the chat full-width, pop it back when you need the paperwork.</p>
                 </div>
               </li>
             </ul>
