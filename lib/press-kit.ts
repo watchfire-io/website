@@ -30,7 +30,7 @@ export const taglines: readonly Tagline[] = [
 ];
 
 export const boilerplate =
-  "Watchfire is an open-source remote control for AI coding agents. It turns clear specs into scoped YAML tasks, then runs each one in a sandboxed git worktree with a coding agent of your choice — Claude Code, OpenAI Codex, opencode, Gemini CLI, GitHub Copilot CLI, or Cursor Agent. Watchfire ships as a daemon, a CLI/TUI, and a macOS GUI. It is free and open source under Apache-2.0; users pay their own model API costs.";
+  "Watchfire is an open-source remote control for AI coding agents. It turns clear specs into scoped YAML tasks, then runs each one in a sandboxed git worktree with a coding agent of your choice — Claude Code, OpenAI Codex, opencode, Gemini CLI, GitHub Copilot CLI, or Cursor Agent. Watchfire ships as a daemon, a CLI/TUI, and a desktop GUI, running on macOS, Linux, and Windows. It is free and open source under Apache-2.0; users pay their own model API costs.";
 
 export type LogoAsset = {
   label: string;
@@ -245,8 +245,9 @@ export const facts: readonly Fact[] = [
   },
   {
     label: "Platform",
-    value: "macOS",
-    detail: "Daemon, CLI/TUI, and GUI. Cross-platform CLI on the roadmap.",
+    value: "macOS, Linux, Windows",
+    detail:
+      "Daemon, CLI/TUI, and GUI on all three. Sandboxing uses Seatbelt on macOS and Landlock or Bubblewrap on Linux; Windows currently runs unsandboxed.",
   },
   {
     label: "Source",

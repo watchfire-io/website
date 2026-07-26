@@ -8,7 +8,7 @@ const githubStarsFallback = (
     href="https://github.com/watchfire-io/watchfire"
     target="_blank"
     rel="noopener noreferrer"
-    className="inline-flex items-center gap-2.5 rounded-full border border-zinc-200 bg-white/70 px-5 py-2.5 text-sm font-medium text-zinc-700 shadow-sm backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300"
+    className="inline-flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-full border border-zinc-200 bg-white/70 px-5 py-2.5 text-sm font-medium text-zinc-700 shadow-sm backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300"
   >
     Star on GitHub
   </a>
@@ -51,7 +51,7 @@ export default function SignupCTA() {
             <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400 sm:text-base">
               Help us reach more developers.
             </p>
-            <div className="mt-6 flex flex-col items-center gap-5 rounded-2xl border border-fire-500/15 bg-fire-500/[0.04] px-6 py-8 shadow-[0_0_40px_rgba(224,112,64,0.12)] dark:border-fire-400/20 dark:bg-fire-400/[0.05] dark:shadow-[0_0_50px_rgba(224,112,64,0.18)]">
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-4 rounded-2xl border border-fire-500/15 bg-fire-500/[0.04] px-6 py-6 shadow-[0_0_40px_rgba(224,112,64,0.12)] dark:border-fire-400/20 dark:bg-fire-400/[0.05] dark:shadow-[0_0_50px_rgba(224,112,64,0.18)] md:justify-start">
               <Suspense fallback={githubStarsFallback}>
                 <GitHubStars />
               </Suspense>
