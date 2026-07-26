@@ -1,6 +1,6 @@
 ---
 title: Sandboxing
-description: Watchfire sandboxes coding agents using platform-specific backends — Seatbelt on macOS, Landlock or Bubblewrap on Linux — to restrict filesystem access and limit blast radius.
+description: Watchfire sandboxes every agent — Seatbelt on macOS, Landlock or Bubblewrap on Linux — to fence filesystem access and contain blast radius.
 ---
 
 Watchfire runs coding agents inside platform-specific sandboxes that restrict what the agent process can access. This limits the blast radius of any unintended actions — the agent has full autonomy **inside** the sandbox, but the sandbox controls what "full autonomy" actually means.

@@ -1,6 +1,6 @@
 ---
 title: Integrations
-description: A two-way integrations layer — outbound adapters for webhooks, Slack, Discord, and GitHub auto-PR, plus an inbound HTTP server with signature verification, OAuth bot tokens, and multi-host parity.
+description: Watchfire integrations — outbound webhooks plus Slack, Discord, and GitHub auto-PR adapters, and an inbound HTTP server with HMAC signature verification.
 ---
 
 Beacon (v4.0.0) introduced the two-way integrations layer; Flare (v5.0.0) closed the inbound loop and added OAuth, multi-host parity, per-IP rate limiting, Slack interactive components, and Discord guild auto-registration. The daemon can **deliver** notifications to external services through pluggable adapters, and **receive** signed requests from those same services through a small HTTP server. Both halves share the same secret store and the same per-provider configuration surface.
