@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import BlogPostArt from "@/components/BlogPostArt";
 import { getBlogPostBodyMarkdown, type BlogPage } from "@/lib/blog-source";
 import { slugifyTag } from "@/lib/blog-tags";
 import { estimateReadingTimeMinutes } from "@/lib/reading-time";
@@ -15,8 +16,6 @@ function formatDate(iso: string): string {
   return dateFormatter.format(new Date(iso));
 }
 
-const DEFAULT_BLOG_THUMBNAIL = "/banner-dark.png";
-
 export default function BlogPostCard({ post }: { post: BlogPage }) {
   const slug = post.slugs[0];
   const href = `/blog/${slug}`;
@@ -25,18 +24,28 @@ export default function BlogPostCard({ post }: { post: BlogPage }) {
   const readingMinutes = estimateReadingTimeMinutes(
     getBlogPostBodyMarkdown(slug),
   );
-  const thumbnail = post.data.image ?? DEFAULT_BLOG_THUMBNAIL;
+  // No explicit frontmatter image? Fall back to the post's generated artwork
+  // rather than the shared Watchfire banner, so every card is distinct.
+  const thumbnail = post.data.image;
 
   return (
     <article className="card-hover group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white/70 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/40">
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-        <Image
-          src={thumbnail}
-          alt={post.data.title}
-          fill
-          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-        />
+        {thumbnail ? (
+          <Image
+            src={thumbnail}
+            alt={post.data.title}
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          />
+        ) : (
+          <BlogPostArt
+            slug={slug}
+            tags={post.data.tags}
+            className="transition-transform duration-500 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          />
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-5">

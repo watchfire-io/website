@@ -53,6 +53,8 @@ export default function BlogArticleJsonLd({
           title: post.data.title,
           description: post.data.summary,
           section: "Blog",
+          art: slug,
+          tags: post.data.tags,
         }));
 
   const author = normalizeBlogAuthor(post.data.author);

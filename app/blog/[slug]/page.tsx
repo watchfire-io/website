@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Callout } from "fumadocs-ui/components/callout";
 import Mermaid from "@/components/Mermaid";
 import BlogArticleJsonLd from "@/components/BlogArticleJsonLd";
+import BlogPostArt from "@/components/BlogPostArt";
 import BlogPostToc from "@/components/BlogPostToc";
 import EditOnGithub from "@/components/EditOnGithub";
 import RelatedPosts from "@/components/RelatedPosts";
@@ -16,7 +18,7 @@ import { isExternalUrl, normalizeBlogAuthor } from "@/lib/blog-author";
 import { slugifyTag } from "@/lib/blog-tags";
 import { extractBlogToc } from "@/lib/blog-toc";
 import { estimateReadingTimeMinutes } from "@/lib/reading-time";
-import { siteUrl } from "@/lib/site";
+import { siteName, siteUrl } from "@/lib/site";
 import {
   buildAbsoluteBlogOgUrl,
   resolveAbsoluteImageUrl,
@@ -56,6 +58,8 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
         title: page.data.title,
         description: page.data.summary,
         section: "Blog",
+        art: slug,
+        tags: page.data.tags,
       });
 
   return {
@@ -71,10 +75,21 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
     },
     openGraph: {
       type: "article",
+      siteName: siteName,
       title: page.data.title,
       description: page.data.summary,
       url,
-      images: [ogImage],
+      // Explicit dimensions + alt: X, LinkedIn and Slack all render the card
+      // more reliably when they don't have to fetch the image to size it.
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: page.data.title,
+          type: "image/png",
+        },
+      ],
       publishedTime: page.data.date,
       tags: page.data.tags,
     },
@@ -82,7 +97,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
       card: "summary_large_image",
       title: page.data.title,
       description: page.data.summary,
-      images: [ogImage],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: page.data.title }],
     },
   };
 }
@@ -107,6 +122,8 @@ export default async function BlogPostPage(props: PageProps) {
         title: page.data.title,
         description: page.data.summary,
         section: "Blog",
+        art: slug,
+        tags: page.data.tags,
       });
 
   return (
@@ -198,6 +215,26 @@ export default async function BlogPostPage(props: PageProps) {
             </div>
           ) : null}
         </div>
+
+        {page.data.image ? (
+          <div className="relative mt-8 aspect-[16/9] w-full overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+            <Image
+              src={page.data.image}
+              alt={page.data.title}
+              fill
+              priority
+              sizes="(min-width: 1024px) 48rem, 100vw"
+              className="object-cover"
+            />
+          </div>
+        ) : (
+          <BlogPostArt
+            slug={slug}
+            tags={page.data.tags}
+            priority
+            className="mt-8 aspect-[16/9] rounded-xl border border-zinc-200 dark:border-zinc-800"
+          />
+        )}
       </header>
 
       {hasToc ? (

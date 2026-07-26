@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { sectionLabel } from "@/lib/docs-section";
+import { hashString, pickMotif, pickPalette, renderMotif } from "@/lib/og-art";
 
 export const runtime = "edge";
 
@@ -45,8 +46,20 @@ export async function GET(request: Request) {
     "Better context. Better code. Watchfire turns clear specs into scoped tasks for AI coding agents.";
   const section = url.searchParams.get("section") || sectionLabel(slug);
 
-  const truncatedTitle = truncate(title, 80);
-  const truncatedDescription = truncate(description, 140);
+  // `art` opts a card into per-post artwork. Blog posts pass their slug so the
+  // motif is stable per post; docs keep the plain full-width card.
+  const artKey = url.searchParams.get("art");
+  const tags = (url.searchParams.get("tags") || "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  const motif = artKey ? pickMotif(artKey, tags) : null;
+  const [primary, secondary] = pickPalette(artKey ?? "");
+  const seed = hashString(artKey ?? "");
+
+  const truncatedTitle = truncate(title, motif ? 64 : 80);
+  const truncatedDescription = truncate(description, motif ? 108 : 140);
 
   const characterSet = `${section}${truncatedTitle}${truncatedDescription}WatchfireDocumentationwatchfire.io`;
 
@@ -100,6 +113,21 @@ export async function GET(request: Request) {
           }}
         />
 
+        {/* Per-post artwork — deterministic motif, right column */}
+        {motif && (
+          <div
+            style={{
+              position: "absolute",
+              right: 76,
+              top: 135,
+              display: "flex",
+              opacity: 0.95,
+            }}
+          >
+            {renderMotif(motif, primary, secondary, seed)}
+          </div>
+        )}
+
         {/* Header — flame logo + wordmark */}
         <div
           style={{
@@ -142,7 +170,7 @@ export async function GET(request: Request) {
             marginTop: "auto",
             marginBottom: "auto",
             gap: 28,
-            maxWidth: 980,
+            maxWidth: motif ? 640 : 980,
           }}
         >
           <div
@@ -176,7 +204,13 @@ export async function GET(request: Request) {
           </div>
           <div
             style={{
-              fontSize: truncatedTitle.length > 40 ? 76 : 92,
+              fontSize: motif
+                ? truncatedTitle.length > 38
+                  ? 56
+                  : 68
+                : truncatedTitle.length > 40
+                  ? 76
+                  : 92,
               fontWeight: 700,
               lineHeight: 1.05,
               letterSpacing: -2,
@@ -188,7 +222,7 @@ export async function GET(request: Request) {
           </div>
           <div
             style={{
-              fontSize: 30,
+              fontSize: motif ? 26 : 30,
               fontWeight: 400,
               lineHeight: 1.35,
               color: "rgba(244, 244, 245, 0.72)",
@@ -216,7 +250,7 @@ export async function GET(request: Request) {
               color: "rgba(244, 244, 245, 0.6)",
             }}
           >
-            Documentation
+            {artKey ? section : "Documentation"}
           </span>
           <span
             style={{
