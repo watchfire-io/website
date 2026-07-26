@@ -1,0 +1,86 @@
+---
+title: "Firestorm 9.0: Watchfire becomes a factory agents can drive"
+date: "2026-07-26"
+summary: "For nine majors Watchfire drove coding agents. Firestorm inverts that: watchfire mcp serve exposes the whole orchestrator to any MCP-capable client as an 18-tool factory, so an outer agent plans and reviews while Watchfire manufactures the code in sandboxed, worktree-isolated runs. It is the fourth thin client, it holds no orchestration logic of its own, and it is local-only by construction."
+tags: ["release", "architecture", "mcp", "deep-dive"]
+author: "Nuno Coração"
+---
+
+Every Watchfire release until now made the same assumption: a human sits at the top of the loop. You write the task, you pick the mode, you watch the terminal, you review the diff. The agent is the thing being driven.
+
+**Firestorm** inverts it. `watchfire mcp serve` exposes the entire orchestrator over the Model Context Protocol as an **18-tool factory**. The client on the other end is Claude Code, Codex, Gemini CLI, opencode, Copilot CLI — or something you wrote yourself. That outer agent plans and reviews; Watchfire manufactures the code in sandboxed, git-worktree-isolated runs and merges the results. The human moves up a level, from writing every task to supervising a system that writes them.
+
+The canonical loop is five calls:
+
+```
+create_task → run_task → wait_for_task → get_task → get_task_diff → iterate
+```
+
+## The fourth thin client
+
+The most important design decision in this release is one you can't see from the outside: the MCP server contains **no orchestration logic of its own**.
+
+Watchfire already had three clients — the CLI, the TUI, and the Electron GUI — and all three are thin. They render state and issue gRPC calls; the daemon owns worktrees, sandboxing, merging, chaining, and notifications. The MCP server is simply the fourth one. Every tool call is a translation to an RPC that already existed, exactly like a keypress in the TUI.
+
+That constraint is what kept the release small where it counts. The whole cycle needed **one** proto/daemon change: the `GetMcpClientStatus` / `InstallMcpClient` onboarding pair. Everything else — all 18 tools — is a new front end over the existing brain. The payoff is that a task created over MCP is genuinely indistinguishable from one typed into the TUI. Same validation, same worktree, same sandbox, same merge path, same notifications. There is no "MCP mode" for the daemon to get subtly wrong.
+
+## Local-only, and enforced rather than asserted
+
+Exposing an orchestrator that runs arbitrary coding agents over a protocol is exactly the kind of thing that should make you nervous. So the guarantee here is narrow and mechanical: **the server's only transport is stdio.**
+
+It is spawned as a subprocess by an MCP client on the same host as the daemon. It never opens a listening socket. Nothing in v9.0 makes Watchfire reachable from outside the machine.
+
+The reason to trust that isn't the paragraph above — it's that the claim is tested two ways. A source-parsing test fails the build on any listener or non-stdio transport appearing in the serve path, so the guarantee can't rot silently as the code changes. And the end-to-end test inspects the live process from the outside to confirm no socket exists. A promise in a changelog is worth very little; a promise that breaks CI when violated is worth something.
+
+For callers you trust less, `--read-only` serves exactly **8 of the 18** tools — the project and inspect groups. The write and run tools aren't refused at call time; they're filtered at *registration* time, so they never appear in `tools/list` at all. A read-only server doesn't advertise capabilities it will then deny.
+
+## Tool descriptions are part of the contract
+
+Here's the thing that surprised me most while building this.
+
+When a human uses the TUI, the interface is pixels and keybindings. When a model uses the MCP server, the interface is **prose** — the tool catalog is the only thing it reads before deciding what to call. A description that's merely accurate isn't enough; it has to state *consequences*, because the model is reasoning about what will happen, not just what's available.
+
+Treating descriptions as a contract meant auditing them like code, and the audit caught two real defects before ship:
+
+1. `create_task` and `update_task` promised that setting a task to `ready` may auto-start an agent when `auto_start_tasks` is enabled. **No daemon codepath actually reads that field.** An outer agent that believed the description would file a ready task and then wait forever for a run that was never coming. The descriptions now say plainly that `ready` only *queues*.
+
+2. `list_tasks` and `get_task` are pure reads, but they carried the *task* registry group rather than the inspect group. The effect under `--read-only` was backwards: the server hid the task itself while happily serving `get_task_diff`, which is strictly more revealing. Both moved, and a test now fails if a tool's `readOnly` annotation and its registry group ever disagree again.
+
+Neither bug would have been caught by a passing integration test. Both were found by reading the catalog the way a model would.
+
+The same logic applies to errors. An error message here is read by a model, not by a human tailing a log, so it names the problem *and* the way out: an unreachable daemon reports the command that fixes it, and an unknown project answers with "not found — known projects: …" instead of a bare failure.
+
+## The safety rails on the factory tools
+
+A few tool-level decisions are worth calling out, because each one encodes a lesson:
+
+- **`create_task` never writes YAML.** All five task tools write exclusively through the validated `TaskService` gRPC path. That's not a style preference — it's what makes the malformed-file class of bug structurally impossible over MCP (more on that below).
+- **`run_task` refuses rather than replaces.** Watchfire runs at most one agent per project. A status pre-check refuses when an agent is already running and names its mode and current task, instead of silently killing an in-flight run because a model got impatient.
+- **`delete_task` is a soft delete**, reversible from the TUI/GUI Trash. Permanent deletion is deliberately not exposed over MCP. An outer agent can tidy up; it cannot destroy your work.
+- **`wait_for_task` reports timeouts as success.** A timeout comes back as a normal `timed_out: true` result carrying live agent status, not an error. Clients just call it again. Modelling "still working" as a failure would teach the outer agent to give up on long runs.
+
+## Onboarding: pick your harness, or paste a snippet
+
+Every surface follows one rule: **pick one of the five known harnesses and Watchfire does the setup for you, or pick Custom and get a snippet to paste anywhere.**
+
+`watchfire mcp install [client]` handles `claude-code`, `codex`, `gemini`, `opencode` and `copilot`. Every installer is idempotent, and existing config files are never clobbered — JSON configs are parse-merge-write key-by-key so unrelated keys survive, and the Codex TOML merge is line-based so comments and unrelated tables survive verbatim. If a client is missing or its config won't parse, the installer degrades to printed manual instructions rather than failing.
+
+The same installer package backs the CLI, a new **TUI Settings → MCP** section, and a **GUI Global Settings → MCP** panel. No surface reads a harness config itself, which means the wording can't drift between them.
+
+## The bug that made the case
+
+Firestorm also fixes something that had been quietly eating tasks.
+
+A batch of v8 task files was invisible in the GUI and TUI and never got scheduled. The cause: an unquoted `title:` containing a second `: ` — something like `title: v8 Inferno — Main: window registry` — is parsed by yaml.v3 as a nested mapping and rejected. The v7.2.0 resilience fix caught the per-file parse error and skipped the file so the chain wouldn't halt, which was correct. But the task then vanished with nothing but a daemon log line to show for it.
+
+Two fixes, and they're a nice illustration of defence in depth. **Visibility:** the loader now collects skipped files and surfaces them — a `⚠ N task file(s) failed to load` warning in `watchfire task list` and a persistent TUI status-bar indicator. **Prevention:** every task is now round-tripped through marshal → unmarshal before being saved and rejected if it doesn't survive, so any daemon-side write is guaranteed loadable.
+
+We also considered auto-repairing malformed files on the watcher event, and rejected it. Because yaml.v3 fails the whole parse for an unquoted-colon title, the struct is never produced — a reliable repair would need fragile line-level heuristics on the raw bytes. Between a guess that might corrupt a file and a warning that tells you exactly which file is broken, the warning wins.
+
+## Where this goes
+
+The interesting consequence of Firestorm isn't any single tool. It's that the unit of delegation changes. You can now hand an agent a goal, let it decompose that goal into tasks, and have each task executed in an isolated worktree with a diff you can read afterwards — with the daemon enforcing the same sandboxing and merge discipline it always has.
+
+The recursion caveat is real and worth stating: pointing an agent at a Watchfire that can start agents is a loop you should supervise deliberately, not switch on and walk away from. Start with `--read-only` if you want to watch the shape of it first.
+
+Full details are in the [v9.0.0 changelog entry](/docs/changelog#900-firestorm), and the [MCP server docs](/docs/components/mcp-server) cover the tool catalog, read-only mode, and per-harness setup.

@@ -1,0 +1,64 @@
+---
+title: "Inferno 8.0: one window per project"
+date: "2026-06-29"
+summary: "Inferno is the first feature-forward major since Beacon, and it's built around a single idea — supervising many projects at once. The Electron GUI goes multi-window, the Project View flips to chat-primary, wildfire becomes a GUI control, the dashboard becomes mission control, and a new analytics layer measures what the agents actually shipped, not just how many tasks closed."
+tags: ["release", "architecture", "deep-dive"]
+author: "Nuno Coração"
+---
+
+For four major versions the Watchfire GUI was a single window with a project switcher in the sidebar. That's fine when you babysit one project at a time. It stops being fine the moment you're running wildfire on three projects and want to watch all of them — you end up flipping tabs, losing your place, and missing the one that needs you. **Inferno** is the answer: the first feature-forward major since [Beacon (v4.0.0)](/docs/changelog#400-beacon), built end to end around supervising many projects in parallel. Here's what shipped, and why each piece is shaped the way it is.
+
+## One window per project
+
+The headline is structural. The Electron app's `mainWindow` singleton is gone, replaced by a main-process **window registry** (`gui/src/main/windows.ts`) — a `Map` keyed by window id, where each entry is either the singleton home window or one independent `BrowserWindow` per project. Open a project in its own window and it gets a full OS window you can move to another monitor, tile next to your editor, or leave running while you work elsewhere. Re-open an already-open project and the registry focuses the existing window instead of spawning a duplicate.
+
+Going multi-window sounds simple and is mostly a series of "wait, that was a global?" discoveries. Three of them were worth the release on their own:
+
+- **Per-window PTY routing.** The PTY manager kept a single module-global `win` and pushed every `pty-output` event to whichever window was set last. With two project windows open, project A's `echo` could surface in project B's terminal. Each `PtySession` now records the `windowId` that spawned it and routes `onData` / `onExit` only to that window. Closing one project window tears down only *its* terminals.
+- **The single-notifier election.** Every renderer subscribes to the daemon's notification stream and plays its own sound + native toast. With N windows open, one `TASK_FAILED` event became N toasts and N sounds. The fix is a belt-and-suspenders election: the **home window is the sole notifier**, enforced both in the notifications store (`start()` early-returns unless it's the home window) and in `App.tsx`. The same election makes the home window the single tray-event router.
+- **A single-instance lock.** Launching `watchfire` twice used to spawn a second Electron process — and a second daemon watcher that would double-merge worktrees. `app.requestSingleInstanceLock()` now quits the second launch and focuses the first instead.
+
+Each window remembers its own size and position. `window-state.json` migrated from one bounds rectangle to a keyed schema — `home` bounds, a per-`projectId` `projects` map, and an `openProjects` list — so on relaunch the project windows you had open last time come back automatically (deleted projects are pruned, not resurrected). The old flat shape is read transparently as the home bounds, so the upgrade is silent.
+
+## Chat-primary Project View
+
+Per-project windows changed what a window *is*. It used to be "the app, currently showing project X." Now it's "project X's cockpit." So the layout flipped to match: the agent chat/terminal is now the **wide left pane**, and Tasks / Definition / Insights / Secrets / Trash / Settings become a tabbed reference region on the right. The work surface leads; everything else is reference you glance at.
+
+The v7.3 focus-chat toggle survives but its meaning is cleaner — it (and a double-click on the divider) now just hides the right region so chat goes full-width. There's no side-swap toggle; chat-left is simply the default.
+
+## Wildfire, now with a button
+
+[Wildfire mode](/docs/concepts/agent-modes#wildfire) — the autonomous Execute → Refine → Generate loop — has been TUI-and-daemon-only since it shipped. Inferno brings it to the GUI as a first-class control in the ProjectView header. Because wildfire was already driven entirely over gRPC (`StartAgent(mode="wildfire")` plus `AgentStatus.wildfire_phase`), this is pure GUI wiring against the existing client — no proto or daemon changes.
+
+Two deliberate choices: starting wildfire goes through a **confirm-before-start modal**, because it spends tokens unattended and that should never be a one-click accident; and while it runs, a live **phase stepper** shows where the loop is (Execute → Refine → Generate), the current task, and a Stop control.
+
+## Mission control
+
+With one window per project, the home window stopped being a place you live and became a place you *check* — so it's now mission control for the whole fleet:
+
+- A per-card **wildfire phase badge**, so you can see at a glance which projects are in an autonomous loop and where they are in it.
+- A cross-project **Needs attention** panel that aggregates two signals — live agent issues (auth-required / rate-limited) and failed tasks — across every project, with **click-through** that opens (or focuses) the offending project's own window and deep-links the relevant tab or task.
+- **Open-window awareness**: the per-card "Open in new window" action flips to "Focus open window" when a window for that project already exists, so it never implies a duplicate.
+- A stretch **always-on-top mini-monitor** (Window → Mini Monitor, ⌘/Ctrl+Shift+M): a small frameless window with one compact row per project — a pulsing status dot, the name, and a one-line status — that floats over other apps and fullscreen spaces. Read-only, cheap, and exactly the thing to park in a screen corner while you work in your editor.
+
+Tray clicks got smarter too: a tray entry for project A now opens or focuses *A's* window, not a generic one.
+
+## Measuring what shipped, not what closed
+
+Every analytics surface in Watchfire used to count tasks. Tasks closed, time spent, tokens burned. None of it answered the question that actually matters: **what did the agents ship?** Inferno adds a code-output layer that does.
+
+The merge path now snapshots seven fields into each task's `<n>.metrics.yaml` — `commits`, `files_changed`, `lines_added`, `lines_removed`, `net_lines`, `merged`, and `merge_kind` — taken from the live `watchfire/<n>` branch *before* worktree cleanup (the merge moves HEAD and would zero the commit count). It's stamped for both silent-merge and GitHub auto-PR flows, and it's best-effort: a git or disk error records zeros rather than stranding the merge.
+
+From there it rolls up everywhere:
+
+- **Project and fleet Insights** gain code totals, a churn-by-day chart, and per-agent commits/lines, all behind an honest "Code stats based on N of M tasks" caption derived from a `MetricsMissingCode` counter — so a fleet of pre-v8.0 tasks gets a quiet empty state instead of a wall of zeros.
+- **Mission-control cards** show a compact `+412 / −97 · 3 merges` shipped line, derived from the single Fleet-insights fetch the rollup already makes (no per-card recompute, no extra RPC).
+- **CSV and Markdown exports** and the **weekly digest** carry the numbers through, so a report says what got built, not only how many tasks were marked done.
+
+## The rich markdown editor
+
+Quieter, but long-requested ([#22](https://github.com/watchfire-io/watchfire)): the plain `<textarea>` markdown surfaces — project definition, the Add Project wizard, and the task modal's `prompt` and `acceptance_criteria` fields — are now a real CodeMirror 6 editor with a formatting toolbar, `Cmd+B`/`Cmd+I`, and a source ⇄ split ⇄ preview toggle. Per spec it's **source + live preview, not WYSIWYG** — those values round-trip through YAML block scalars where exact markdown and whitespace must survive, and a re-serialising WYSIWYG is the wrong tool for that. It's themed entirely with the app's `--wf-*` tokens, so it follows dark/light mode for free.
+
+## How to get it
+
+Inferno ships with the version bumped across `version.json`, `gui/package.json`, and the lockfile together, so every component advertises **8.0.0**. The blast radius is contained to `gui/` and the daemon's metrics/insights plumbing; `ARCHITECTURE.md` was updated for the multi-window model. The full itemised breakdown is in the [changelog](/docs/changelog#800-inferno).

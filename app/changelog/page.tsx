@@ -47,6 +47,14 @@ export const metadata: Metadata = {
 // Deep-dive blog posts that map to a specific release. Only entries that
 // actually exist in content/blog/ — verify before adding.
 const DEEP_DIVES: Record<string, { slug: string; label: string }> = {
+  "9.0.0": {
+    slug: "2026-07-26-firestorm-9-0-watchfire-as-a-factory",
+    label: "Firestorm: a factory agents can drive",
+  },
+  "8.0.0": {
+    slug: "2026-06-29-inferno-8-0-parallel-workspaces",
+    label: "Inferno: one window per project",
+  },
   "7.1.0": {
     slug: "2026-05-14-hello-world",
     label: "Read the launch post",

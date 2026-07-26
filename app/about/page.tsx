@@ -112,8 +112,12 @@ const story: StoryEntry[] = [
     text: "Two-way integrations, fleet and per-project insights, and the inline diff viewer.",
   },
   {
-    marker: "v7.3.0 Forge (today)",
-    text: "A GUI focus-chat mode that hands the agent terminal the full width, the running version under the sidebar logo, and a 1 GB cap on the daemon log.",
+    marker: "v8.0.0 Inferno",
+    text: "The parallel-workspaces release: a multi-window GUI with one window per project, a chat-primary layout, wildfire mode in the GUI, a mission-control home window, and code-output analytics that measure what the agents actually shipped.",
+  },
+  {
+    marker: "v9.0.0 Firestorm (today)",
+    text: "Watchfire becomes something agents drive: an 18-tool MCP server exposes the whole orchestrator to Claude Code, Codex, Gemini CLI, opencode and Copilot CLI, so an outer agent plans and reviews while Watchfire manufactures the code in sandboxed worktrees.",
   },
 ];
 

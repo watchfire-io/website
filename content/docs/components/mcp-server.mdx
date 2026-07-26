@@ -1,0 +1,129 @@
+---
+title: MCP Server (watchfire mcp)
+description: The stdio MCP server that exposes Watchfire's orchestrator to any MCP-capable client as an 18-tool factory — tool catalog, read-only mode, per-harness setup, and the local-only guarantee.
+---
+
+`watchfire mcp serve` exposes the whole orchestrator over the [Model Context Protocol](https://modelcontextprotocol.io) as an **18-tool factory**. Where the CLI, TUI and GUI let *you* drive coding agents, the MCP server lets an *agent* drive Watchfire: the outer client plans and reviews, and Watchfire manufactures the code in sandboxed, git-worktree-isolated runs and merges the results.
+
+Shipped in [v9.0.0 "Firestorm"](/docs/changelog#900-firestorm).
+
+## The factory loop
+
+```
+create_task → run_task → wait_for_task → get_task → get_task_diff → iterate
+```
+
+## The fourth thin client
+
+The MCP server contains **no orchestration logic of its own**. Every tool call is a translation to an existing daemon gRPC RPC, exactly like a keypress in the TUI or a click in the GUI. The daemon remains the single brain — worktrees, sandboxing, merging, chaining and notifications all behave identically.
+
+A task created over MCP is indistinguishable from one typed into the TUI: same validation, same worktree, same sandbox, same merge path.
+
+## Local-only by construction
+
+The server's only transport is **stdio**. It is spawned as a subprocess by an MCP client on the same host as the daemon, it never opens a listening socket, and nothing in v9.0 makes Watchfire reachable from outside the machine.
+
+This is enforced rather than asserted:
+
+- A source-parsing test fails the build on any listener or non-stdio transport in the serve path.
+- The end-to-end test inspects the live process from outside to confirm no socket exists.
+
+<Callout type="warn">
+**Recursion caveat.** Pointing an agent at a Watchfire that can start agents is a loop worth supervising deliberately. Start with `--read-only` if you want to observe the shape of it first.
+</Callout>
+
+## Setup
+
+Pick one of the five known harnesses and Watchfire does the setup for you:
+
+```bash
+watchfire mcp install claude-code
+watchfire mcp install codex
+watchfire mcp install gemini
+watchfire mcp install opencode
+watchfire mcp install copilot
+```
+
+Run it with no argument for an interactive picker with detection badges. Every installer is **idempotent**, and an existing config file is never clobbered — JSON configs are parse-merge-write key-by-key so unrelated keys survive, and the Codex TOML merge is line-based so comments and unrelated tables survive verbatim. If a client is missing or its config won't parse, you get printed manual instructions instead of a failure.
+
+For any other client, `watchfire mcp install --print` emits the generic block:
+
+```json
+{ "command": "watchfire", "args": ["mcp", "serve"] }
+```
+
+The same installer also backs **TUI Settings → MCP** and **GUI Global Settings → MCP**, so no surface reads a harness config itself and the wording cannot drift.
+
+## Project scoping
+
+Tools take an optional `project` argument (id or name). Started inside a registered project directory, that project is the default and the argument may be omitted — mirroring the CLI's directory walk-up. A single server instance can address **all** registered projects.
+
+## Tool catalog
+
+### Project tools
+
+| Tool | What it does |
+| --- | --- |
+| `list_projects` | Project list enriched with live agent status |
+| `get_project` | Project + git info + task counts + agent status |
+
+### Task-factory tools
+
+| Tool | What it does |
+| --- | --- |
+| `create_task` | Create a task; `status` is `draft` (default) or `ready` |
+| `update_task` | Partial update, restricted to `draft` ↔ `ready` |
+| `delete_task` | **Soft** delete, reversible from the TUI/GUI Trash |
+
+All task tools write exclusively through the validated `TaskService` gRPC path — no YAML is ever authored directly, so MCP-created tasks cannot reproduce the malformed-file class of bug.
+
+`ready` only **queues** a task. It does not auto-start an agent.
+
+### Run tools
+
+| Tool | What it does |
+| --- | --- |
+| `run_task` | Run a single task |
+| `run_all` | Run all ready tasks sequentially |
+| `start_wildfire` | Start the autonomous loop |
+| `stop_agent` | Stop the running agent (idempotent) |
+| `get_agent_status` | Current mode, task, and health |
+| `wait_for_task` | Block until a task completes |
+
+Watchfire runs at most one agent per project, so the three starters **refuse** when an agent is already running — naming its mode and task — rather than silently replacing the in-flight run.
+
+`wait_for_task` reports a timeout as a normal `timed_out: true` result carrying live agent status, not an error. Call it again to keep waiting.
+
+### Inspect tools
+
+| Tool | What it does |
+| --- | --- |
+| `list_tasks` | Task list for a project |
+| `get_task` | A single task's full record |
+| `get_task_diff` | Unified-diff text with per-file and total counts |
+| `get_agent_screen` | Tail of the live agent terminal, ANSI stripped |
+| `get_insights` | Throughput + cost + shipped-code summary |
+| `list_logs` | Past session transcripts |
+| `get_log` | One transcript, capped with a truncation note |
+
+## Read-only mode
+
+```bash
+watchfire mcp serve --read-only
+```
+
+Serves exactly **8 of the 18** tools — the project and inspect groups. The write and run tools are filtered at *registration* time, so they never appear in `tools/list` at all rather than being refused when called. Suitable for dashboards or less-trusted callers.
+
+## Tool descriptions are a contract
+
+The catalog is the only thing an outer model reads before choosing a call, so every tool carries a paragraph stating *consequences*, a title, and MCP annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint: false` — the tools' world is this machine).
+
+Errors follow the same principle: they are read by a model, not a human tailing a log, so they name the problem *and* the way out. An unreachable daemon reports the command that fixes it; an unknown project answers "not found — known projects: …".
+
+## Troubleshooting
+
+**The client reports a crash on exit.** Fixed in v9.0.0. The MCP spec stops a stdio server by closing its stdin; that previously surfaced as a session error, so `mcp serve` exited 1 on every normal shutdown. Clean shutdowns now exit 0.
+
+**Nothing happens after setting a task to `ready`.** That's correct behaviour — `ready` queues. Call `run_task` (or `run_all`) to start work.
+
+**A tool call reports the daemon is unreachable.** The MCP server is a thin client and needs a local `watchfired`; the error message includes the command to start it.

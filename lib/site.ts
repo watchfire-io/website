@@ -7,12 +7,12 @@ export const siteTagline = "Better context. Better code.";
 export const siteTitle = `${siteName} — ${siteTagline}`;
 
 export const siteDescription =
-  "Better context. Better code. Watchfire turns clear specs into scoped tasks, then lets Claude Code, OpenAI Codex, opencode, Gemini CLI, or GitHub Copilot CLI build them in sandboxed git worktrees.";
+  "Better context. Better code. Watchfire turns clear specs into scoped tasks, then lets Claude Code, OpenAI Codex, opencode, Gemini CLI, GitHub Copilot CLI, or Cursor Agent build them in sandboxed git worktrees.";
 
 export const siteShareDescription =
-  "Better context. Better code. Define what you want, and let Claude Code, OpenAI Codex, opencode, Gemini CLI, or GitHub Copilot CLI build it — in sandboxed git worktrees with clean transcripts.";
+  "Better context. Better code. Define what you want, and let Claude Code, OpenAI Codex, opencode, Gemini CLI, GitHub Copilot CLI, or Cursor Agent build it — in sandboxed git worktrees with clean transcripts.";
 
-export const softwareVersion = "7.3.0";
+export const softwareVersion = "9.0.0";
 
 export const socialLinks = {
   github: "https://github.com/watchfire-io/watchfire",

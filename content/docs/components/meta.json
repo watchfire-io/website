@@ -3,6 +3,7 @@
   "pages": [
     "daemon",
     "cli",
-    "gui"
+    "gui",
+    "mcp-server"
   ]
 }
