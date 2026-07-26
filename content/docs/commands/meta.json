@@ -10,7 +10,9 @@
     "daemon",
     "definition",
     "settings",
+    "integrations",
     "status",
+    "metrics",
     "update"
   ]
 }

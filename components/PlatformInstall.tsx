@@ -52,6 +52,7 @@ const DownloadIcon = () => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
+    aria-hidden="true"
   >
     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
     <polyline points="7 10 12 15 17 10" />
@@ -70,6 +71,7 @@ const ChevronIcon = ({ open }: { open: boolean }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     className={`transition-transform ${open ? "rotate-180" : ""}`}
+    aria-hidden="true"
   >
     <path d="M4 6l4 4 4-4" />
   </svg>
@@ -300,6 +302,7 @@ export default function PlatformInstall({
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  aria-hidden="true"
                 >
                   <polyline points="3.5 8.5 6.5 11.5 12.5 5.5" />
                 </svg>
@@ -316,6 +319,7 @@ export default function PlatformInstall({
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  aria-hidden="true"
                 >
                   <rect x="5" y="5" width="8" height="8" rx="1.5" />
                   <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" />

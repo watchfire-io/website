@@ -15,7 +15,7 @@ export function Footer() {
           {/* Brand + tagline */}
           <div className="flex max-w-sm flex-col items-center gap-3 text-center sm:items-start sm:text-left">
             <div className="flex items-center gap-2">
-              <Image src="/logo.svg" alt="Watchfire" width={28} height={28} />
+              <Image src="/logo.svg" alt="" width={28} height={28} aria-hidden="true" />
               <span className="text-lg font-semibold text-zinc-900 dark:text-white">Watchfire</span>
             </div>
             <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
@@ -36,8 +36,23 @@ export function Footer() {
               </a>
             </li>
             <li>
+              <Link href="/docs/contributing" className="text-zinc-500 transition-colors hover:text-fire-600 dark:text-zinc-400 dark:hover:text-fire-400">
+                Contributing
+              </Link>
+            </li>
+            <li>
               <Link href="/docs/changelog" className="text-zinc-500 transition-colors hover:text-fire-600 dark:text-zinc-400 dark:hover:text-fire-400">
                 Changelog
+              </Link>
+            </li>
+            <li>
+              <Link href="/brand" className="text-zinc-500 transition-colors hover:text-fire-600 dark:text-zinc-400 dark:hover:text-fire-400">
+                Brand
+              </Link>
+            </li>
+            <li>
+              <Link href="/privacy" className="text-zinc-500 transition-colors hover:text-fire-600 dark:text-zinc-400 dark:hover:text-fire-400">
+                Privacy
               </Link>
             </li>
             <li>

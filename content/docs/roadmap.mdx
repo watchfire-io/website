@@ -1,0 +1,133 @@
+---
+title: Roadmap
+description: A snapshot of where Watchfire is heading after Forge — what's shipped, what's likely next, and what we're still thinking about.
+---
+
+This page is a snapshot of intent, not a commitment. Watchfire is open
+source and small, and priorities shift with what users actually run into.
+Everything below is grounded in the [Forge (v7.0.0)](/docs/changelog)
+release on top of the [Beacon (v4.0.0)](/docs/changelog#400-beacon)
+foundation — the [notification bus](/docs/glossary#notification-bus), the
+[outbound relay framework](/docs/concepts/integrations#outbound), the
+[inbound HTTP server](/docs/concepts/integrations#inbound), the
+[insights pipeline](/docs/concepts/insights), and the dynamic system
+tray. If something here matters to you, jump to
+[How to influence the roadmap](#how-to-influence-the-roadmap).
+
+<Callout title="Roadmap, not commitment">
+Items are listed by intent, not by date. We don't promise quarters and
+won't ship anything that pretends to be a feature when it isn't. If a
+"Next" item is blocking you, the fastest path is an issue or a PR — see
+the bottom of the page.
+</Callout>
+
+## Now (shipped — v7.0.0 Forge)
+
+Forge brings manual task reordering across the full stack and fixes
+two long-standing GUI papercuts (chat viewport snap-to-zero and
+Open-in-IDE PATH resolution). The [full changelog](/docs/changelog)
+has every entry; the short version:
+
+- **Manual task reordering across the full stack** —
+  `TaskService.ReorderTasks` RPC backs `Shift+↑/↓` in the TUI and
+  `@dnd-kit`-powered drag-and-drop in the GUI. Both surfaces apply
+  the new order optimistically, then either commit the server
+  response or revert the snapshot + toast on RPC failure.
+- **Canonical task work order — `(position ASC, task_number ASC)`** —
+  replaces the silent task-number-descending sort that walked
+  `start-all` and `wildfire` queues backwards. `Position` was always
+  on the model; Forge finally honours it. New tasks default to the
+  bottom of the queue (`max(active.position) + 1`) so manual
+  reorderings survive task creation.
+- **GUI chat terminal viewport stays put on scroll** — daemon-side
+  `SubscribeRawFrom(id, bytesReceived)` lets the client resume from
+  a byte cursor instead of replaying the full raw buffer; the
+  client-side subscribe effect is idempotent and the unsubscribe
+  path is debounced 3 s so a single 2 s status-poll flicker can't
+  tear down a live subscription. Plus xterm `scrollback` raised from
+  1 000 to 10 000 lines.
+- **GUI Open-in-IDE finds CLIs in Homebrew + `/usr/local/bin`** —
+  the GUI inherits a stripped-down PATH when launched from
+  Finder/Dock; a new `spawnEnv()` helper prepends the well-known
+  macOS install locations (`/usr/local/bin`, `/usr/local/sbin`,
+  `/opt/homebrew/bin`, `/opt/homebrew/sbin`, `~/.local/bin`,
+  `~/bin`) so `code`, `cursor`, `windsurf`, `zed`, `subl`,
+  `webstorm`, `idea`, and `fleet` all launch correctly.
+
+## Next (v8.0)
+
+Plausible next steps that fall naturally out of the Forge architecture
+— written as direction, not as scoped work.
+
+- **Richer report templates** — the Markdown export already runs through
+  templates under `internal/daemon/insights/templates/`. Expanding the
+  template set (per-agent breakdowns, cost-per-task heatmaps, custom
+  date ranges) is incremental work on the existing pipeline.
+- **Additional outbound adapters** — the
+  [outbound `Adapter` interface](/docs/concepts/integrations#outbound)
+  is intentionally generic. New adapters (e.g. Microsoft Teams, Linear,
+  generic SMTP) plug into the same `Dispatcher`, retry timing, and
+  circuit breaker without touching the bus.
+- **More inbound provider handlers** — the
+  [inbound HTTP server](/docs/concepts/integrations#inbound) is built
+  around `RegisterProvider(method, path, handler)`. New verifiers and
+  dispatch handlers (more GitHub event types, Slack event subscriptions
+  beyond slash commands, generic webhook ingest) are additive.
+- **Expanded backend matrix** — the
+  [pluggable agent backend interface](/docs/concepts/supported-agents)
+  already covers Claude Code, OpenAI Codex, opencode, Gemini CLI,
+  GitHub Copilot CLI, and Cursor. Filling in the Copilot and Cursor
+  metrics stubs (so token and cost rollups stop being partial) and
+  adding new backends as they appear are natural follow-ups.
+- **GUI parity for the Phoenix TUI overlays** — the Project Settings
+  sidebar, Branches overlay, and Trash filter mode all landed in the
+  TUI first. Bringing them across to the Electron client is mostly
+  layout work on top of the existing gRPC surface.
+- **Concurrent-edit handling for the Definition `$EDITOR` flow** —
+  Phoenix's last-write-wins is fine for now but a preconditioned
+  `UpdateProject` (with an `UpdatedAt` field on the proto) would let
+  two simultaneous editors converge instead of clobber.
+
+## Later (exploratory)
+
+These are honest "we're thinking about it" items — open questions, not
+queued work. They exist on this list because users keep asking; they
+are not scoped, sized, or scheduled.
+
+- **Cloud / hosted daemon mode** — a hosted `watchfired` so teams can
+  drive runs from any machine, not just the one the daemon was
+  installed on. The daemon is already a network service; the hard parts
+  are auth, multi-tenancy, and what "sandbox" means off your laptop.
+- **Multi-user fleet view** — shared dashboards, shared insights,
+  shared integration credentials across a small team. Today the daemon
+  is
+  single-user by design; opening that up means redesigning identity and
+  the secret store, not just adding a column to a table.
+- **Deeper editor integrations** — beyond the bundled VS Code shells
+  inside the GUI, there is interest in tighter integration with editors
+  (cursor positioning, in-editor task creation, diff overlays). Whether
+  this lives in Watchfire or in editor extensions that talk to the
+  daemon over gRPC is still an open call.
+
+## How to influence the roadmap
+
+Roadmaps move when users push them. The fastest paths:
+
+- **Feature requests** —
+  [open an issue](https://github.com/watchfire-io/watchfire/issues) on
+  the Watchfire repo. The
+  [bug report and feature templates](https://github.com/watchfire-io/watchfire/issues/new/choose)
+  cover the common shapes; for anything that doesn't fit, an empty
+  issue with a clear title is fine.
+- **Open-ended discussion** — start a thread in
+  [GitHub Discussions](https://github.com/watchfire-io/watchfire/discussions)
+  if the idea isn't yet shaped enough to be an issue. Discussions are
+  also where the "Later" items above tend to get refined.
+- **Release history** — the [changelog](/docs/changelog) is the
+  authoritative record of what has actually shipped. If you're trying
+  to figure out whether a roadmap item has graduated to the changelog,
+  that's the page to check.
+- **Contribute directly** — see the
+  [contributing guide](/docs/contributing) for how to land a PR. The
+  `good first issue` and `help wanted` labels are the easiest entry
+  points.

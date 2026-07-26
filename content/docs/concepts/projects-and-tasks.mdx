@@ -3,8 +3,6 @@ title: Projects and Tasks
 description: Understand Watchfire's project configuration and task lifecycle. Projects and tasks are defined as YAML files.
 ---
 
-# Projects and Tasks
-
 Watchfire uses YAML files to define projects and tasks. This file-based approach makes it easy to version control your task definitions and inspect state at any time.
 
 ## Project Configuration
@@ -37,7 +35,7 @@ next_task_number: 5
 
 ### Agent Selection
 
-`default_agent` is a first-class project setting. Set it when you want a project to prefer one backend by default, such as `codex`, `claude-code`, `opencode`, `gemini`, or `copilot`.
+`default_agent` is a first-class project setting. Set it when you want a project to prefer one backend by default, such as `codex`, `claude-code`, `opencode`, `gemini`, `copilot`, or `cursor`.
 
 The field is optional. When Watchfire needs to decide which backend to run for a task or session, it resolves the effective agent in this order:
 
@@ -97,6 +95,7 @@ acceptance_criteria: |
 status: draft
 success: null
 failure_reason: ""
+merge_failure_reason: ""
 position: 1
 agent_sessions: 0
 created_at: "2026-01-15T10:30:00Z"
@@ -115,7 +114,8 @@ updated_at: "2026-01-15T10:30:00Z"
 | `acceptance_criteria` | string | How to verify the task is complete |
 | `status` | enum | `draft`, `ready`, or `done` |
 | `success` | bool/null | `null` (pending), `true`, or `false` |
-| `failure_reason` | string | Explanation if `success: false` |
+| `failure_reason` | string | Agent-reported failure (set by the agent when `success: false`) |
+| `merge_failure_reason` | string | Auto-merge failure populated by the daemon when the silent merge can't land — e.g. dirty default branch, merge conflict, post-merge hook failure. The task's own work still landed on its `watchfire/<n>` branch; only the merge step failed |
 | `position` | int | Order within the task list |
 
 ### Task Agent Override
@@ -153,8 +153,12 @@ A task in `ready` status is queued for execution. If `auto_start_tasks` is enabl
 ### Done
 
 A task in `done` status has been completed (or failed). Check the `success` field:
-- `success: true` — Task completed successfully
+- `success: true` — Task completed successfully. If the auto-merge later failed (dirty default branch, merge conflict, post-merge hook), `merge_failure_reason` is populated and a `TASK_FAILED` notification fires; the run-all chain stops so the user can resolve the merge by hand. The agent's work itself is preserved on `watchfire/<n>`.
 - `success: false` — Task failed or was blocked. Check `failure_reason` for details.
+
+## Reviewing work
+
+Both clients expose an inline diff view of a task's changes. It works pre-merge (against the `watchfire/<n>` branch) and post-merge (resolving the merge commit). Output is `cap at 10000 lines`. Open the [Inspect tab](/docs/components/gui#inspect) in the GUI, or press `d` in the [CLI/TUI](/docs/components/cli) for the same view.
 
 ## Multi-Project Management
 

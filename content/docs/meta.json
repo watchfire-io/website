@@ -11,7 +11,18 @@
     "components",
     "---Commands---",
     "commands",
+    "---Reference---",
+    "compare",
+    "contributing",
+    "security",
+    "troubleshooting",
+    "tips",
+    "recipes",
+    "glossary",
+    "keyboard-shortcuts",
     "---Changelog---",
-    "changelog"
+    "changelog",
+    "---Roadmap---",
+    "roadmap"
   ]
 }

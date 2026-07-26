@@ -1,23 +1,35 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import HeroIllustration from "@/components/HeroIllustration";
+import AnimatedTerminal from "@/components/AnimatedTerminal";
 import DownloadInstall from "@/components/DownloadInstall";
 import GitHubStars from "@/components/GitHubStars";
 import HowItWorks from "@/components/HowItWorks";
 import AgentModes from "@/components/AgentModes";
 import AgentBackends from "@/components/AgentBackends";
 import ComponentsOverview from "@/components/ComponentsOverview";
+import ProductShowcase from "@/components/ProductShowcase";
 import KeyFeatures from "@/components/KeyFeatures";
+import RawVsWatchfire from "@/components/RawVsWatchfire";
+import CommonWorkflows from "@/components/CommonWorkflows";
+import FleetOps from "@/components/FleetOps";
+import FAQ from "@/components/FAQ";
+import FAQJsonLd from "@/components/FAQJsonLd";
 import FinalCTAServer from "@/components/FinalCTAServer";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
+export const metadata: Metadata = {
+  description:
+    "Watchfire is a remote control for AI coding agents — turn specs into scoped tasks, run each in a sandboxed git worktree, and ship clean reviewable diffs.",
+};
+
 export default async function Home() {
   return (
     <>
     <Header />
-    <main>
+    <main id="main-content" className="pt-16">
     <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden px-4 py-16 sm:px-6 sm:py-24">
       {/* Ambient glow blobs */}
       <div
@@ -40,9 +52,9 @@ export default async function Home() {
       />
 
       <div className="hero-entrance relative mx-auto flex w-full max-w-7xl flex-col items-center gap-6 sm:gap-10 md:flex-row md:items-center md:gap-12 lg:gap-20">
-        {/* Illustration — on mobile: shown above text, on md+: shown to the right */}
-        <div className="w-full max-w-xs sm:max-w-sm md:order-2 md:max-w-none md:flex-1">
-          <HeroIllustration />
+        {/* Animated terminal — on mobile: shown above text, on md+: shown to the right */}
+        <div className="w-full md:order-2 md:flex-1">
+          <AnimatedTerminal />
         </div>
 
         {/* Text content */}
@@ -50,16 +62,16 @@ export default async function Home() {
           <div className="mb-5 flex flex-wrap justify-center gap-2 md:justify-start">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-fire-500/30 bg-fire-500/10 px-3 py-1 text-xs font-medium text-fire-600 shadow-[0_0_20px_rgba(224,112,64,0.15)] backdrop-blur-sm dark:border-fire-400/40 dark:bg-fire-400/10 dark:text-fire-300 sm:text-sm">
               <span className="relative inline-flex h-1.5 w-1.5">
-                <span className="absolute inset-0 animate-ping rounded-full bg-fire-500/60 dark:bg-fire-400/60" />
+                <span className="absolute inset-0 animate-ping rounded-full bg-fire-500/60 motion-reduce:animate-none dark:bg-fire-400/60" />
                 <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-fire-500 dark:bg-fire-400" />
               </span>
-              v3.0.0 — Blaze
+              v7.1.0 — Forge
             </span>
             <Link
-              href="/docs/changelog#300-blaze"
+              href="/docs/changelog#710-forge"
               className="group inline-flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white/70 px-3 py-1 text-xs font-medium text-zinc-700 backdrop-blur-sm transition-colors hover:border-fire-500/50 hover:text-fire-600 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300 dark:hover:border-fire-400/50 dark:hover:text-fire-300 sm:text-sm"
             >
-              Now with GitHub Copilot CLI
+              Forge 7.1: chat typing fix, mode-switch toast, prompt visibility
               <svg
                 className="transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
                 width="12"
@@ -84,7 +96,7 @@ export default async function Home() {
           </h1>
 
           <p className="mt-4 text-base font-medium text-zinc-700 dark:text-zinc-300 sm:text-xl md:text-2xl">
-            Define what you want. Let Claude Code, Codex, opencode, Gemini CLI, and GitHub Copilot CLI build it — safely.
+            Define what you want. Let Claude Code, Codex, opencode, Gemini CLI, GitHub Copilot CLI, and Cursor build it — safely.
           </p>
 
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 sm:mt-6 sm:text-base md:mx-0 lg:text-lg">
@@ -97,7 +109,7 @@ export default async function Home() {
               className="group inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white/70 px-4 py-2.5 text-sm font-medium text-zinc-700 backdrop-blur-sm transition-all hover:border-fire-500/50 hover:text-zinc-900 hover:shadow-[0_0_20px_rgba(224,112,64,0.15)] dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300 dark:hover:border-fire-400/50 dark:hover:text-white sm:px-5 sm:py-3 sm:text-base"
             >
               Documentation
-              <svg className="transition-transform group-hover:translate-x-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="transition-transform group-hover:translate-x-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M5 12h14M13 5l7 7-7 7" />
               </svg>
             </Link>
@@ -125,16 +137,11 @@ export default async function Home() {
     </section>
 
     {/* Section divider */}
-    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
-
-    <ScrollReveal staggerChildren>
-      <HowItWorks />
-    </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
 
     <ScrollReveal staggerChildren>
-      <ComponentsOverview />
+      <AgentModes />
     </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
@@ -146,13 +153,56 @@ export default async function Home() {
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
 
     <ScrollReveal staggerChildren>
-      <AgentModes />
+      <FleetOps />
     </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
 
     <ScrollReveal>
       <KeyFeatures />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal>
+      <RawVsWatchfire />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal staggerChildren>
+      <CommonWorkflows />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal>
+      <FinalCTAServer />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal staggerChildren>
+      <HowItWorks />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal staggerChildren>
+      <ProductShowcase />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <ScrollReveal staggerChildren>
+      <ComponentsOverview />
+    </ScrollReveal>
+
+    <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />
+
+    <FAQJsonLd />
+    <ScrollReveal>
+      <FAQ />
     </ScrollReveal>
 
     <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent opacity-70 dark:via-zinc-800" />

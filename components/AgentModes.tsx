@@ -3,7 +3,7 @@ const modes = [
     name: "Wildfire",
     description: "Autonomous loop — execute ready tasks, refine drafts, generate new tasks, repeat.",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M12 2c.5 4-2.5 6-2.5 10a5 5 0 1010 0C19.5 8 15 4 12 2z" />
         <path d="M12 22v-4" />
       </svg>
@@ -14,7 +14,7 @@ const modes = [
     name: "Chat",
     description: "Interactive session with the coding agent — ask questions, iterate, and pair-program.",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
       </svg>
     ),
@@ -23,7 +23,7 @@ const modes = [
     name: "Task",
     description: "Execute a single task from the task list in its own worktree.",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
         <rect x="9" y="3" width="6" height="4" rx="1" />
         <path d="M9 14l2 2 4-4" />
@@ -34,7 +34,7 @@ const modes = [
     name: "Start All",
     description: "Run every ready task sequentially, one worktree per task.",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <polygon points="5 3 19 12 5 21 5 3" />
         <line x1="19" y1="3" x2="19" y2="21" />
       </svg>
@@ -44,7 +44,7 @@ const modes = [
     name: "Generate Definition",
     description: "Auto-generate a project definition by scanning your codebase.",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
         <polyline points="14 2 14 8 20 8" />
         <line x1="12" y1="18" x2="12" y2="12" />
@@ -56,7 +56,7 @@ const modes = [
     name: "Generate Tasks",
     description: "Break down the project definition into discrete, ready-to-run tasks.",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="3" y="3" width="7" height="7" rx="1" />
         <rect x="14" y="3" width="7" height="7" rx="1" />
         <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -118,7 +118,7 @@ export default function AgentModes() {
                 </>
               )}
 
-              <div className="relative flex items-start justify-between gap-3">
+              <div className="relative">
                 <div
                   className={`inline-flex rounded-lg p-2.5 transition-all ${
                     mode.highlighted
@@ -128,14 +128,6 @@ export default function AgentModes() {
                 >
                   {mode.icon}
                 </div>
-                {mode.highlighted && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-fire-500/40 bg-fire-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-fire-600 dark:text-fire-300">
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M12 2l2.35 6.95H21l-5.32 3.86 2.02 6.19L12 14.88l-5.7 4.12 2.02-6.19L3 8.95h6.65z" />
-                    </svg>
-                    Flagship
-                  </span>
-                )}
               </div>
               <h3 className={`mt-4 text-lg font-semibold ${mode.highlighted ? "text-zinc-900 dark:text-white" : "text-zinc-900 dark:text-white"}`}>
                 {mode.name}

@@ -1,9 +1,23 @@
 ---
 title: Installation
-description: Install Watchfire on macOS, Linux, or Windows.
+description: Install Watchfire on macOS, Linux, or Windows — desktop installer, Homebrew tap, or build from source. Bundles daemon, CLI, TUI, and GUI.
+howto:
+  name: Install Watchfire
+  totalTime: PT5M
+  steps:
+    - name: Check prerequisites
+      text: Confirm you are on macOS, Linux, or Windows and have at least one supported agent backend installed and authenticated (Claude Code, OpenAI Codex, opencode, Gemini CLI, or GitHub Copilot CLI).
+      url: https://watchfire.io/docs/installation#prerequisites
+    - name: Download the installer
+      text: Grab the latest desktop installer for your platform from the download section; the .dmg, AppImage, .deb, and .exe each bundle the GUI, CLI, and daemon.
+      url: https://watchfire.io/docs/installation#download
+    - name: Install via package manager (optional)
+      text: On macOS or Linux you can install with Homebrew using brew tap watchfire-io/tap and brew install watchfire-io/tap/watchfire (cask for the desktop app, formula for CLI plus daemon).
+      url: https://watchfire.io/docs/installation#install-via-homebrew
+    - name: Verify the installation
+      text: Run watchfire version, then watchfire daemon start and watchfire daemon status to confirm the CLI and daemon are working.
+      url: https://watchfire.io/docs/installation#verify-installation
 ---
-
-# Installation
 
 ## Prerequisites
 
@@ -110,3 +124,5 @@ watchfire daemon status
 ```
 
 If you plan to run tasks immediately, also verify that your chosen agent backend is installed and authenticated outside Watchfire first.
+
+If anything in this flow fails — daemon won't start, GUI shows "no daemon", agent backend reports an auth error — see [Troubleshooting](/docs/troubleshooting).

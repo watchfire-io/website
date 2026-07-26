@@ -4,7 +4,7 @@ const components = [
     tag: "watchfire",
     description: "Project-scoped commands plus a rich interactive TUI with split-pane task navigation and live output.",
     illustration: (
-      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
+      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full" aria-hidden="true">
         <defs>
           <linearGradient id="co-cli-bg" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#22262f" />
@@ -103,7 +103,7 @@ const components = [
     tag: "Watchfire.app",
     description: "Electron multi-project client with a native feel, sidebar navigation, and embedded live terminals.",
     illustration: (
-      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
+      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full" aria-hidden="true">
         <defs>
           <linearGradient id="co-gui-bg" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#22262f" />
@@ -216,7 +216,7 @@ const components = [
     tag: "watchfired",
     description: "Background service handling orchestration, PTY management, git workflows, and the gRPC API.",
     illustration: (
-      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full">
+      <svg viewBox="0 0 400 280" fill="none" className="h-full w-full" aria-hidden="true">
         <defs>
           <radialGradient id="co-hub-glow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#ffb347" stopOpacity="0.9" />
