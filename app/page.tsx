@@ -73,7 +73,7 @@ export default async function Home() {
               href="/docs/changelog#900-firestorm"
               className="group inline-flex items-center gap-1.5 rounded-full border border-zinc-300 bg-white/70 px-3 py-1 text-xs font-medium text-zinc-700 backdrop-blur-sm transition-colors hover:border-fire-500/50 hover:text-fire-600 dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-300 dark:hover:border-fire-400/50 dark:hover:text-fire-300 sm:text-sm"
             >
-              Inferno 8.0: multi-window GUI, mission control, code-output analytics
+              Firestorm 9.0: MCP server, 18-tool factory, agent-driven orchestration
               <svg
                 className="transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
                 width="12"
