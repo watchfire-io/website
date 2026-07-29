@@ -12,6 +12,15 @@ the more machine-correct cousin; JSON Feed is the lightweight modern format.
 
 <ChangelogJsonLd />
 
+## [9.1.0] Firestorm
+
+A bug-fix release for Insights. Project Insights, fleet Insights, the CSV/Markdown exports and the weekly digest all showed zeros or near-zeros, because almost no completed task ever received a `completed_at` timestamp — and every rollup filters on it.
+
+### Fixed
+
+- **The daemon now stamps `completed_at` on the done transition.** The completion protocol tells agents never to write timestamps ("the daemon fills them in"), but the daemon never did on the watcher path: when an agent wrote `status: done`, the change handler stopped the agent, captured metrics and merged — without stamping. Only the interactive bulk set-status path stamped it, leaving 6 of 585 done tasks across the fleet with a timestamp. The stamp now happens on the first observed done event, before metrics capture, so `duration_ms` in `<n>.metrics.yaml` is computed from real endpoints instead of degrading to 0. The re-save fires one extra watcher event, which sees the stamp already present and does nothing — with a new guard so a failed task can't emit `TASK_FAILED` twice.
+- **Insights recovers the ~580 pre-9.1 tasks.** A done task's completion time now resolves as `completed_at` → the metrics file's `captured_at` (written seconds after completion) → `updated_at` (the agent's final YAML write), across the per-project aggregator, the fleet aggregator, the CSV/Markdown export stats and the weekly digest. Historical tasks — and their durations, day buckets, agent breakdowns and shipped-code numbers — appear in Insights without a single task file being rewritten.
+
 ## [9.0.0] Firestorm
 
 Firestorm turns Watchfire inside out: instead of only *driving* coding agents, Watchfire is now **driven by** them. `watchfire mcp serve` exposes the whole orchestrator to any MCP-capable client — Claude Code, Codex, Gemini CLI, opencode, Copilot CLI, or a custom agent — as an **18-tool factory**. The outer agent plans and reviews; Watchfire manufactures the code in sandboxed, git-worktree-isolated runs and merges the results. The canonical loop is `create_task` → `run_task` → `wait_for_task` → `get_task` → `get_task_diff` → iterate.

@@ -116,7 +116,7 @@ const story: StoryEntry[] = [
     text: "The parallel-workspaces release: a multi-window GUI with one window per project, a chat-primary layout, wildfire mode in the GUI, a mission-control home window, and code-output analytics that measure what the agents actually shipped.",
   },
   {
-    marker: "v9.0.0 Firestorm (today)",
+    marker: "v9 Firestorm (today)",
     text: "Watchfire becomes something agents drive: an 18-tool MCP server exposes the whole orchestrator to Claude Code, Codex, Gemini CLI, opencode and Copilot CLI, so an outer agent plans and reviews while Watchfire manufactures the code in sandboxed worktrees.",
   },
 ];
