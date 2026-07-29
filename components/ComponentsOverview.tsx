@@ -215,9 +215,11 @@ const components = [
         <text x="298" y="250" fontSize="9" fontFamily="monospace" fill="#f0a070" textAnchor="middle" letterSpacing="0.5">gRPC</text>
 
         <style>{`
-          .co-pulse-1 { animation: co-pulse 3s ease-out infinite; transform-origin: 200px 140px; }
-          .co-pulse-2 { animation: co-pulse 3s ease-out 0.6s infinite; transform-origin: 200px 140px; }
-          .co-pulse-3 { animation: co-pulse 3s ease-out 1.2s infinite; transform-origin: 200px 140px; }
+          /* Animate r rather than transform: scale() — scaling makes the browser stretch
+             a one-off raster of the ring, which shows up as pixelated edges. */
+          .co-pulse-1 { animation: co-pulse-a 3s ease-out infinite; }
+          .co-pulse-2 { animation: co-pulse-b 3s ease-out 0.6s infinite; }
+          .co-pulse-3 { animation: co-pulse-c 3s ease-out 1.2s infinite; }
           .co-line-1, .co-line-2, .co-line-3, .co-line-4 {
             stroke-dashoffset: 0;
             animation: co-dash 2s linear infinite;
@@ -225,9 +227,17 @@ const components = [
           .co-line-2 { animation-delay: 0.3s; }
           .co-line-3 { animation-delay: 0.6s; }
           .co-line-4 { animation-delay: 0.9s; }
-          @keyframes co-pulse {
-            0% { transform: scale(0.85); opacity: 0.4; }
-            100% { transform: scale(1.3); opacity: 0; }
+          @keyframes co-pulse-a {
+            0% { r: 37.4px; opacity: 0.4; }
+            100% { r: 57.2px; opacity: 0; }
+          }
+          @keyframes co-pulse-b {
+            0% { r: 51px; opacity: 0.4; }
+            100% { r: 78px; opacity: 0; }
+          }
+          @keyframes co-pulse-c {
+            0% { r: 66.3px; opacity: 0.4; }
+            100% { r: 101.4px; opacity: 0; }
           }
           @keyframes co-dash {
             to { stroke-dashoffset: -14; }

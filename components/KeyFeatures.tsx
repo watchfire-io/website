@@ -185,16 +185,19 @@ const features = [
         </g>
 
         <style>{`
-          .kf-node-pulse { animation: kf-node-pulse 2s ease-in-out infinite; transform-origin: 295px 220px; }
-          .kf-node-ring { animation: kf-node-ring 2s ease-out infinite; transform-origin: 295px 220px; }
+          /* Geometry (r) rather than transform: scale() — a scaled transform makes the
+             browser rasterize the circle once and stretch the bitmap, which reads as
+             pixelated edges. Animating r re-renders the vector every frame. */
+          .kf-node-pulse { animation: kf-node-pulse 2s ease-in-out infinite; }
+          .kf-node-ring { animation: kf-node-ring 2s ease-out infinite; }
           .kf-run-dot { animation: kf-run-dot 1.2s ease-in-out infinite; }
           @keyframes kf-node-pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); }
+            0%, 100% { r: 5.5px; }
+            50% { r: 6.6px; }
           }
           @keyframes kf-node-ring {
-            0% { transform: scale(0.6); opacity: 0.6; }
-            100% { transform: scale(2); opacity: 0; }
+            0% { r: 7.2px; opacity: 0.6; }
+            100% { r: 24px; opacity: 0; }
           }
           @keyframes kf-run-dot {
             0%, 100% { opacity: 1; }
@@ -427,12 +430,18 @@ const features = [
         ))}
 
         <style>{`
-          .kf-mp-ring-1 { animation: kf-mp-ring 3s ease-out infinite; transform-origin: 200px 140px; }
-          .kf-mp-ring-2 { animation: kf-mp-ring 3s ease-out 0.6s infinite; transform-origin: 200px 140px; }
+          /* r, not transform: scale() — see the note on .kf-node-ring above. Each ring
+             carries its own keyframes because r is absolute where scale was relative. */
+          .kf-mp-ring-1 { animation: kf-mp-ring-a 3s ease-out infinite; }
+          .kf-mp-ring-2 { animation: kf-mp-ring-b 3s ease-out 0.6s infinite; }
           .kf-mp-line { animation: kf-mp-dash 1.6s linear infinite; }
-          @keyframes kf-mp-ring {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            100% { transform: scale(1.3); opacity: 0; }
+          @keyframes kf-mp-ring-a {
+            0% { r: 35.2px; opacity: 0.5; }
+            100% { r: 57.2px; opacity: 0; }
+          }
+          @keyframes kf-mp-ring-b {
+            0% { r: 48px; opacity: 0.5; }
+            100% { r: 78px; opacity: 0; }
           }
           @keyframes kf-mp-dash {
             to { stroke-dashoffset: -14; }
