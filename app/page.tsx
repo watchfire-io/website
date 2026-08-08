@@ -67,7 +67,7 @@ export default async function Home() {
                 <span className="absolute inset-0 animate-ping rounded-full bg-fire-500/60 motion-reduce:animate-none dark:bg-fire-400/60" />
                 <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-fire-500 dark:bg-fire-400" />
               </span>
-              v9.1.0 — Firestorm
+              v9.3.0 — Firestorm
             </span>
             <Link
               href="/docs/changelog#900-firestorm"

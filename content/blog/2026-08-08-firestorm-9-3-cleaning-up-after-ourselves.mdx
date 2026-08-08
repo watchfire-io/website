@@ -1,0 +1,40 @@
+---
+title: "Firestorm 9.3: cleaning up after ourselves"
+date: "2026-08-08"
+summary: "Every non-Claude agent session materializes a scratch home directory under ~/.watchfire — and until now, nothing ever deleted it. One directory per project × mode × task, forever, surviving even project deletion. 9.3 fixes the leak twice: sessions clean up after themselves, and deleting a project sweeps whatever its sessions left behind. The interesting part is deciding what not to delete."
+tags: ["release", "daemon", "practical"]
+author: "Nuno Coração"
+---
+
+Firestorm 9.3 is a small release that closes [#47](https://github.com/watchfire-io/watchfire/issues/47): a disk leak that had been quietly growing since the day Watchfire learned to [run agents other than Claude Code](/blog/2026-05-18-bring-your-own-agent). It's a cleanup release in the most literal sense — the whole changelog is about deleting directories — but the decisions about *when* to delete, *what* to skip, and *what to leave alone on purpose* are the interesting part.
+
+## Why the directories exist at all
+
+Claude Code accepts its system prompt via a CLI flag, so Watchfire can launch it directly. Every other backend — Codex, Copilot, Cursor, Gemini, opencode — wants its context as files in a home directory. So for each session, the daemon materializes a per-session home under `~/.watchfire/<agent>-home/<session>/`: the composed `AGENTS.md` or system prompt, symlinks to the agent CLI's real config, and whatever session state the CLI itself writes while running.
+
+That's a fine mechanism. The bug is what happened afterwards: nothing. No code path ever deleted these directories. One new directory per project × mode × task, for every non-Claude session ever run, forever. Run wildfire overnight on a Codex-backed project and you've minted dozens. Delete the project and — this is the part #47 actually reported — every one of its directories stays behind indefinitely, orphaned under a dot-directory nobody looks inside.
+
+## Fix one: sessions clean up after themselves
+
+The key observation is that the directory has a precise moment of death. Once the session ends and its transcript has been exported to the session log, the per-session home is pure scratch — everything worth keeping has already been copied out. So the daemon now removes the directory right after writing the session log, at the end of the same monitoring path that already handles session teardown.
+
+The removal is guarded the way any daemon-side `rm -rf` should be: a degenerate session name can never resolve the deletion to the home root itself or anywhere outside it. And because the directory is recreated from scratch on the next session with the same name, restarts are unaffected — there was never any state in there worth preserving across runs, which is exactly why deleting it is safe.
+
+## Fix two: project deletion sweeps the leftovers
+
+End-of-session cleanup stops the leak from growing, but it does nothing for the accumulated past, and it can't cover sessions that ended before 9.3 or died in ways that skipped teardown. Hence the second half: deleting a project now sweeps every backend's home root for that project's leftover session homes.
+
+The sweep works because session names are structured: they begin with the project's name slug followed by `:`. Each of the five session-home backends exposes where its home root lives (Claude, which has no per-session home, implements nothing), and project deletion removes every directory whose name carries the deleted project's prefix.
+
+Two edges worth noting:
+
+- **Running sessions are skipped.** A directory belonging to a live session is left for that session's own end-of-session cleanup. Besides being obviously correct, this defuses a genuinely nasty edge case: project name slugs are truncated to 30 characters, so two long-named projects can share a slug. If one is mid-session while the other is deleted, the sweep won't yank the live session's home out from under it.
+- **Deletion stays deliberately shallow.** Watchfire's project deletion has always been an *unregister*, not a purge — the project's own `.watchfire/` tree survives so re-adding it restores tasks and configuration. 9.3 keeps that philosophy for daemon-side state too: session logs, the diff cache, and insights entries are intentionally left alone. They re-attach cleanly if the project comes back, and deleting them would destroy history for no benefit. The sweep removes exactly one category of thing: scratch that no future session will ever read.
+
+## The general lesson
+
+Every "materialize a temp directory" feature is really two features, and the second one — the deletion — is the one that doesn't fail loudly when you forget it. Nothing crashed. No test went red. The daemon worked flawlessly while salting the disk with a directory per session for months, and it took a user noticing `~/.watchfire` bloat to surface it.
+
+The fix pattern generalizes: give scratch state a precise end-of-life moment and delete it there; make destructive owners (project deletion) responsible for sweeping what their children leaked; skip anything still alive; and be explicit about what survives on purpose, so cleanup never quietly becomes data loss.
+
+Full details in the [changelog](/docs/changelog#930-firestorm).

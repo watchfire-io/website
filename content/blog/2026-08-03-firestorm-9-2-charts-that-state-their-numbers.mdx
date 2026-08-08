@@ -1,0 +1,41 @@
+---
+title: "Firestorm 9.2: charts that state their numbers"
+date: "2026-08-03"
+summary: "9.2 is a legibility release for the dashboard. The list view hid task counts exactly when an agent was working, a leaderboard cap silently ate the 'shipped' chip for any project ranked sixth or lower, and both Fleet insights charts rendered shape without a single number on them. Here's what was wrong, why each bug is a little embarrassing in an instructive way, and what changed."
+tags: ["release", "insights", "design"]
+author: "Nuno Coração"
+---
+
+Firestorm 9.1 [fixed the data](/docs/changelog#910-firestorm): Insights had been showing zeros because almost no completed task ever got a `completed_at` timestamp. With the numbers finally real, 9.2 turned out to be about the next problem up the stack — the dashboard was bad at *showing* them. Three of the bugs are worth walking through, because each one is a pattern you've probably shipped yourself.
+
+## The information that disappeared exactly when you wanted it
+
+The mission-control list view renders one row per project: name, status badge, and a `N todo · N in dev · N done` counts line. Except the counts line was written as the `else` branch of the running-agent check. If an agent was working on a project, the row showed the badge and the current task title — and dropped the counts entirely.
+
+Read that back: the one project whose numbers you most want to glance at — the one actively being worked on — was the one project that didn't show them. Nothing about the *project* changed; the information vanished for reasons that had nothing to do with it.
+
+The fix is as boring as the bug: counts render whether or not an agent is running, alongside the badge. The grid view's project card had always done it that way, so the two layouts finally agree. The lesson is the general one: be suspicious of any `else` that swaps information *out* rather than layering information *in*. "We're showing something more important now" is usually a false trade — the row had room for both all along.
+
+## The leaderboard cap that became a data cap
+
+Each project row also carries a "shipped" chip — lines added/removed in the insights window. That chip is derived from the fleet insights top-projects list, which the daemon truncated to five entries.
+
+Five is a perfectly good number… for the thing the cap was built for, which is sizing a leaderboard pill row in the GUI. But when v8.0 added per-project churn, the renderer reached for the same list as a lookup table — and inherited the cap by accident. The result: a project ranked sixth by completed-task count showed no churn at all, however much code it had shipped that week. Not zero — *missing*, which is worse, because a missing chip next to populated ones reads as "this project did nothing."
+
+In 9.2 the daemon returns every project with activity in the window, ordered as before, and truncation moved to the renderers that actually want a leaderboard — the GUI pill row, the TUI's `Top proj` line, and MCP's `get_insights` — each of which now shows a `+N more` affordance instead of silently implying the list was complete. Caps are presentation decisions; the moment a capped list gets reused as a data source, the cap becomes a bug.
+
+There's a sequel to this one. The fleet insights cache at `~/.watchfire/insights-cache/_global.json` carried no schema stamp, so an upgraded daemon would keep serving pre-9.2 entries — still capped at five — until some task happened to complete and cascade an invalidation. You'd install the fix and not get it. Cache entries now carry a `schema` field; a mismatch reads as a cache miss, and a write replaces a foreign-schema file wholesale rather than merging into it and relabelling stale data as fresh. If you cache derived data and ever change how it's derived, version the cache — the bug you fix next is otherwise invisible behind the one you just fixed.
+
+## Shape without magnitude
+
+The Fleet insights card has two charts: tasks per day, and a per-agent breakdown bar. Until 9.2, neither rendered a single number. You could see *when* the fleet was busy — the shape was all there — but never *how* busy without hovering cell by cell. A chart that only answers questions on hover isn't a chart; it's a quiz.
+
+Now the numbers are just… on the charts. Tasks-per-day shows `peak N · M total` (plus window churn when code metrics exist), and the agent bar states its total tasks and agent count. The tasks chart also labels itself `last 30d` when a 90-day window gets trimmed to the rendered cells — previously the headline could be read as covering the whole window when it wasn't, which is a quiet way to lie.
+
+Hovering got rebuilt too, since it's still where the detail lives. The old tooltips were native `title` attributes: the browser's ~1-second delay, no styling, one flat string. They're replaced with proper hover cards — hovering a day shows the date, the succeeded/failed split, and lines added/removed; hovering an agent segment shows its task count and fleet share, success rate and average duration, churn and commits. The cards flip alignment near the container edges so they can't clip, and they're `pointer-events-none` so the card itself can't steal hover from the bar beneath it and flicker. And day columns get a full-column hit area, because a 2px bar on a quiet day was near-impossible to hover — the target is the *column*, not the ink.
+
+## The theme of the release
+
+None of this changed what the daemon computes. 9.1 made the numbers correct; 9.2 makes them legible — and the three bugs share a root: information that existed but was withheld by an incidental decision. An `else` branch, a reused cap, a chart that kept its numbers behind a hover. If 9.1's lesson was "stamp your timestamps," 9.2's is "once the data is right, go look at what the UI actually *says*."
+
+Full details in the [changelog](/docs/changelog#920-firestorm).
