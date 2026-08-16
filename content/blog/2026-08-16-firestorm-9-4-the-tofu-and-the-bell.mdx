@@ -1,0 +1,31 @@
+---
+title: "Firestorm 9.4: the tofu and the bell"
+date: "2026-08-16"
+summary: "Two GUI issues had been sitting open: every Nerd Font icon in the embedded terminals rendered as a missing-glyph box, and the notification bell was a read-only list with a count that only ever went up. 9.4 closes both. The font fix is a small lesson in how Chromium resolves glyphs; the notification fix is a small lesson in never shipping a badge without a way to clear it."
+tags: ["release", "gui", "practical"]
+author: "Nuno Coração"
+---
+
+Firestorm 9.4 closes the two GUI issues that were open on the tracker: [#50](https://github.com/watchfire-io/watchfire/issues/50), Nerd Font icons rendering as tofu boxes in the embedded terminals, and [#49](https://github.com/watchfire-io/watchfire/issues/49), the notification center being a list you could look at but not touch. Both are small in diff and satisfying in effect — and each has a lesson worth writing down.
+
+## The tofu: why terminal icons were boxes
+
+If your shell prompt uses Starship, Powerlevel10k, or anything with file-type and git icons, those glyphs live in the Unicode Private Use Area — codepoints that no ordinary font covers and that Nerd Fonts patch in. In a real terminal app, the OS or the terminal's own fallback machinery hunts through installed fonts until something has the glyph.
+
+The GUI's embedded terminals are xterm.js using the DOM renderer, which means glyph resolution is plain CSS font fallback. And here's the catch: Chromium performs no system-wide font fallback for Private Use Area codepoints. It walks the `font-family` list, and if nothing on the list has the glyph, you get a box — it will not go looking through the rest of the system's fonts the way it would for, say, CJK text. So unless you happened to have one of the six fonts hard-coded in the terminal font stack installed *under exactly that name*, every icon in every embedded terminal was tofu.
+
+The fix follows directly from the diagnosis: if fallback only walks the list, put a font that has the glyphs on the list. The GUI now bundles **Symbols Nerd Font Mono** — the icons-only Nerd Font, MIT-licensed, converted to woff2 — and appends it to the terminal font stack just before `monospace`. Icon codepoints always resolve, regardless of what the machine has installed, while text glyphs still come from the user's real monospace fonts earlier in the stack; the symbols font is last, so it only ever catches what everything else missed. It's preloaded from `index.html`, so the first terminal paint can't race the fetch and flash boxes before the font arrives.
+
+## The bell: notifications you can act on
+
+The notification bell had the opposite problem — not a rendering bug, but a design hole. The dropdown's "Recent" entries were static list items, and the badge counted every notification plus every weekly digest, forever. There was no way to act on a notification, and no way to make the number go down. A count that only accumulates isn't information; it's decoration that slowly becomes noise.
+
+9.4 makes each entry a button. Clicking marks it read and routes by kind: a weekly digest opens the most recent saved digest, and task or run events open — or focus, if it's already open — the project's own window on its Tasks tab. The routing isn't new machinery: it reuses the exact path that OS-toast clicks already used, which is why it behaves identically whether you click from the home window or from a project window.
+
+Around that, the store grew the state the UI was missing: records carry a read flag, unread entries show a dot while read ones dim, a "Mark all read" affordance sits in the section header, and the badge now counts only unread *live* notifications. Digests no longer count at all — they're a browsable archive you visit when you want it, not pending items nagging from the bell.
+
+## The general lesson
+
+Two different bugs, one shape: a surface that displays state without honoring the contract the display implies. Icons in a terminal imply the font stack can actually resolve them; a badge with a number implies a way to make the number go down. In both cases the machinery behind the surface was fine — sessions ran, notifications arrived — and the gap only shows up when a user reads the surface the way it invites being read.
+
+Full details in the [changelog](/docs/changelog#940-firestorm).
