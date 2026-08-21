@@ -83,6 +83,8 @@ Each paired chat remembers its active project (`/use`, persisted across daemon r
 
 The replace-on-start semantics landed in 10.0.2; 10.0.0 shipped the starters with the MCP `run_task` "never queue, never replace" contract, which made sense for an agent caller and none for a human on a phone. The [MCP tools](/docs/components/mcp-server) keep that contract untouched.
 
+10.0.4 closed the last gap in that path. A replace kills the running agent and waits for the slot to empty before spawning the requested mode — and the GUI and TUI poll agent status every couple of seconds and auto-start a chat agent the moment they see nothing running. That poll could land inside the kill→spawn gap, take the slot, and leave your `/wildfire` answering "timed out waiting for previous agent to stop" with a fresh chat session where wildfire should have been. The daemon now marks the replace window and refuses opportunistic chat starts while it is open, so the slot belongs to the switch; the clients already treat that refusal as expected. If a switch does fail, the message now names which case it hit rather than calling everything a timeout.
+
 ## Just type — the bridge is a conversation surface
 
 Plain text in a paired chat — no `/say` prefix — talks to a **chat agent**. Three cases:

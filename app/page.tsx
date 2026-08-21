@@ -67,7 +67,7 @@ export default async function Home() {
                 <span className="absolute inset-0 animate-ping rounded-full bg-fire-500/60 motion-reduce:animate-none dark:bg-fire-400/60" />
                 <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-fire-500 dark:bg-fire-400" />
               </span>
-              v10.0.3 — Torch
+              v10.0.4 — Torch
             </span>
             <Link
               href="/docs/changelog#1000-torch"
