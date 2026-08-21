@@ -24,6 +24,7 @@ The CLI/TUI is the primary interface for developers. A single binary (`watchfire
 | Command | Alias | Description |
 |---------|-------|-------------|
 | `watchfire define` | `def` | Edit project definition in $EDITOR |
+| `watchfire definition retrofit` | `defn retrofit` | Fold completed tasks back into the definition |
 | `watchfire configure` | `config` | Configure project settings (interactive) |
 
 ### Task Management
@@ -33,6 +34,7 @@ The CLI/TUI is the primary interface for developers. A single binary (`watchfire
 | `watchfire task list` | `task ls` | List tasks (excludes deleted) |
 | `watchfire task list --deleted` | | List soft-deleted tasks |
 | `watchfire task add` | | Add new task (interactive) |
+| `watchfire task quick` | | Batch-create tasks from a bulleted list (`--ready` / `--draft` / `--stdin`) |
 | `watchfire task <taskid>` | | Edit task (interactive) |
 | `watchfire task delete <taskid>` | `task rm <taskid>` | Soft delete task |
 | `watchfire task restore <taskid>` | | Restore soft-deleted task |
@@ -55,6 +57,16 @@ The CLI/TUI is the primary interface for developers. A single binary (`watchfire
 | `watchfire daemon start` | | Start the daemon |
 | `watchfire daemon status` | | Show daemon info |
 | `watchfire daemon stop` | | Stop the daemon |
+
+### Telegram
+
+| Command | Alias | Description |
+|---------|-------|-------------|
+| `watchfire integrations add telegram` | | Store the bot token (keyring) and enable the bridge |
+| `watchfire telegram pair` | | Mint a one-time pairing code + deep link, wait for pairing |
+| `watchfire telegram status` | | Bridge state, pairing status, paired chats |
+
+See the [Telegram Bridge](/docs/concepts/telegram) concept page and [`watchfire telegram`](/docs/commands/telegram) for details.
 
 ## `watchfire init` Flow
 
@@ -128,8 +140,10 @@ A compact **agent badge** (e.g. `[codex]`) appears next to a task title when its
 
 | Tab | Content |
 |-----|---------|
-| **Outbound** | One row per configured adapter (webhook, Slack, Discord, GitHub auto-PR) with a status pill (`OK` / `Disabled` / `Breaker open` / `Misconfigured`) and a `t` shortcut to fire a synthetic test event. |
+| **Outbound** | One row per configured adapter (webhook, Slack, Discord, Telegram, GitHub auto-PR) with a status pill (`OK` / `Disabled` / `Breaker open` / `Misconfigured`) and a `t` shortcut to fire a synthetic test event. |
 | **Inbound** | Listening pill (polled every 5 s), editable `ListenAddr` (defaults to `127.0.0.1:8765`) and `PublicURL`, four write-only secret inputs (Discord, GitHub, Slack, generic webhook), and per-provider last-delivery timestamps. |
+
+Since Torch (v10.0.0) the overlay also carries the [Telegram bridge](/docs/concepts/telegram): a Telegram summary row with paired chats as child rows, a masked write-only token step, pairing on <kbd>p</kbd> (code + deep link + live countdown), per-chat <kbd>m</kbd> / <kbd>w</kbd> mute and watch toggles, and confirm-gated revoke.
 
 Both tabs talk to the daemon through `IntegrationsService` gRPC: `List` / `Save` / `Delete` / `Test`, with secret fields write-only on the wire. See the [Integrations concept page](/docs/concepts/integrations) for the underlying model and the [`watchfire integrations`](/docs/commands/integrations) command for the scriptable equivalent.
 
@@ -140,6 +154,7 @@ When the task list is focused:
 | Key | Action |
 |-----|--------|
 | `a` | Add new task |
+| `A` | Quick Add — batch-create tasks, one per bullet |
 | `e` / `Enter` | Edit selected task |
 | `s` | Start task (set to Ready + start agent) |
 | `r` | Move task to Ready |
@@ -157,7 +172,7 @@ The Insights overlay (`i`) is the TUI mirror of the GUI [Insights tab](/docs/com
 | Tab | Content |
 |-----|---------|
 | **Tasks** | Task list grouped by status. Tasks with a per-task `agent` override show an agent badge next to the title. |
-| **Definition** | Project definition (press `e` to edit in $EDITOR) |
+| **Definition** | Project definition (press `e` to edit in $EDITOR, `r` to [retrofit from completed tasks](/docs/concepts/agent-modes#retrofit-definition)) |
 | **Settings** | Git config, automation toggles, and a **coding agent** selector that cycles through the registered backends (project default). |
 
 ### Right Panel Tabs

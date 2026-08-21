@@ -47,6 +47,10 @@ export const metadata: Metadata = {
 // Deep-dive blog posts that map to a specific release. Only entries that
 // actually exist in content/blog/ — verify before adding.
 const DEEP_DIVES: Record<string, { slug: string; label: string }> = {
+  "10.0.0": {
+    slug: "2026-08-21-torch-10-0-watchfire-in-your-pocket",
+    label: "Torch: Watchfire in your pocket",
+  },
   "9.4.0": {
     slug: "2026-08-16-firestorm-9-4-the-tofu-and-the-bell",
     label: "The tofu and the bell",

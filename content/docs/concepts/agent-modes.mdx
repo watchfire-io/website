@@ -1,9 +1,9 @@
 ---
 title: Agent Modes
-description: Watchfire supports six agent modes — Chat, Task, Start All, Wildfire, Generate Definition, and Generate Tasks.
+description: Watchfire supports seven agent modes — Chat, Task, Start All, Wildfire, Generate Definition, Generate Tasks, and Retrofit Definition.
 ---
 
-Watchfire supports six modes for running AI coding agents, ranging from interactive chat to fully autonomous operation.
+Watchfire supports seven modes for running AI coding agents, ranging from interactive chat to fully autonomous operation.
 
 For a narrative on when to choose each mode, see [Which mode when?](/blog/2026-05-21-which-mode-when).
 
@@ -117,6 +117,18 @@ watchfire plan
 
 This is also single-shot. Review the generated tasks and move them to `ready` when you're satisfied.
 
+## Retrofit Definition
+
+Fold completed tasks back into the project definition (Torch, v10.0.0). Tasks are temporary; the definition is durable — after a stretch of shipped work, the definition drifts from what the project has become. The `retrofit-definition` mode reads every task completed since the last retrofit and updates the definition to match reality.
+
+```bash
+watchfire definition retrofit
+```
+
+A `last_retrofit_task_number` watermark on `project.yaml` tracks how far the definition has been folded, so each run only considers tasks completed since the previous one. After a retrofit, a confirm-gated archive can soft-delete exactly the folded tasks — they're flagged `retrofit_archived` and still count in [Insights](/docs/concepts/insights).
+
+Also available from the GUI (Definition tab → "Retrofit from completed tasks") and the TUI (<kbd>r</kbd> on the Definition tab). See [`watchfire definition retrofit`](/docs/commands/definition#definition-retrofit) for flags.
+
 ## Mode Comparison
 
 | Mode | Autonomous | Worktree | Use Case |
@@ -127,3 +139,4 @@ This is also single-shot. Review the generated tasks and move them to `ready` wh
 | **Wildfire** | Fully | Yes | End-to-end autonomous development |
 | **Generate Definition** | Yes | No | Bootstrap project context |
 | **Generate Tasks** | Yes | No | Bootstrap task list |
+| **Retrofit Definition** | Yes | No | Fold shipped tasks back into the definition |

@@ -1,0 +1,132 @@
+---
+title: Telegram Bridge
+description: Supervise Watchfire from your phone — pair a Telegram bot with the daemon, pick a project, watch the agent conversation live, and just type to talk to a chat agent.
+howto:
+  name: Set up the Watchfire Telegram bridge
+  totalTime: PT5M
+  steps:
+    - name: Create a bot with BotFather
+      text: Message @BotFather on Telegram, send /newbot, and copy the bot token it prints.
+      url: https://watchfire.io/docs/concepts/telegram#1-create-a-bot-with-botfather
+    - name: Paste the token into Watchfire
+      text: GUI Settings → Integrations → Telegram, TUI Ctrl+I, or watchfire integrations add telegram. The token is stored in your OS keyring.
+      url: https://watchfire.io/docs/concepts/telegram#2-paste-the-token-into-watchfire
+    - name: Pair your chat
+      text: Click Pair (the GUI shows a QR code) or run watchfire telegram pair, then open the t.me link on your phone or send /pair <code> to the bot.
+      url: https://watchfire.io/docs/concepts/telegram#3-pair-your-chat
+---
+
+Torch (v10.0.0) adds a **Telegram bridge**: pair your own bot with the daemon and supervise every project from your phone — pick a project from chat, see status, get pushed events, watch the agent conversation live, and reply into a running session. And not just with commands: **just type in a paired chat to talk to a chat agent** — one is auto-started if nothing is running, and watch mode streams the replies back by default.
+
+The bridge is daemon-internal — a long-polling goroutine inside `watchfired`, not a separate client. It uses Telegram's `getUpdates` long polling, so the daemon **dials out**: no public HTTPS endpoint, no tunnel, no port forward, and nothing ever listens on your machine. That's the same local-only posture as the [MCP server](/docs/components/mcp-server)'s stdio-only transport, and it's what separates Telegram from every other inbound provider on the [Integrations](/docs/concepts/integrations) page, all of which need a reachable URL.
+
+Everything is dark unless configured: the bridge starts no goroutine and dials nothing until Telegram is `enabled` **and** a bot token resolves from the keyring. An unconfigured daemon behaves exactly as before.
+
+## Setup
+
+### 1. Create a bot with BotFather
+
+Message [@BotFather](https://t.me/BotFather) on Telegram, send `/newbot`, follow the two prompts (a display name, then a username ending in `bot`), and copy the bot token it prints — a string shaped like `123456789:AA...`.
+
+The bot is yours: BotFather bots are free, and nothing about the bridge is shared infrastructure. Watchfire talks directly from your daemon to Telegram's Bot API with your token.
+
+### 2. Paste the token into Watchfire
+
+Any surface works:
+
+- **GUI** — Settings → Integrations → Telegram (unconfigured installs show a "Set up Telegram" card). Paste the token and enable the integration.
+- **TUI** — the Integrations overlay on <kbd>Ctrl</kbd>+<kbd>I</kbd> has a Telegram entry with a masked token step.
+- **CLI** — `watchfire integrations add telegram` prompts for the token without echoing it (or pass `--token` for scripting). Re-running rotates the token and preserves configured events.
+
+The token is stored in your **OS keyring** (`watchfire.integration.telegram.bot_token`), never in a YAML file, and it's write-only on the wire — clients can replace it but never read it back. The daemon validates it with `getMe` and starts the long-poll loop; saving the integration hot-restarts the bridge, no daemon restart needed.
+
+### 3. Pair your chat
+
+Anyone on Telegram can DM a bot, so **pairing is the security boundary**: the paired-chats list is the allowlist, and a one-time code is the only way onto it.
+
+Click **Pair** in the GUI (which also renders a QR code) or TUI, or run [`watchfire telegram pair`](/docs/commands/telegram). Watchfire mints a one-time 8-character code — `crypto/rand`, an unambiguous alphabet with no `0/O/1/I/l`, a 10-minute TTL, at most one active code — and a deep link:
+
+```text
+https://t.me/<bot_username>?start=<code>
+```
+
+Open the link on your phone (or send `/pair <code>` to the bot). The bridge redeems the code with a constant-time compare, persists the chat, replies with a welcome and the command list, and invalidates the code. Codes are single-use; an expired or wrong code is refused.
+
+Unpaired chats get nothing — every message is ignored except `/start` and `/pair`, which reply with pairing instructions only. No project data ever flows to an unpaired chat. **Revoke** from the GUI or TUI paired-chats list drops the chat immediately; a revoked chat gets silence, not an error.
+
+## Commands
+
+Each paired chat remembers its active project (`/use`, persisted across daemon restarts). `/status`, `/tasks`, `/retry`, and `/cancel` route through the same transport-agnostic [command router](/docs/concepts/integrations#command-router) that serves Slack and Discord; the rest are Telegram-native. Telegram's autocomplete menu (`setMyCommands`) carries the full set.
+
+| Command | Does |
+|---------|------|
+| `/projects` | Numbered list of registered projects with agent-status glyphs, plus inline buttons |
+| `/use <name\|number>` | Pick the project this chat talks to (fuzzy name match; persisted) |
+| `/status` / `/status all` | Active project detail — agent state, current task, counts, needs-attention — or the one-line-per-project fleet view |
+| `/tasks` | Top active tasks |
+| `/run <n>` / `/run all` | Run one task / drain every ready task. Refuses if an agent is already running — never queues, never replaces |
+| `/wildfire` / `/wildfire off` | Start or stop the autonomous [Wildfire](/docs/concepts/agent-modes#wildfire) loop. While watching, wildfire relays a milestone feed instead of a raw stream |
+| `/generate` / `/plan` | Generate the project definition / generate tasks from it, refusal-gated like `/run` |
+| `/new` | Start a fresh chat session, clearing the conversation context |
+| `/stop` | User-stop whatever is running — task, run-all or wildfire chain (the chain ends), or chat |
+| `/agent [name]` | Show or switch the project's default agent backend; applies to new sessions |
+| `/retry <n>` / `/cancel <n>` | Re-run a failed task / cancel a task (stops the agent, marks it failed) |
+| `/screen` | One-shot plain-text snapshot of the live session |
+| `/say <text>` | Inject text + Enter into the running agent's PTY — the bridge's only sanctioned write |
+| `/watch on\|off` | Toggle the live conversation relay for this chat (**on by default**) |
+| `/mute on\|off` | Pause/resume outbound event pushes to this chat |
+| `/pair <code>` | Redeem a pairing code |
+| `/help` | The full command list, grouped Project / Run / Session |
+
+`/runall` and `/unmute` survive as hidden aliases of `/run all` and `/mute off`, so muscle memory from the release cycle still works — they just stay out of the autocomplete menu.
+
+## Just type — the bridge is a conversation surface
+
+Plain text in a paired chat — no `/say` prefix — talks to a **chat agent**. Three cases:
+
+- A live **chat** session on your project: the message is injected verbatim, and watch mode streams the reply back.
+- A live **working** session (task, run-all, wildfire, generate): the bridge never types into it implicitly. The reply names what's running and offers the explicit options — `/watch on`, `/screen`, `/say`, `/cancel`.
+- **Nothing running**: the bridge auto-starts a chat agent on the chat's project and delivers your message once the session is up. Concurrent messages queue against the same start — no double-start.
+
+A "typing…" indicator shows while the agent works, so the gap between coalesced replies never reads as silence.
+
+## Watch mode
+
+`/watch on` streams the agent's *conversation* — not raw PTY bytes, which are ANSI soup from an alt-screen TUI. Watch is **on by default** for every paired chat, and a chat that hasn't picked a project auto-attaches to the most recently started live session; `/use` pins it.
+
+- **Primary tier — transcript tail.** For Claude Code sessions, a 1-second polling tailer reads the agent-native JSONL transcript, relaying assistant text verbatim and tool uses as one-liners (`⚒ Edit internal/tui/model.go`).
+- **Fallback tier — screen deltas.** Backends without a tailable transcript get debounced (≥5s), change-only plain-text screen snapshots.
+- **Rate discipline.** 4096-character chunking at line boundaries, at most one send per 2.5 seconds with coalescing, edit-in-place growth of the current message, and a flood cap that throttles heavy output with a one-time pointer at the GUI.
+- **Markers.** Sessions open with `▶ task NNNN — title` and close with the task outcome — `✔ merged`, `✖ failed: reason`, `⚠ merge failed`, `■ session ended`. Wildfire sessions relay a phone-glanceable milestone feed instead: `🔥 wildfire — generating new tasks…`, `✚ generated task NNNN — title`, `🔥 wildfire — implementing task NNNN — title`.
+
+## Guaranteed not to disturb the local session
+
+The bridge observes sessions through a read-only seam and holds no PTY handle. Two invariants are **enforced by a guard test** that parses the package source and fails the build on violation, not just asserted in review:
+
+1. **The bridge never calls `Resize`.** Terminal size is global per project — an external bridge resizing would fight the attached TUI or GUI.
+2. **`injectSay` is the only PTY write.** Exactly one sanctioned `SendInput` call site, reached from exactly two intents: the `/say` verb and plain-text chat forwarding.
+
+Per-subscriber cursors mean a slow Telegram connection can only drop its own bytes. A TUI or GUI attached to the same session sees zero difference.
+
+## Events
+
+Independent of watch mode, the outbound relay pushes `TASK_FAILED`, `RUN_COMPLETE`, and `WEEKLY_DIGEST` events to every paired, un-muted chat, gated on per-event toggles. The Telegram adapter is a normal [relay adapter](/docs/concepts/integrations#outbound), so it inherits the dispatcher's retry and circuit breaker for free, and `watchfire integrations test telegram` fires a real synthetic delivery with per-chat results.
+
+## Configuration reference
+
+The bridge is configured by an optional `telegram:` section in `~/.watchfire/integrations.yaml`:
+
+| Field | Purpose |
+|-------|---------|
+| `enabled` | Master switch; the bridge starts nothing without it |
+| `bot_token_ref` | Keyring reference — the token itself never lands in YAML |
+| `enabled_events` | Per-event toggles for the outbound relay |
+| `paired_chats` | The allowlist: chat id, username, `default_project_id`, `muted`, `watch_off` |
+
+`watch_off` is deliberately negative-polarity: an absent field means *watching*, so live relay is the default for every paired chat, including ones paired before the field existed.
+
+## See also
+
+- [`watchfire telegram`](/docs/commands/telegram) — the pairing CLI
+- [Integrations](/docs/concepts/integrations) — the outbound relay and inbound command router the bridge plugs into
+- [Security](/docs/security) — secret storage and the broader threat model

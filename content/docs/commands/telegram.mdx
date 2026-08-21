@@ -1,0 +1,63 @@
+---
+title: watchfire telegram
+description: watchfire telegram pairs a Telegram chat with the daemon and inspects the bridge — the CLI side of the Telegram bridge introduced in Torch (v10.0.0).
+---
+
+Pair and inspect the [Telegram bridge](/docs/concepts/telegram) from the CLI.
+
+## Usage
+
+```bash
+watchfire telegram <subcommand>
+```
+
+Set up the bot first: create one with [@BotFather](https://t.me/BotFather) (`/newbot`, copy the token), then store the token with [`watchfire integrations add telegram`](/docs/commands/integrations#integrations-add-telegram) — or through GUI Settings → Integrations → Telegram, or the TUI overlay on <kbd>Ctrl</kbd>+<kbd>I</kbd>. The token lives in the OS keyring, never in a config file. See the [setup walkthrough](/docs/concepts/telegram#setup) for the full flow.
+
+## Subcommands
+
+### telegram pair
+
+Mint a one-time pairing code and wait for a chat to redeem it.
+
+```bash
+watchfire telegram pair
+```
+
+Prints the 8-character code and the deep link:
+
+```text
+Pairing code: WK7DRM2P   (expires in 10:00)
+
+Open on your phone:
+https://t.me/my_watchfire_bot?start=WK7DRM2P
+
+or send   /pair WK7DRM2P   to the bot.
+
+Waiting for pairing… (Ctrl+C to stop waiting)
+```
+
+The command polls the daemon every 2 seconds and exits when the chat is paired or the code expires. <kbd>Ctrl</kbd>+<kbd>C</kbd> stops the wait without invalidating the code — the printed link keeps working until its 10-minute TTL runs out.
+
+Codes are single-use, generated from `crypto/rand` over an alphabet with no ambiguous characters (`0/O/1/I/l`), and case-insensitive on redeem. Beginning a new pairing invalidates any previous outstanding code — at most one code is ever active.
+
+### telegram status
+
+Show the bridge's current state.
+
+```bash
+watchfire telegram status
+```
+
+Reports whether the integration is enabled, whether a token is stored (`token_set` — the CLI can never show the token itself), the pairing state (`NONE | PENDING | PAIRED | EXPIRED`), and the paired chats with their default project, mute, and watch flags.
+
+## Notes
+
+- Pairing is the bridge's **security boundary** — the paired-chats list is the allowlist, and a code is the only way onto it. Unpaired chats get pairing instructions and nothing else.
+- Revoking a chat is done from the GUI or TUI paired-chats list (confirm-gated); the chat is dropped from the live bridge immediately.
+- The QR code for the deep link is a GUI affordance — the CLI and TUI print the code and link only.
+
+## Common pitfalls
+
+- **`telegram pair` reports the bridge isn't running** — the integration is disabled or no token is stored. *Fix:* run [`watchfire integrations add telegram`](/docs/commands/integrations#integrations-add-telegram) and make sure the integration is enabled; the bridge starts nothing without both.
+- **The code expired before you opened the link** — codes live 10 minutes and are single-use. *Fix:* run `watchfire telegram pair` again; the fresh code replaces the old one.
+- **The bot doesn't respond to a paired chat's commands** — check `watchfire telegram status`: if the chat is missing, it was revoked; a revoked chat gets silence by design. Re-pair it.

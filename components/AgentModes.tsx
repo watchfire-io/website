@@ -64,6 +64,18 @@ const modes = [
       </svg>
     ),
   },
+  {
+    name: "Retrofit Definition",
+    description: "Fold completed tasks back into the definition — tasks are temporary, the definition is durable.",
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <path d="M9.2 14.2a3 3 0 105.3 1.9" />
+        <polyline points="8.9 12.2 9.2 14.5 11.5 14.1" />
+      </svg>
+    ),
+  },
 ];
 
 export default function AgentModes() {
@@ -89,18 +101,18 @@ export default function AgentModes() {
             </span>
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-zinc-600 dark:text-zinc-400">
-            Six modes that cover interactive chat, single tasks, and fully hands-off Wildfire runs.
+            Seven modes that cover interactive chat, single tasks, spec upkeep, and fully hands-off Wildfire runs.
           </p>
         </div>
 
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {modes.map((mode) => (
             <div
               key={mode.name}
               data-stagger
               className={`card-hover group relative overflow-hidden rounded-xl border p-6 backdrop-blur-sm transition-all ${
                 mode.highlighted
-                  ? "border-fire-500/50 bg-gradient-to-br from-fire-500/10 via-fire-500/5 to-transparent shadow-[0_0_40px_rgba(224,112,64,0.18)] dark:border-fire-400/50"
+                  ? "sm:col-span-2 border-fire-500/50 bg-gradient-to-br from-fire-500/10 via-fire-500/5 to-transparent shadow-[0_0_40px_rgba(224,112,64,0.18)] dark:border-fire-400/50"
                   : "border-zinc-200 bg-white/70 hover:border-fire-500/30 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-fire-400/30"
               }`}
             >

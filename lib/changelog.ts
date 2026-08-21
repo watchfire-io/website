@@ -18,6 +18,7 @@ const CHANGELOG_PATH = join(process.cwd(), "content/docs/changelog.mdx");
 
 // Source of truth for release dates until/unless they get codified into the MDX itself.
 const RELEASE_DATES: Record<string, string> = {
+  "10.0.0": "2026-08-21",
   "9.4.0": "2026-08-16",
   "9.3.0": "2026-08-08",
   "9.2.0": "2026-08-03",

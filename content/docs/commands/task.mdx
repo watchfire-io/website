@@ -25,6 +25,26 @@ Opens interactive prompts to set the task title, prompt, acceptance criteria, st
 
 If you skip the agent prompt, the field is omitted and the task uses the project's default agent at execution time.
 
+### task quick
+
+Create a **batch** of tasks from a pasted list — one task per top-level bullet (Torch, v10.0.0).
+
+```bash
+watchfire task quick                    # opens a template in $EDITOR
+watchfire task quick --draft            # create as drafts instead of ready
+pbpaste | watchfire task quick --stdin  # pipe a list straight in
+```
+
+| Flag | Description |
+|------|-------------|
+| `--ready` | Create the tasks as `ready` (the default) |
+| `--draft` | Create the tasks as `draft` for review first |
+| `--stdin` | Read the list from stdin instead of `$EDITOR` |
+
+The parser is shared with the GUI's Quick Add modal and the TUI overlay (<kbd>A</kbd>): each top-level bullet (`-`, `*`, `1.`) becomes a task, nested lines fold into the prompt, `AC:` / `Acceptance:` lines become acceptance criteria, and bullet-less text becomes a single task. Titles derive from the first sentence, truncated at a word boundary around 70 characters.
+
+Everything is written through the validated `TaskService` batch path — every task is validated before **any** is written, and numbering is atomic — so a quick-added task can't reproduce the malformed-YAML class of bug, and positions preserve your input order.
+
 ### task list
 
 List all tasks in the project.

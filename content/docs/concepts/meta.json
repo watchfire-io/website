@@ -9,6 +9,7 @@
     "sandboxing",
     "secrets",
     "integrations",
+    "telegram",
     "insights"
   ]
 }

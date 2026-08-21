@@ -266,6 +266,10 @@ export default function CheatsheetPage() {
                     right: "Edit project definition in $EDITOR.",
                   },
                   {
+                    left: "watchfire definition retrofit",
+                    right: "Fold completed tasks back into the definition.",
+                  },
+                  {
                     left: "watchfire configure",
                     right: "Walk through every project setting.",
                   },
@@ -297,6 +301,15 @@ export default function CheatsheetPage() {
                   {
                     left: "watchfire task add",
                     right: "Create a new task interactively.",
+                  },
+                  {
+                    left: "watchfire task quick",
+                    right: (
+                      <>
+                        Batch-create from a bulleted list (<code>--ready</code>,{" "}
+                        <code>--draft</code>, <code>--stdin</code>).
+                      </>
+                    ),
                   },
                   {
                     left: "watchfire task <n>",
@@ -378,6 +391,14 @@ export default function CheatsheetPage() {
                   {
                     left: "watchfire integrations list",
                     right: "List configured outbound adapters.",
+                  },
+                  {
+                    left: "watchfire integrations add telegram",
+                    right: "Store the bot token, enable the Telegram bridge.",
+                  },
+                  {
+                    left: "watchfire telegram pair",
+                    right: "One-time code + deep link to pair your phone.",
                   },
                   {
                     left: "watchfire metrics backfill",

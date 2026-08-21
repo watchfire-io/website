@@ -1,11 +1,11 @@
 ---
 title: watchfire integrations
-description: watchfire integrations configures outbound webhooks, Slack, Discord, GitHub auto-PR adapters, and the inbound HTTP server that drives the daemon back.
+description: watchfire integrations configures outbound webhooks, Slack, Discord, Telegram, GitHub auto-PR adapters, and the inbound HTTP server that drives the daemon back.
 ---
 
 > For the at-a-glance marketing view, see [/integrations](/integrations).
 
-Manage the [Integrations](/docs/concepts/integrations) layer — outbound adapters (webhook, Slack, Discord, GitHub auto-PR) and the inbound HTTP server that lets external services drive the daemon back. The parent command groups every integrations-related subcommand.
+Manage the [Integrations](/docs/concepts/integrations) layer — outbound adapters (webhook, Slack, Discord, Telegram, GitHub auto-PR) and the inbound HTTP server that lets external services drive the daemon back. The parent command groups every integrations-related subcommand.
 
 ## Usage
 
@@ -38,6 +38,21 @@ watchfire integrations test webhook
 
 Synthetic events are clearly labelled in the rendered output so they're easy to identify in the receiving channel.
 
+### integrations add telegram
+
+Store a Telegram bot token and enable the [Telegram bridge](/docs/concepts/telegram).
+
+```bash
+watchfire integrations add telegram
+watchfire integrations add telegram --token 123456789:AA...   # non-interactive
+```
+
+Without `--token`, the command prompts for the token with echo disabled. Create the bot with [@BotFather](https://t.me/BotFather) first (`/newbot`), then paste its token at the prompt. The token goes to the OS keyring under `watchfire.integration.telegram.bot_token` — it never lands in `integrations.yaml`, and it's write-only from then on.
+
+Re-running the command **rotates the token** while preserving the configured events and paired chats. Saving hot-restarts the bridge, so no daemon restart is needed. `telegram` is currently the only kind `integrations add` supports — the other adapters are configured through the GUI/TUI settings surfaces.
+
+After the token is stored, pair a chat with [`watchfire telegram pair`](/docs/commands/telegram#telegram-pair).
+
 ### integrations register-discord \<guild_id\>
 
 Register or refresh the Watchfire slash-command set in a Discord guild.
@@ -58,7 +73,7 @@ This drives the inbound side of the integration. For the outbound Discord adapte
 
 ## Notes
 
-- All three subcommands are project-scoped — run them from inside a Watchfire-initialised project.
+- The subcommands are project-scoped — run them from inside a Watchfire-initialised project.
 - Outbound and inbound configuration live in `~/.watchfire/integrations.yaml`; secrets live in the OS keyring (with a file-store fallback) and never enter the YAML on disk.
 - For the on-the-wire shape, the `IntegrationsService` gRPC has `List` / `Save` / `Delete` / `Test` RPCs; `Save` carries a `oneof` payload and secret fields are write-only.
 

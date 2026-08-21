@@ -9,7 +9,9 @@ Edit the project definition in your default editor.
 
 ```bash
 watchfire define
-watchfire def        # alias
+watchfire def                  # alias
+watchfire definition retrofit  # fold completed tasks back into the definition
+watchfire defn retrofit        # alias
 ```
 
 ## Description
@@ -17,6 +19,28 @@ watchfire def        # alias
 `watchfire define` opens the project definition in `$EDITOR` for editing. The project definition describes your project — its structure, tech stack, goals, and conventions — and is injected into every agent session to provide context, regardless of which backend is running (Claude Code, Codex, opencode, Gemini, or Copilot).
 
 A well-written definition helps agents produce better, more consistent code by giving them the information they need about your project upfront.
+
+## Subcommands
+
+### definition retrofit
+
+Fold completed tasks back into the definition (Torch, v10.0.0). Tasks are temporary; the definition is durable — after a run of shipped tasks, the definition no longer describes what the project has become. Retrofit runs the `retrofit-definition` [agent mode](/docs/concepts/agent-modes#retrofit-definition): the agent reads every task completed since the last retrofit and updates the definition to match reality.
+
+```bash
+watchfire definition retrofit
+watchfire definition retrofit --archive        # offer to archive the folded tasks
+watchfire definition retrofit --archive --yes  # skip the confirm
+```
+
+| Flag | Description |
+|------|-------------|
+| `--archive` | After the retrofit, archive (soft-delete) exactly the folded tasks |
+| `--yes` | Skip the archive confirmation |
+| `--sandbox` / `--no-sandbox` | Override the project's sandbox setting for this run |
+
+A `last_retrofit_task_number` watermark on `project.yaml` tracks how far the definition has been folded, so each retrofit only considers tasks completed since the previous one. Archiving is always confirm-gated (unless `--yes`) and touches exactly the folded window; archived tasks are flagged `retrofit_archived` and still count in [Insights](/docs/concepts/insights).
+
+The same action is available in the GUI (Definition tab → "Retrofit from completed tasks") and the TUI (<kbd>r</kbd> on the Definition tab).
 
 ## What the Definition Contains
 

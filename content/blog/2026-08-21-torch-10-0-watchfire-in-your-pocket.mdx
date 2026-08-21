@@ -1,0 +1,63 @@
+---
+title: "Torch 10.0: Watchfire in your pocket"
+date: "2026-08-21"
+summary: "Torch pairs a Telegram bot with the daemon so you can supervise every project from your phone — and not just with commands: just type in a paired chat and you're talking to a chat agent, with the replies streaming back. It works with no public endpoint, no tunnel, and no port forward, because the daemon dials out. Around the tentpole: a definition-retrofit mode, batch quick-add, and a burn-down of long-standing friction."
+tags: ["release", "telegram", "integrations", "how-to"]
+author: "Nuno Coração"
+---
+
+A torch is the fire you carry with you, and that is exactly what this release does: Torch 10.0 puts Watchfire in your pocket. Pair a Telegram bot with the daemon and you can pick a project from chat, check status, run tasks, start Wildfire, watch the agent's conversation stream live — and just *type* to talk to a chat agent, from the train, from the couch, from anywhere Telegram reaches. Around the tentpole, Torch ships a new Retrofit Definition agent mode, batch quick-add for tasks, and a burn-down of the longest-standing friction on the tracker.
+
+## Why Telegram — and why long polling
+
+Watchfire is deliberately local-first: the daemon lives on your machine, and v9.0's MCP server went out of its way to stay stdio-only so nothing ever listens on a socket. That posture is exactly what made remote supervision hard. Every existing inbound provider — Slack, Discord, GitHub — needs a **public HTTPS endpoint** to call back, which for a daemon on a laptop means a tunnel, a port forward, and a new attack surface. That's why the inbound integrations have always been most at home on machines that already have a public face.
+
+Telegram's Bot API has a property none of the others do: **long polling**. The daemon calls `getUpdates` and holds the connection open; Telegram answers when something happens. The daemon *dials out* — no listener, no tunnel, no port forward, nothing reachable from the internet. The bridge doesn't even go through the inbound HTTP server; it's an outbound-dialing goroutine inside `watchfired`, in the same family as the Discord Gateway connection. The local-only posture survives intact, and you still get a live two-way channel to your phone.
+
+## Setting it up
+
+The whole flow is three steps and about two minutes.
+
+**1. Create a bot.** Message [@BotFather](https://t.me/BotFather) on Telegram and send `/newbot`. It asks for a display name, then a username ending in `bot`, and prints a token shaped like `123456789:AA...`. That bot is yours alone — the bridge is not shared infrastructure, and your daemon talks directly to Telegram's API with your token.
+
+**2. Paste the token into Watchfire.** In the GUI: Settings → Integrations → Telegram (fresh installs show a "Set up Telegram" card so you can't miss it). In the TUI: the integrations overlay on `Ctrl+I`. Or from the CLI: `watchfire integrations add telegram`, which prompts for the token without echoing it. Wherever you paste it, the token goes into your **OS keyring** — never into a YAML file — and from then on it's write-only: clients can replace it but never read it back. Saving hot-starts the bridge; no daemon restart.
+
+**3. Pair your chat.** Click **Pair** (the GUI renders a QR code) or run `watchfire telegram pair`. Watchfire mints a one-time 8-character code with a 10-minute TTL and prints a `t.me/<your_bot>?start=<code>` deep link. Open it on your phone — or send `/pair <code>` to the bot — and you're in: the bot replies with a welcome and the command list.
+
+From that point the bridge pushes task-failed, run-complete, and weekly-digest events to your chat as they happen, and every command works. `/use` picks the project the chat talks to (persisted across daemon restarts), `/status all` shows the whole fleet one line per project, `/run 12` starts a task, `/wildfire` starts the autonomous loop, `/screen` snapshots the live terminal, `/stop` stops whatever's running.
+
+## Pairing is the security boundary
+
+Here's the thing about Telegram bots: anyone can DM them. The bot username is guessable, and there is no such thing as a private bot. So the bridge treats the **paired-chats list as the allowlist**, and a one-time code as the only way onto it.
+
+The codes are 8 characters from `crypto/rand` over an alphabet with no ambiguous characters, single-use, expiring in 10 minutes, at most one active at a time, redeemed with a constant-time compare. An unpaired chat gets nothing — every message is ignored except `/start` and `/pair`, which answer with pairing instructions only. No project data ever flows to an unpaired chat, and revoking a chat from any surface drops it from the live bridge immediately. A revoked chat doesn't even get an error; it gets silence.
+
+## Just type
+
+The commands were the plan. What emerged while living with the bridge is the better feature: **plain text in a paired chat talks to a chat agent**. No `/say` prefix, no verb — you type "what's the state of the auth refactor?" and the message lands in the live chat session on your project. If nothing is running, the bridge auto-starts a chat agent and delivers your message once the session is up. If something *is* running — a task, a run-all, a wildfire chain — the bridge never types into it implicitly: it tells you what's running and offers the explicit options instead.
+
+The other half of a conversation is hearing the answer, which is why **watch mode is on by default** for every paired chat. Watch mode streams the agent's *conversation*, not its terminal — raw PTY bytes are ANSI soup from an alt-screen TUI, so the bridge tails the agent-native JSONL transcript instead, relaying assistant text verbatim and tool calls as one-liners like `⚒ Edit internal/tui/model.go`. Replies coalesce into growing messages instead of flooding your chat, a typing indicator covers the gaps, and heavy output trips a flood cap that points you at the GUI rather than burying your phone.
+
+Wildfire gets its own treatment: instead of a raw stream, a watching chat receives a **milestone feed** — `🔥 wildfire — generating new tasks…`, `✚ generated task 0042 — title`, `🔥 wildfire — implementing task 0042`, `✔ merged`. It reads like a narrative of what the loop is deciding and shipping, which is what you actually want on a phone screen.
+
+## Guaranteed not to fight your terminal
+
+A bridge that can type into your agent's PTY from a phone had better be provably polite about it. The bridge observes sessions through a read-only seam — it holds no PTY handle — and two invariants are **enforced by a guard test that parses the package source** and fails the build on violation: the bridge never calls `Resize` (terminal size is global per project; a remote resize would fight the attached TUI or GUI), and `injectSay` is the only PTY write in the package, reached from exactly two intents — the `/say` verb and plain-text forwarding. Per-subscriber cursors mean a slow phone connection can only drop its own bytes. A TUI and GUI attached to the same session see zero difference.
+
+## Tasks are temporary, the definition is durable
+
+Thread two of the release grew out of the richest feature request ever filed on the tracker: after a run of shipped tasks, the project definition no longer describes what the project has become. The new **Retrofit Definition** agent mode fixes that — `watchfire definition retrofit` (or the button on the GUI's Definition tab, or `r` in the TUI) reads every task completed since the last retrofit and folds it back into an up-to-date definition, then offers a confirm-gated archive of exactly the folded tasks. A watermark on `project.yaml` means each retrofit picks up where the last one left off.
+
+Its companion is **quick-add**: paste a bulleted list and get one task per bullet, on every surface — a GUI modal with a live "will create N tasks" preview, a TUI overlay on `A`, and `watchfire task quick` in the CLI. Nested lines fold into the prompt, `AC:` lines become acceptance criteria, and everything writes through the validated batch path, so a pasted list can't produce a malformed task file.
+
+## The burn-down
+
+Thread three closed the friction that had been quietly accumulating. The best entry is also the most embarrassing: digging through the code at kickoff revealed that the Slack and Discord slash-command handlers shipped in v5.x were **never registered in production** — `/watchfire status` worked beautifully, in tests. Torch builds the production command context and registers the handlers, and the Telegram bridge routes through the same router — one implementation, three transports, which is how it should have been all along.
+
+Also fixed: Claude Code's folder-trust dialog no longer stalls fresh-path runs (it's detected and answered once, with a visible issue raised if it recurs); the integrated terminal spawns a **login shell**, so your PATH — and your `pnpm` — is finally there (#32); projects under `~/Desktop` get a clear preflight message naming the sandbox rule instead of an opaque error (#17); a race that silently ended run-all and wildfire chains is fixed at the daemon; project Settings is always reachable (persistent gear + `Cmd+,`); and CI now actually runs the GUI's unit-test suite, which grew from 163 to 229 tests along the way.
+
+## The general lesson
+
+Torch's best decisions came from taking a constraint seriously instead of working around it. The obvious way to get Watchfire on your phone was to stand up an endpoint and accept the tunnel; the right way was to notice that one provider's API inverts the connection direction, and that inversion preserves the property the whole system is built on. Same with the PTY: the obvious rule is "be careful writing to the terminal", the right rule is one sanctioned write site, checked by a test that reads the source. When a guarantee matters, find the design where it holds by construction — then enforce it, don't assert it.
+
+Full details in the [changelog](/docs/changelog#1000-torch).

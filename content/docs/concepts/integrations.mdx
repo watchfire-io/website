@@ -1,16 +1,18 @@
 ---
 title: Integrations
-description: Watchfire integrations — outbound webhooks plus Slack, Discord, and GitHub auto-PR adapters, and an inbound HTTP server with HMAC signature verification.
+description: Watchfire integrations — outbound webhooks plus Slack, Discord, Telegram, and GitHub auto-PR adapters, and an inbound HTTP server with HMAC signature verification.
 ---
 
 > For the at-a-glance marketing view, see [/integrations](/integrations).
 
-Beacon (v4.0.0) introduced the two-way integrations layer; Flare (v5.0.0) closed the inbound loop and added OAuth, multi-host parity, per-IP rate limiting, Slack interactive components, and Discord guild auto-registration. The daemon can **deliver** notifications to external services through pluggable adapters, and **receive** signed requests from those same services through a small HTTP server. Both halves share the same secret store and the same per-provider configuration surface.
+Beacon (v4.0.0) introduced the two-way integrations layer; Flare (v5.0.0) closed the inbound loop and added OAuth, multi-host parity, per-IP rate limiting, Slack interactive components, and Discord guild auto-registration; Torch (v10.0.0) added the [Telegram bridge](/docs/concepts/telegram) and put the command router into production for real. The daemon can **deliver** notifications to external services through pluggable adapters, and **receive** signed requests from those same services through a small HTTP server. Both halves share the same secret store and the same per-provider configuration surface.
 
 The page is split into two halves that mirror the data flow:
 
-- **Outbound** — the daemon dispatches `notify.Bus` events to webhook, Slack, Discord, and GitHub auto-PR adapters.
+- **Outbound** — the daemon dispatches `notify.Bus` events to webhook, Slack, Discord, Telegram, and GitHub auto-PR adapters.
 - **Inbound** — the daemon binds an HTTP server, verifies request signatures, and routes slash commands through a transport-agnostic command router.
+
+One provider doesn't fit this split: the **Telegram bridge** is two-way but never touches the inbound HTTP server — it rides the bot's outgoing long-poll connection, so nothing listens on your machine. It has [its own page](/docs/concepts/telegram).
 
 ## Outbound
 
@@ -52,6 +54,12 @@ The `TASK_FAILED` template carries three action buttons — `Retry`, `Cancel`, a
 ### Discord adapter
 
 `internal/daemon/relay/discord.go` mirrors the same three envelopes as rich embeds, tinted by the project color. Two shared `text/template` helpers — `hexToInt` (for the embed `color` int) and `rfc3339` (for the timestamp footer) — are registered once and reused. A defensive 4000-rune description trim with a single-WARN log on overflow protects against pathological payloads (Discord rejects embeds longer than 4096).
+
+### Telegram adapter
+
+`internal/daemon/relay/telegram.go` (Torch, v10.0.0) formats the same three envelopes as Telegram HTML and fans them out to every paired, un-muted chat, honouring the config's per-event toggles and aggregating per-chat failures so the dispatcher's retry and circuit breaker govern delivery. The adapter registers only when the integration is enabled, the bot token resolves from the keyring, **and** at least one chat is paired. `watchfire integrations test telegram` fires a real synthetic delivery with per-chat results.
+
+Events are only the cheapest tier of the Telegram surface — the bridge also answers commands, streams live agent conversations, and lets you talk to a chat agent by just typing. See the [Telegram Bridge](/docs/concepts/telegram) page.
 
 ### GitHub auto-PR
 
@@ -158,7 +166,9 @@ CommandResponse{
 }
 ```
 
-Each transport handler renders the same `CommandResponse` into its native envelope (Discord components, Slack Block Kit, etc.). New commands plug into `commands.Route` once and surface everywhere a transport is wired.
+Each transport handler renders the same `CommandResponse` into its native envelope (Discord components, Slack Block Kit, Telegram HTML). New commands plug into `commands.Route` once and surface everywhere a transport is wired.
+
+Torch (v10.0.0) fixed a long-standing gap here: the Slack and Discord handlers shipped in Flare were never actually registered in production, and the router's `CommandContext` callbacks had no production implementation — `/watchfire status | retry | cancel` was reachable only from tests. A dependency-injected production `CommandContext` now scopes projects by Discord guild / Slack team, and the same implementation serves the [Telegram bridge](/docs/concepts/telegram) — one router, three transports.
 
 ### Discord interactions endpoint
 

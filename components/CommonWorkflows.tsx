@@ -48,7 +48,7 @@ const workflows = [
   {
     title: "Operate a fleet of repos",
     description:
-      "The Beacon dashboard rolls every project into one window — what's running, what needs attention, what's done. Slack, Discord, and OS notifications fan out the rest, so you don't have to keep the app open to know.",
+      "The Beacon dashboard rolls every project into one window — what's running, what needs attention, what's done. Slack, Discord, Telegram, and OS notifications fan out the rest — pair the Telegram bridge and you can watch and answer your agents from your phone.",
     href: "/docs/concepts/integrations",
     icon: (
       <svg

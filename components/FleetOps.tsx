@@ -78,7 +78,7 @@ const capabilities = [
   {
     title: "Integrations",
     description:
-      "Outbound webhooks, Slack, Discord, GitHub auto-PR. Inbound HTTP server with signature verification and idempotency, routing slash commands to a transport-agnostic command layer.",
+      "Outbound webhooks, Slack, Discord, Telegram, GitHub auto-PR. A long-polling Telegram bridge that pairs with your phone, plus an inbound HTTP server routing slash commands to a transport-agnostic command layer.",
     href: "/docs/concepts/integrations",
     icon: (
       <svg
