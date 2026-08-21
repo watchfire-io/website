@@ -78,7 +78,7 @@ const capabilities = [
   {
     title: "Integrations",
     description:
-      "Outbound webhooks, Slack, Discord, Telegram, GitHub auto-PR. A long-polling Telegram bridge that pairs with your phone, plus an inbound HTTP server routing slash commands to a transport-agnostic command layer.",
+      "Outbound webhooks, Slack, Discord, Telegram, GitHub auto-PR, plus an inbound HTTP server routing slash commands to a transport-agnostic command layer.",
     href: "/docs/concepts/integrations",
     icon: (
       <svg
@@ -165,7 +165,132 @@ export default function FleetOps() {
             </Link>
           ))}
         </div>
+
+        {/* Telegram bridge — the Torch 10.0 tentpole */}
+        <div
+          data-stagger
+          className="card-hover group relative mt-6 overflow-hidden rounded-2xl border border-zinc-200 bg-white/70 backdrop-blur-sm transition-all hover:border-fire-500/30 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-fire-400/30"
+        >
+          <div className="grid gap-8 p-6 sm:p-8 md:grid-cols-2 md:items-center md:gap-10">
+            <div>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-fire-500/30 bg-fire-500/10 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider text-fire-600 dark:border-fire-400/40 dark:bg-fire-400/10 dark:text-fire-300">
+                Telegram bridge
+              </span>
+              <h3 className="mt-3 text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                Watchfire in your pocket
+              </h3>
+              <p className="mt-3 text-base leading-relaxed text-zinc-600 dark:text-zinc-400">
+                Pair your own bot with the daemon and run the fleet from any phone. Just type in the chat to talk to an agent — one starts if nothing is running — and watch mode streams the replies back.
+              </p>
+              <ul className="mt-5 space-y-2.5 text-sm text-zinc-700 dark:text-zinc-300">
+                {telegramPoints.map((point) => (
+                  <li key={point.code} className="flex gap-3">
+                    <code className="mt-px shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[12px] text-fire-700 dark:bg-zinc-800 dark:text-fire-300">
+                      {point.code}
+                    </code>
+                    <span>{point.text}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-5 text-sm text-zinc-500 dark:text-zinc-500">
+                Outbound long-poll only — nothing listens on your machine. Pairing is a one-time code; unpaired chats get silence.
+              </p>
+              <Link
+                href="/docs/concepts/telegram"
+                className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-fire-600 dark:text-fire-300"
+              >
+                Set up the bridge in five minutes
+                <svg
+                  className="transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12h14M13 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+
+            <TelegramChatMock />
+          </div>
+        </div>
       </div>
     </section>
+  );
+}
+
+const telegramPoints = [
+  {
+    code: "/wildfire",
+    text: "Start the autonomous loop from the bus stop and get a milestone feed: generated, implementing, merged.",
+  },
+  {
+    code: "/status all",
+    text: "One line per project — what's working, what's idle, what needs you.",
+  },
+  {
+    code: "/login",
+    text: "Claude's OAuth token expired? Tap the link, send the code back. No trip to the keyboard.",
+  },
+];
+
+const chat: Array<{ from: "you" | "bot"; text: string; pre?: boolean }> = [
+  { from: "you", text: "/wildfire" },
+  {
+    from: "bot",
+    text: "▶ Started wildfire on watchfire-website. Replaced the running chat session.",
+  },
+  { from: "bot", text: "🔥 wildfire — implementing task 0151 — Add /login to the Telegram docs" },
+  { from: "bot", text: "⚒ Edit content/docs/concepts/telegram.mdx", pre: true },
+  { from: "bot", text: "✔ merged task 0151" },
+  { from: "you", text: "why did that take two tries?" },
+  {
+    from: "bot",
+    text: "The first build failed on a stale snapshot test — I regenerated it and re-ran the suite before committing.",
+  },
+];
+
+function TelegramChatMock() {
+  return (
+    <div
+      role="img"
+      aria-label="A Telegram chat with the Watchfire bot: the user sends /wildfire, the bot streams wildfire milestones and a merge, then answers a plain-text question."
+      className="mx-auto w-full max-w-sm"
+    >
+      <div className="overflow-hidden rounded-2xl border border-zinc-700/70 bg-[#16181d] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+        <div className="flex items-center gap-3 border-b border-zinc-800 px-4 py-3">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-fire-400 to-ember-500 text-sm" aria-hidden="true">
+            🔥
+          </span>
+          <div className="min-w-0 leading-tight">
+            <p className="truncate text-sm font-semibold text-zinc-100">watchfire_bot</p>
+            <p className="text-[11px] text-zinc-500">typing…</p>
+          </div>
+        </div>
+        <div className="space-y-2 px-3 py-4 text-[13px] leading-snug">
+          {chat.map((m, i) => (
+            <div key={i} className={m.from === "you" ? "flex justify-end" : "flex justify-start"}>
+              <div
+                className={
+                  m.from === "you"
+                    ? "max-w-[82%] rounded-2xl rounded-br-md bg-fire-500/90 px-3 py-1.5 text-white"
+                    : m.pre
+                      ? "max-w-[88%] rounded-2xl rounded-bl-md bg-zinc-800/80 px-3 py-1.5 font-mono text-[12px] text-zinc-300"
+                      : "max-w-[88%] rounded-2xl rounded-bl-md bg-zinc-800/80 px-3 py-1.5 text-zinc-200"
+                }
+              >
+                {m.text}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

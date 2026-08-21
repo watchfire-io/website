@@ -64,12 +64,13 @@ Each paired chat remembers its active project (`/use`, persisted across daemon r
 | `/use <name\|number>` | Pick the project this chat talks to (fuzzy name match; persisted) |
 | `/status` / `/status all` | Active project detail — agent state, current task, counts, needs-attention — or the one-line-per-project fleet view |
 | `/tasks` | Top active tasks |
-| `/run <n>` / `/run all` | Run one task / drain every ready task. Refuses if an agent is already running — never queues, never replaces |
-| `/wildfire` / `/wildfire off` | Start or stop the autonomous [Wildfire](/docs/concepts/agent-modes#wildfire) loop. While watching, wildfire relays a milestone feed instead of a raw stream |
-| `/generate` / `/plan` | Generate the project definition / generate tasks from it, refusal-gated like `/run` |
-| `/new` | Start a fresh chat session, clearing the conversation context |
+| `/run <n>` / `/run all` | Run one task / drain every ready task. A mode switch from Telegram behaves like the GUI's mode buttons and the TUI: it **replaces** whatever agent is running (atomic kill+restart), and the confirmation names what was displaced — "Replaced the running chat session" |
+| `/wildfire` / `/wildfire off` | Start or stop the autonomous [Wildfire](/docs/concepts/agent-modes#wildfire) loop. Replaces a running agent like `/run` (an already-running wildfire is reported, not restarted). While watching, wildfire relays a milestone feed instead of a raw stream |
+| `/generate` / `/plan` | Generate the project definition / generate tasks from it; replaces a running agent like `/run` |
+| `/new` | Start a fresh chat session, clearing the conversation context. The one deliberate refusal: `/new` never displaces a *working* non-chat agent — it tells you to `/stop` first |
 | `/stop` | User-stop whatever is running — task, run-all or wildfire chain (the chain ends), or chat |
 | `/agent [name]` | Show or switch the project's default agent backend; applies to new sessions |
+| `/login` | Re-authenticate Claude from your phone — the bridge drives the session's own `/login` dialog, sends you the sign-in link, and pastes the code you send back. See [below](#re-authenticate-claude-from-your-phone) |
 | `/retry <n>` / `/cancel <n>` | Re-run a failed task / cancel a task (stops the agent, marks it failed) |
 | `/screen` | One-shot plain-text snapshot of the live session |
 | `/say <text>` | Inject text + Enter into the running agent's PTY — the bridge's only sanctioned write |
@@ -80,6 +81,8 @@ Each paired chat remembers its active project (`/use`, persisted across daemon r
 
 `/runall` and `/unmute` survive as hidden aliases of `/run all` and `/mute off`, so muscle memory from the release cycle still works — they just stay out of the autocomplete menu.
 
+The replace-on-start semantics landed in 10.0.2; 10.0.0 shipped the starters with the MCP `run_task` "never queue, never replace" contract, which made sense for an agent caller and none for a human on a phone. The [MCP tools](/docs/components/mcp-server) keep that contract untouched.
+
 ## Just type — the bridge is a conversation surface
 
 Plain text in a paired chat — no `/say` prefix — talks to a **chat agent**. Three cases:
@@ -89,6 +92,18 @@ Plain text in a paired chat — no `/say` prefix — talks to a **chat agent**. 
 - **Nothing running**: the bridge auto-starts a chat agent on the chat's project and delivers your message once the session is up. Concurrent messages queue against the same start — no double-start.
 
 A "typing…" indicator shows while the agent works, so the gap between coalesced replies never reads as silence.
+
+## Re-authenticate Claude from your phone
+
+Claude Code's OAuth token is revoked periodically (roughly every 12 hours on some accounts). The session prints "Please run /login · API Error: 401 OAuth access token has been revoked" and stalls until someone at the machine re-authenticates — the one failure that used to demand a trip back to the keyboard. Since 10.0.3, `/login` makes that fix remote.
+
+The sign-in URL the CLI shows carries a per-process PKCE challenge, so Watchfire can't pre-generate it. Instead, `/login` drives the live session's own dialog with the two primitives the bridge already has — screen snapshots to read, `injectSay` to write:
+
+1. It types `/login` into the session and confirms the method picker.
+2. It scrapes the `oauth/authorize` URL off the screen (joining wrapped lines) and sends it to the chat.
+3. It **arms** the chat: your next plain-text message is pasted into the session as the code. Send `cancel` to disarm.
+
+So the whole flow is: tap the link, approve, copy the code, send it back. When a watched session raises the `auth_required` issue, the relay posts a one-time hint pointing at `/login`, so the stall announces its own remedy. The dialog markers were pinned from a live capture of Claude Code v2.1.238 and the flow is covered by a scripted-dialog test — if a future CLI changes the dialog wording, `/login` says the link didn't appear and points you at `/screen` rather than typing blind.
 
 ## Watch mode
 

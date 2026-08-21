@@ -12,7 +12,7 @@ export const siteDescription =
 export const siteShareDescription =
   "Better context. Better code. Define what you want, and let Claude Code, OpenAI Codex, opencode, Gemini CLI, GitHub Copilot CLI, or Cursor Agent build it — in sandboxed git worktrees with clean transcripts.";
 
-export const softwareVersion = "10.0.0";
+export const softwareVersion = "10.0.3";
 
 export const socialLinks = {
   github: "https://github.com/watchfire-io/watchfire",

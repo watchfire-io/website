@@ -632,6 +632,11 @@ export default function CheatsheetPage() {
                     right:
                       "One-shot: read definition and create new task files.",
                   },
+                  {
+                    left: "Retrofit Def.",
+                    right:
+                      "Fold tasks shipped since the last retrofit back into the definition.",
+                  },
                 ]}
               />
               <p className="mt-3 text-[11.5px] text-zinc-500 dark:text-zinc-500">
@@ -643,6 +648,52 @@ export default function CheatsheetPage() {
                   /glossary#wildfire
                 </Link>{" "}
                 for plain-English definitions of every mode.
+              </p>
+            </SectionCard>
+
+            {/* Telegram bridge */}
+            <SectionCard
+              title="Telegram bridge"
+              href="/docs/concepts/telegram"
+              hrefLabel="docs →"
+            >
+              <MiniTable
+                rows={[
+                  {
+                    left: "just type",
+                    right:
+                      "Talk to a chat agent — one auto-starts if idle; replies stream back.",
+                  },
+                  { left: "/use <name>", right: "Pick the project this chat talks to." },
+                  {
+                    left: "/status [all]",
+                    right: "Project detail, or one line per project for the fleet.",
+                  },
+                  {
+                    left: "/run <n>|all",
+                    right: "Run a task / drain ready tasks. Replaces the running agent.",
+                  },
+                  {
+                    left: "/wildfire [off]",
+                    right: "Start/stop the loop; watch relays a milestone feed.",
+                  },
+                  { left: "/stop", right: "Stop whatever is running (chains end too)." },
+                  { left: "/new", right: "Fresh chat session — clears context." },
+                  {
+                    left: "/login",
+                    right: "Re-auth Claude from your phone: link out, code back.",
+                  },
+                  { left: "/screen", right: "Plain-text snapshot of the live session." },
+                  { left: "/say <text>", right: "Type into a working session explicitly." },
+                  {
+                    left: "/watch on|off",
+                    right: "Live conversation relay — on by default.",
+                  },
+                  { left: "/mute on|off", right: "Pause/resume pushed events." },
+                ]}
+              />
+              <p className="mt-3 text-[11.5px] text-zinc-500 dark:text-zinc-500">
+                Pair first: <code>watchfire telegram pair</code>. Unpaired chats get silence.
               </p>
             </SectionCard>
 
