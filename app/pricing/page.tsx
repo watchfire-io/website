@@ -7,7 +7,6 @@ import {
   Cpu,
   Eye,
   FileText,
-  Github,
   Scale,
   Sparkles,
   Tag,
@@ -15,6 +14,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import { Github } from "@/components/icons/Github";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CodeCopyButton } from "@/components/CodeCopyButton";

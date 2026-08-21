@@ -5,11 +5,11 @@ import {
   Code2,
   Cpu,
   Gem,
-  Github,
   MousePointer2,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
+import { Github } from "@/components/icons/Github";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { siteUrl } from "@/lib/site";

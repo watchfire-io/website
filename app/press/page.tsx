@@ -4,10 +4,10 @@ import Image from "next/image";
 import {
   Download,
   ExternalLink,
-  Github,
   Mail,
   MessageSquare,
 } from "lucide-react";
+import { Github } from "@/components/icons/Github";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CodeCopyButton } from "@/components/CodeCopyButton";

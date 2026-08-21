@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, Rocket, FileClock, Github, Search } from "lucide-react";
+import { BookOpen, Rocket, FileClock, Search } from "lucide-react";
+import { Github } from "@/components/icons/Github";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import FlameLogo from "@/components/FlameLogo";

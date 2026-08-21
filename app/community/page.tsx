@@ -6,13 +6,13 @@ import {
   Bug,
   Code2,
   FileText,
-  Github,
   LifeBuoy,
   Megaphone,
   MessagesSquare,
   Star,
   type LucideIcon,
 } from "lucide-react";
+import { Github } from "@/components/icons/Github";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import SignupCTA from "@/components/SignupCTA";

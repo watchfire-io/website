@@ -7,7 +7,6 @@ import {
   ExternalLink,
   FileText,
   GitBranch,
-  Github,
   HardDrive,
   KeyRound,
   Lock,
@@ -19,6 +18,7 @@ import {
   XCircle,
   type LucideIcon,
 } from "lucide-react";
+import { Github } from "@/components/icons/Github";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import FinalCTAServer from "@/components/FinalCTAServer";

@@ -5,11 +5,11 @@ import {
   ArrowRight,
   BookOpen,
   Check,
-  Github,
   Minus,
   MonitorDot,
   Terminal,
 } from "lucide-react";
+import { Github } from "@/components/icons/Github";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import FinalCTAServer from "@/components/FinalCTAServer";

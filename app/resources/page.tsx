@@ -9,7 +9,6 @@ import {
   ExternalLink,
   FileText,
   Gem,
-  Github,
   Headphones,
   Layers,
   Lightbulb,
@@ -21,6 +20,7 @@ import {
   Terminal,
   type LucideIcon,
 } from "lucide-react";
+import { Github } from "@/components/icons/Github";
 import BlogPostCard from "@/components/BlogPostCard";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";

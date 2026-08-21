@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
-  Github,
   HardDrive,
   Layers,
   Unlock,
   User,
 } from "lucide-react";
+import { Github } from "@/components/icons/Github";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { siteUrl } from "@/lib/site";
