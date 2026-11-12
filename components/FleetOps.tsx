@@ -235,6 +235,10 @@ const telegramPoints = [
     text: "One line per project — what's working, what's idle, what needs you.",
   },
   {
+    code: "/approve",
+    text: "An agent parked on a permission prompt pings your chat with the full command and a button per option. Tap to answer.",
+  },
+  {
     code: "/login",
     text: "Claude's OAuth token expired? Tap the link, send the code back. No trip to the keyboard.",
   },

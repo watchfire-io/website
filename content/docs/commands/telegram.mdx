@@ -53,7 +53,7 @@ Reports whether the integration is enabled, whether a token is stored (`token_se
 ## Notes
 
 - Pairing is the bridge's **security boundary** — the paired-chats list is the allowlist, and a code is the only way onto it. Unpaired chats get pairing instructions and nothing else.
-- Revoking a chat is done from the GUI or TUI paired-chats list (confirm-gated); the chat is dropped from the live bridge immediately.
+- Revoking a chat is done from the GUI or TUI paired-chats list (confirm-gated) or the MCP [`telegram_unpair`](/docs/components/mcp-server#telegram-tools) tool — the CLI has no `unpair`. The chat is dropped from the live bridge immediately.
 - The QR code for the deep link is a GUI affordance — the CLI and TUI print the code and link only.
 
 ## Common pitfalls

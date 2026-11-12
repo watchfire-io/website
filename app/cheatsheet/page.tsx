@@ -683,6 +683,14 @@ export default function CheatsheetPage() {
                     left: "/login",
                     right: "Re-auth Claude from your phone: link out, code back.",
                   },
+                  {
+                    left: "/approve | /deny",
+                    right: "Answer the approval prompt a session is parked on.",
+                  },
+                  {
+                    left: "/answer <n> [text]",
+                    right: "Pick option n of a forwarded prompt (or tap its button).",
+                  },
                   { left: "/screen", right: "Plain-text snapshot of the live session." },
                   { left: "/say <text>", right: "Type into a working session explicitly." },
                   {

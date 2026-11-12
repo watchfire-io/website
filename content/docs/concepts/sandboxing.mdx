@@ -48,7 +48,7 @@ The sandbox profile is generated at runtime from an internal `SandboxPolicy` str
 | Operation | Details |
 |-----------|---------|
 | **Read** | Most of the filesystem (project files, system libraries, tools) |
-| **Write** | Project directory, temp dirs, package manager caches (`~/.npm`, `~/.yarn`, `~/.pnpm-store`, `~/.cache`, `~/Library/Caches/*`), dev tool caches (`~/.cargo`, `~/go`, `~/.rustup`), Claude config (`~/.claude`), CLI tool config (`~/Library/Application Support`) |
+| **Write** | Project directory, temp dirs, package manager caches (`~/.npm`, `~/.yarn`, `~/.pnpm-store`, `~/.cache`, `~/Library/Caches/*`), dev tool caches (`~/.cargo`, `~/go`, `~/.rustup`), Claude config (`~/.claude`), CLI tool config (`~/Library/Application Support`), the login keychain directory (`~/Library/Keychains`, since 10.1.0 — macOS replaces the keychain atomically via a temp file beside it, so an agent can't persist a refreshed sign-in token without it; per-item keychain ACLs still gate individual secrets) |
 | **Execute** | Installed tools (git, npm, make, etc.) |
 | **Network** | Full network access |
 

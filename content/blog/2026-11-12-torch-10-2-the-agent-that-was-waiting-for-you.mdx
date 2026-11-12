@@ -1,0 +1,77 @@
+---
+title: "Torch 10.2: the agent that was waiting for you"
+date: "2026-11-12"
+summary: "An agent parked on an approval prompt used to be invisible — no banner, no status, no message, just a session that had quietly stopped. Torch 10.2 teaches the daemon to see Claude Code's approval dialogs, shows them on every surface, and lets you answer them from Telegram with a tap. Along the way: 10.1's four-bug story of why /login said \"Login successful\" and wasn't, the Telegram bridge over MCP, and a watch relay that stops cutting commands short."
+tags: ["release", "telegram", "mcp", "sandboxing"]
+author: "Nuno Coração"
+---
+
+The worst state an agent can be in is not failed. A failed task is loud: it turns a card red, pushes an event, lands in the needs-attention panel. The worst state is *waiting* — parked on "Do you want to proceed?" with a cursor blinking next to option 1, while every surface you own reports that things are running normally.
+
+That was Watchfire until this release. If a Claude Code session stopped on a tool-permission prompt, a plan-approval prompt, or an `AskUserQuestion` list, the daemon had no idea. Nothing on `get_agent_status`, nothing on the GUI or TUI banners, nothing on Telegram. You found out when you wondered why a task was taking so long and went to look at the screen.
+
+Torch 10.2 closes that gap, and this post also covers 10.1, which shipped in August without a post of its own.
+
+## Seeing the dialog
+
+The daemon already knew about four ways a session can be blocked: `auth_required`, `rate_limited`, `trust_dialog` and `sandbox_denied`. 10.2 adds a fifth — **`input_required`** — raised while Claude Code is parked on an approval dialog.
+
+The interesting part is how it decides. The cheap implementation greps the output stream for "Do you want to proceed?", and it is wrong the first time an agent prints a task prompt, a diff, or a markdown doc that quotes those words. So the detector doesn't read the stream at all. It reads the **rendered screen snapshot** after each PTY read and requires the whole frame: the question or header marker, consecutively numbered options with the pinned first-option wording, and the dialog footer. Text in scrollback can say anything it likes; it isn't a dialog unless it's drawn like one.
+
+Two more details keep it honest. The frame has to be stable for 250 ms before the issue is raised or cleared, because Claude Code's UI redraws in several writes and a naive detector would flap. And the issue clears the moment the dialog leaves the screen, whichever client answered it. The daemon never answers a dialog itself — it only notices.
+
+The issue carries the full prompt, including a multi-line command or diff under approval, and the ordered option labels. It shows up on the gRPC status, on MCP `get_agent_status`, on the TUI banner ("Waiting for your approval"), and on the GUI's issue banner and needs-attention panel.
+
+## Answering from your phone
+
+Seeing the prompt is half of it. The [Telegram bridge](/docs/concepts/telegram#approval-prompts) forwards every dialog to each paired, un-muted chat — whether or not `/watch` is on — as a "⏸ Waiting for your approval" message naming the project and task, the full prompt, the numbered options, and an inline button per option.
+
+Tap a button, or type `/approve`, `/deny`, or `/answer <n> [text]`.
+
+A button that types into a terminal from another continent needs to be careful about *what* it's answering, so the answer path has three checks:
+
+- **It re-reads the live dialog first.** If the prompt is gone or has changed, you get "That prompt is no longer waiting." and nothing is typed. A later dialog with identical wording makes the old buttons stale rather than letting them answer the new one.
+- **It verifies the result.** Success is reported only after the dialog has actually left the screen.
+- **It tells everyone.** The forwarded message is edited to "✅ option — answered by @you" in every chat that saw it, or to "no longer waiting" if someone handled it at the keyboard.
+
+One behaviour changed to make this safe. Plain text in a paired chat normally gets typed into the session followed by Enter. On a parked dialog, that Enter would have accepted whichever option was highlighted — so "wait, what does that command do?" could have approved the command. Plain text is now the typed answer only when the open question has a free-text option, and is refused otherwise.
+
+## One write site, two shapes
+
+Torch 10.0 made a promise: `injectSay` is the bridge's only PTY write, enforced by a test that parses the package source. Approval answers put pressure on that, because a dialog answer isn't a line of text.
+
+In current Claude Code, pressing a digit selects *and* submits an option instantly. Send "1" followed by Enter and the Enter lands on whatever is on screen next — a second queued permission dialog, or the input box with a ghost-text suggestion in it. So `injectSay` now takes a kind: `sayLine` (text, a beat, Enter — every existing caller) and `sayKeystroke` (the bytes alone, for dialog answers only). It is still the single `SendInput` call site in the package, and the guard test still fails the build if a second one appears.
+
+## Commands, whole
+
+A smaller fix that you'll notice more often: the watch relay used to compress every tool use to its first line, capped at 120 characters. Fine for `⚒ Edit internal/tui/model.go`. Useless for a heredoc, a multi-line Bash command, or a long one-liner — which is precisely the tool use you most want to read before it runs.
+
+Command-shaped tool uses now get a `⚒ Bash:` label over the full command in a preformatted block, split across messages if it outgrows one, with nothing truncated. Path-shaped ones keep the compact one-liner. And a forced split of an overlong line can no longer land in the middle of an HTML entity, which Telegram rejects outright.
+
+## 10.1: "Login successful" (it wasn't)
+
+10.0.3 shipped `/login` — re-authenticate Claude from your phone when its OAuth token is revoked. It worked in the sense that every step appeared to work. 10.1.0 is the story of four bugs stacked so that each one hid the next.
+
+**The keychain write was silently denied.** The sandbox profile allowed writes to the keychain *files*. But macOS replaces the keychain atomically: it creates a temp file beside the database and renames it over. Creating that temp file needs write permission on the *directory*. So every write failed with `EPERM`, in a place no user could see. `/login` completed the OAuth exchange and printed "Login successful"; the refreshed token had nowhere to land; the next request re-read the old revoked token and came back 401. Claude's own transcript shows the two events about two seconds apart in the same session. The profile now allows writes to `~/Library/Keychains` — wider than before, deliberately, since per-item keychain ACLs still gate individual secrets and an agent has to be able to store its own token to stay signed in.
+
+**The final Enter was never pressed.** Claude ends its login dialog with "Press Enter to continue…" and waits. Telegram had said "Code pasted" and moved on. The bridge now presses it, checks the dialog closed, and reports the account it signed in as.
+
+**The sign-in URL was corrupted.** The scraper rebuilt the wrapped URL by joining the whole screen, which welded `Paste code here if prompted >` onto the `state` parameter. That travelled to the browser and came back glued to your code.
+
+**The reply went to the wrong place.** The relay grows one Telegram message in place while the agent talks. After `/login`, that message was several bubbles up — so the answer to your original question was edited into the pre-login "Not logged in" message, indistinguishable from never arriving. Any reply the bridge posts now ends the in-place growth, which fixed the same splice after `/screen` and every other command.
+
+Also in 10.1: `WATCHFIRE_SANDBOX_TRACE=1` no longer kills every sandboxed agent (the debug flag emitted its directive above the profile's version line, which made the profile invalid — the thing meant to diagnose the sandbox broke it), and a multi-byte character split across a PTY read no longer breaks `get_agent_screen` for the rest of the session.
+
+## The bridge over MCP, and a skill
+
+10.1 also made the Telegram bridge drivable from the [MCP server](/docs/components/mcp-server#telegram-tools): `telegram_status`, `telegram_configure`, `telegram_pair` and `telegram_unpair`, taking the catalog from 18 tools to 22. `telegram_status` returns a `next_step` field naming the one action that unblocks setup, so a model doesn't have to infer it from four booleans. `telegram_pair` returns the code immediately rather than blocking. The bot token stays write-only end to end, and under `--read-only` the three mutating tools aren't registered at all.
+
+And the repo now ships a `watchfire` skill — one document that teaches an agent to operate Watchfire: the factory loop and its two traps (a task created `ready` is not started; `status: "done"` only means the agent *stopped*), the one-agent-per-project rule, why wildfire needs explicit consent, and a diagnosis ladder from status to live screen to logs.
+
+## The general lesson
+
+Both releases are about the same failure: a system reporting success, or reporting nothing, when the truth was "blocked". "Login successful" over a denied write. "Code pasted" over an unpressed Enter. A running indicator over an agent waiting for a yes.
+
+The fixes share a shape too. Don't trust what a step *says* — check the state afterwards. The login flow now confirms the dialog closed. The approval answer confirms the prompt left the screen. The dialog detector reads what is actually rendered rather than what scrolled past. An orchestrator's job is to know what its agents are really doing, and "waiting for you" is one of the things they do.
+
+Upgrade with `watchfire update`. Full details in the [changelog](/docs/changelog#1020-torch).

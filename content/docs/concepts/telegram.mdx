@@ -1,6 +1,6 @@
 ---
 title: Telegram Bridge
-description: Supervise Watchfire from your phone — pair a Telegram bot with the daemon, pick a project, watch the agent conversation live, and just type to talk to a chat agent.
+description: Supervise Watchfire from your phone — pair a Telegram bot with the daemon, pick a project, watch the agent conversation live, answer approval prompts, and just type to talk to a chat agent.
 howto:
   name: Set up the Watchfire Telegram bridge
   totalTime: PT5M
@@ -52,7 +52,7 @@ https://t.me/<bot_username>?start=<code>
 
 Open the link on your phone (or send `/pair <code>` to the bot). The bridge redeems the code with a constant-time compare, persists the chat, replies with a welcome and the command list, and invalidates the code. Codes are single-use; an expired or wrong code is refused.
 
-Unpaired chats get nothing — every message is ignored except `/start` and `/pair`, which reply with pairing instructions only. No project data ever flows to an unpaired chat. **Revoke** from the GUI or TUI paired-chats list drops the chat immediately; a revoked chat gets silence, not an error.
+Unpaired chats get nothing — every message is ignored except `/start` and `/pair`, which reply with pairing instructions only. No project data ever flows to an unpaired chat. **Revoke** from the GUI or TUI paired-chats list (or the MCP `telegram_unpair` tool) drops the chat immediately; a revoked chat gets silence, not an error.
 
 ## Commands
 
@@ -70,6 +70,7 @@ Each paired chat remembers its active project (`/use`, persisted across daemon r
 | `/new` | Start a fresh chat session, clearing the conversation context. The one deliberate refusal: `/new` never displaces a *working* non-chat agent — it tells you to `/stop` first |
 | `/stop` | User-stop whatever is running — task, run-all or wildfire chain (the chain ends), or chat |
 | `/agent [name]` | Show or switch the project's default agent backend; applies to new sessions |
+| `/approve` / `/deny` / `/answer <n> [text]` | Answer the approval dialog a session is parked on — or just tap the inline button on the forwarded prompt. See [Approval prompts](#approval-prompts) (10.2.0) |
 | `/login` | Re-authenticate Claude from your phone — the bridge drives the session's own `/login` dialog, sends you the sign-in link, and pastes the code you send back. See [below](#re-authenticate-claude-from-your-phone) |
 | `/retry <n>` / `/cancel <n>` | Re-run a failed task / cancel a task (stops the agent, marks it failed) |
 | `/screen` | One-shot plain-text snapshot of the live session |
@@ -95,6 +96,45 @@ Plain text in a paired chat — no `/say` prefix — talks to a **chat agent**. 
 
 A "typing…" indicator shows while the agent works, so the gap between coalesced replies never reads as silence.
 
+One exception, since 10.2.0: plain text is **never typed at a session parked on an approval dialog**. Text plus Enter would accept whichever option happened to be highlighted. If the open question has a free-text option, your message becomes the typed answer; otherwise it is refused and the bridge points you at the buttons.
+
+## Approval prompts
+
+An agent stopped on a question used to be invisible. When Claude Code parked on a tool-permission prompt, a plan-approval prompt, or an `AskUserQuestion` list, nothing surfaced anywhere — the session just sat blocked until someone looked at the screen. Since 10.2.0 the daemon detects those dialogs and raises **`input_required`**, a fifth blocking issue type alongside `auth_required`, `rate_limited`, `trust_dialog` and `sandbox_denied`. It shows on the TUI banner ("Waiting for your approval"), the GUI issue banner and needs-attention panel, the gRPC status, and MCP [`get_agent_status`](/docs/components/mcp-server) — carrying the full prompt and the ordered option labels.
+
+On Telegram, each dialog becomes one message per paired, un-muted chat — **whether or not `/watch` is on**. Roughly (the option labels are whatever Claude Code shows):
+
+```text
+⏸ Waiting for your approval
+my-project — task 0042
+
+Bash command
+  rm -rf dist && pnpm build
+
+Do you want to proceed?
+1. Yes
+2. Yes, and don't ask again for pnpm build
+3. No, and tell Claude what to do differently
+
+[ 1. Yes ]  [ 2. Yes, and don't ask… ]  [ 3. No, and tell… ]
+```
+
+Anything over two lines rides a `<pre>` block chunked across messages, so a multi-line command, a diff, or a whole plan is never cut. Answer by tapping a button, or with a command:
+
+| Command | Does |
+|---------|------|
+| `/approve` | Approve the waiting prompt |
+| `/deny` | Decline it |
+| `/answer <n> [text]` | Pick option `n`; the optional text is typed for an option that takes free text |
+
+Three guarantees keep a tap from landing on the wrong thing:
+
+- **Stale prompts are refused.** The answer re-reads the live dialog first; if it is gone or different you get "That prompt is no longer waiting." and nothing is typed. A later dialog with identical wording makes old buttons stale rather than answering the new prompt.
+- **Success is verified.** The bridge checks the dialog actually left the screen before reporting it answered.
+- **Every chat converges.** The forwarded message is edited to `✅ <option> — answered by @user` in every chat that was shown it, or to "no longer waiting" when someone dealt with it in the GUI or TUI.
+
+Detection is deliberately strict. It reads the rendered screen snapshot, not the raw line stream, and requires the full dialog frame — header marker, consecutively numbered options with the pinned first-option wording, and the dialog footer — so the same wording quoted in scrollback (a task prompt, a diff, a markdown doc) can't trip it. The frame must hold for 250 ms before the issue is raised or cleared, so redraws don't flap it. Markers were pinned from live captures of Claude Code v2.1.322. The daemon never answers a dialog itself.
+
 ## Re-authenticate Claude from your phone
 
 Claude Code's OAuth token is revoked periodically (roughly every 12 hours on some accounts). The session prints "Please run /login · API Error: 401 OAuth access token has been revoked" and stalls until someone at the machine re-authenticates — the one failure that used to demand a trip back to the keyboard. Since 10.0.3, `/login` makes that fix remote.
@@ -104,16 +144,21 @@ The sign-in URL the CLI shows carries a per-process PKCE challenge, so Watchfire
 1. It types `/login` into the session and confirms the method picker.
 2. It scrapes the `oauth/authorize` URL off the screen (joining wrapped lines) and sends it to the chat.
 3. It **arms** the chat: your next plain-text message is pasted into the session as the code. Send `cancel` to disarm.
+4. It watches the screen after the paste, presses Enter on Claude's "Login successful. Press Enter to continue…" confirmation, checks the dialog actually closed, and reports the account: `✅ Logged in as you@example.com. The session is back — just type to keep going.` A rejected code is reported as rejected rather than timing out.
 
 So the whole flow is: tap the link, approve, copy the code, send it back. When a watched session raises the `auth_required` issue, the relay posts a one-time hint pointing at `/login`, so the stall announces its own remedy. The dialog markers were pinned from a live capture of Claude Code v2.1.238 and the flow is covered by a scripted-dialog test — if a future CLI changes the dialog wording, `/login` says the link didn't appear and points you at `/screen` rather than typing blind.
+
+<Callout title="Upgrade to 10.1.0 or later for /login">
+The 10.0.3 flow got as far as "Login successful" and then quietly failed: the macOS sandbox profile allowed writes to the keychain *files*, but the keychain is replaced atomically via a temp file in the same directory, so the refreshed token was never persisted and the next request 401'd. 10.1.0 allows writes to `~/Library/Keychains`, presses the final Enter, stops welding the next screen line onto the sign-in URL, and delivers the post-login reply as a fresh message instead of editing it into the pre-login bubble.
+</Callout>
 
 ## Watch mode
 
 `/watch on` streams the agent's *conversation* — not raw PTY bytes, which are ANSI soup from an alt-screen TUI. Watch is **on by default** for every paired chat, and a chat that hasn't picked a project auto-attaches to the most recently started live session; `/use` pins it.
 
-- **Primary tier — transcript tail.** For Claude Code sessions, a 1-second polling tailer reads the agent-native JSONL transcript, relaying assistant text verbatim and tool uses as one-liners (`⚒ Edit internal/tui/model.go`).
+- **Primary tier — transcript tail.** For Claude Code sessions, a 1-second polling tailer reads the agent-native JSONL transcript, relaying assistant text verbatim and path-shaped tool uses (Edit/Read/Grep …) as one-liners (`⚒ Edit internal/tui/model.go`). Command-shaped tool uses get a `⚒ Bash:` label over the **full command** in a `<pre>` block — since 10.2.0 nothing is truncated; a command longer than one Telegram message is split across messages.
 - **Fallback tier — screen deltas.** Backends without a tailable transcript get debounced (≥5s), change-only plain-text screen snapshots.
-- **Rate discipline.** 4096-character chunking at line boundaries, at most one send per 2.5 seconds with coalescing, edit-in-place growth of the current message, and a flood cap that throttles heavy output with a one-time pointer at the GUI.
+- **Rate discipline.** 4096-character chunking at line boundaries, at most one send per 2.5 seconds with coalescing, edit-in-place growth of the current message (ended whenever the bridge posts a reply of its own, so later output opens a fresh bubble in the right place), and a flood cap that throttles heavy output with a one-time pointer at the GUI.
 - **Markers.** Sessions open with `▶ task NNNN — title` and close with the task outcome — `✔ merged`, `✖ failed: reason`, `⚠ merge failed`, `■ session ended`. Wildfire sessions relay a phone-glanceable milestone feed instead: `🔥 wildfire — generating new tasks…`, `✚ generated task NNNN — title`, `🔥 wildfire — implementing task NNNN — title`.
 
 ## Guaranteed not to disturb the local session
@@ -121,9 +166,13 @@ So the whole flow is: tap the link, approve, copy the code, send it back. When a
 The bridge observes sessions through a read-only seam and holds no PTY handle. Two invariants are **enforced by a guard test** that parses the package source and fails the build on violation, not just asserted in review:
 
 1. **The bridge never calls `Resize`.** Terminal size is global per project — an external bridge resizing would fight the attached TUI or GUI.
-2. **`injectSay` is the only PTY write.** Exactly one sanctioned `SendInput` call site, reached from exactly two intents: the `/say` verb and plain-text chat forwarding.
+2. **`injectSay` is the only PTY write.** Exactly one sanctioned `SendInput` call site. It has two shapes: `sayLine` (text, a beat, Enter — `/say`, plain-text chat forwarding, the `/login` flow) and `sayKeystroke` (the bytes alone, for dialog answers only — in current Claude Code a digit selects *and* submits an option, so a trailing Enter would land on whatever appears next).
 
 Per-subscriber cursors mean a slow Telegram connection can only drop its own bytes. A TUI or GUI attached to the same session sees zero difference.
+
+## Driving the bridge from MCP
+
+Since 10.1.0 an outer agent can set up and inspect the bridge through four [MCP tools](/docs/components/mcp-server#telegram-tools) — `telegram_status`, `telegram_configure`, `telegram_pair`, and `telegram_unpair`. `telegram_status` returns a `next_step` field naming the one action that unblocks setup, and `telegram_unpair` is the only non-GUI/TUI surface that revokes a chat.
 
 ## Events
 
